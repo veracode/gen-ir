@@ -6,3 +6,9 @@
 //
 
 import Foundation
+
+public struct CLICoordinator {
+	enum Error: Swift.Error {
+		case xcodebuildFailure(String)
+	}
+}
