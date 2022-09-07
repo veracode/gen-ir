@@ -20,33 +20,35 @@ fileprivate enum ConfigurationKeys: String {
 }
 
 struct Configuration {
-  let projectName: String
-  let targetName: String
-  let configuration: String
-  let sdkName: String
-  let productModuleName: String
-  let frameworkPath: String
+	let projectName: String
+	let targetName: String
+	let configuration: String
+	let sdkName: String
+	let productModuleName: String
+	let frameworkPath: String
 	let shouldSkipGenSil: Bool
+	
+	var target: String?
 
-  init(from environment: Environment) throws {
-    projectName       = try Self.extract(.projectName, from: environment)
-    targetName        = try Self.extract(.targetName, from: environment)
-    configuration     = try Self.extract(.configuration, from: environment)
-    sdkName           = try Self.extract(.sdkName, from: environment)
-    productModuleName = try Self.extract(.productModuleName, from: environment)
-    frameworkPath     = try Self.extract(.frameworkPath, from: environment).trimmingCharacters(in: .whitespacesAndNewlines)
+	enum Error: Swift.Error {
+		case configurationError(message: String)
+	}
+	
+	init(from environment: Environment) throws {
+		projectName       = try Self.extract(.projectName, from: environment)
+		targetName        = try Self.extract(.targetName, from: environment)
+		configuration     = try Self.extract(.configuration, from: environment)
+		sdkName           = try Self.extract(.sdkName, from: environment)
+		productModuleName = try Self.extract(.productModuleName, from: environment)
+		frameworkPath     = try Self.extract(.frameworkPath, from: environment).trimmingCharacters(in: .whitespacesAndNewlines)
 		shouldSkipGenSil  = try Self.extract(.shouldSkipGenSil, from: environment) == "1" ? true : false
-  }
-
-  private static func extract(_ key: ConfigurationKeys, from environment: Environment) throws -> String {
-    if let value = environment[key.rawValue] {
-      return value
-    }
-
-    throw Error.configurationError(message: "\(key.rawValue) not found in configuration dictionary")
-  }
-
-  enum Error: Swift.Error {
-    case configurationError(message: String)
-  }
+	}
+	
+	private static func extract(_ key: ConfigurationKeys, from environment: Environment) throws -> String {
+		if let value = environment[key.rawValue] {
+			return value
+		}
+		
+		throw Error.configurationError(message: "\(key.rawValue) not found in configuration dictionary")
+	}
 }
