@@ -1,170 +1,166 @@
 import Foundation
 
 // Heavily inspired by https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html
-
 @main
 public struct gen_sil {
-  /// Runs a command returning the stdout
-  /// - Parameters:
-  ///   - command: the command to run
-  ///   - arguments: the arguments to pass to the command
-  ///   - environment: the environment variables to set
-  /// - Returns: stdout of the command run
-  private static func run(
-    _ command: String,
-    arguments: [String],
-    environment: [String: String] = ProcessInfo.processInfo.environment
-  ) -> String {
-    let pipe = Pipe()
-    let process = Process()
+	private static let xcrun = "/usr/bin/xcrun"
 
-    if #available(macOS 13.0, *) {
-      process.executableURL = URL(filePath: command)
-    } else {
-      process.launchPath = command
-    }
-    process.arguments = arguments
-    process.standardOutput = pipe
-    process.environment = environment
+	public static func main() throws {
+		var environment = ProcessInfo.processInfo.environment
+		let config: Configuration
 
-    if #available(macOS 10.13, *) {
-      try! process.run()
-    } else {
-      process.launch()
-    }
+		do {
+			config = try Configuration(from: environment)
+		} catch Configuration.Error.configurationError(let error) {
+			print("Configuration error: \(error)")
+			exit(1)
+		} catch {
+			print("Unexpected error: \(error)")
+			exit(1)
+		}
 
-    let data: Data
-    if #available(macOS 10.15.4, *) {
-      data = try! pipe.fileHandleForReading.readToEnd() ?? Data()
-    } else {
-      data = pipe.fileHandleForReading.readDataToEndOfFile()
-    }
+		// HACK: Because the new Xcode build system doesn't _yet_ support -dry-run
+		// we essentially have to compile twice. Have a env flag to stop the second run
+		// TODO: this will need to change - is there some metadata (or xcodeproj) we can parse for the file list?
+		guard !config.shouldSkipGenSil else {
+			print("============ should skip is set - skipping run ==============")
+			exit(0)
+		}
 
-    return String(data: data, encoding: .utf8)!
-  }
-
-  /// Unescapes a backslash escaped string
-  /// - Parameter string: the escaped string
-  /// - Returns: an unescaped string
-  private static func unescaped(string: String) -> String {
-    return string.replacingOccurrences(of: "\\\\", with: "\\")
-  }
-
-  /// Attempts to match a regex pattern in a string
-  /// - Parameters:
-  ///   - regex: the regex pattern
-  ///   - text: the text to attempt to match against
-  /// - Returns: the matches
-  private static func match(regex: String, in text: String) throws -> [NSTextCheckingResult] {
-    let regex = try NSRegularExpression(pattern: regex)
-    return regex.matches(in: text, range: NSMakeRange(0, text.count))
-  }
-
-  /// Ignores paths that containt '/build/'
-  /// - Parameter array: an array of file paths
-  /// - Returns: the array, without paths containing '/build/'
-  private static func ignoringBuildFiles(_ array: [String]) -> [String] {
-    // TODO: lol no this is terrible
-    return array.filter { !$0.contains("/build/") }
-  }
-
-  public static func main() {
-    // Collect environment variables
-    var environment = ProcessInfo.processInfo.environment
-
-    // HACK: Because the new Xcode build system doesn't _yet_ support -dry-run
-    // we essentially have to compile twice. Have a env flag to stop the second run
-    // TODO: this will need to change - is there some metadata (or xcodeproj) we can parse for the file list?
-    let shouldSkip = environment["SHOULD_SKIP_GEN_SIL"] ?? "0"
-
-    guard (shouldSkip == "0") else {
-      print("============ should skip is set - skipping run ==============")
-      exit(0)
-    }
-
-    // we now want to skip any new invocations of this tool
-    environment["SHOULD_SKIP_GEN_SIL"] = "1"
-
-    let projectName       = environment["PROJECT_NAME"]!
-    let targetName        = environment["TARGET_NAME"]!
-    let configuration     = environment["CONFIGURATION"]!
-    let sdkName           = environment["SDK_NAME"]!
-    let productModuleName = environment["PRODUCT_MODULE_NAME"]!
-    let frameworkPath     = environment["FRAMEWORK_SEARCH_PATHS"]!.trimmingCharacters(in: .whitespacesAndNewlines)
-
+		// we now want to skip any new invocations of this tool
+		environment["SHOULD_SKIP_GEN_SIL"] = "1"
     print("running xcodebuild from gen_sil")
 
-    // clean the project so Xcode doesn't skip invocations of swiftc
-    _ = run(
-      "/usr/bin/xcrun",
-      arguments: [
-        "xcodebuild", "clean"
-      ],
-      environment: environment
-    )
+		guard let archiveOutput = try runXcodeArchive(with: config, environment: environment) else {
+			print("Failed to get output from xcodebuild archive command")
+			exit(1)
+		}
 
-    // build the project
-    let buildOutput = run(
-      "/usr/bin/xcrun",
-      arguments: [
-        "xcodebuild",
-        "archive",
-        "-project", "\(projectName).xcodeproj",
-        "-target", targetName,
-        "-configuration", configuration,
-        "-sdk", sdkName,
-      ],
-      environment: environment
-    )
+		guard let target = try parseTarget(from: archiveOutput) else {
+			print("Failed to find target from output: ")
+			archiveOutput.split(separator: "\n").forEach { print($0) }
+			exit(1)
+		}
 
-    let swiftcRegex = ".*/swiftc.*[\\s]+-target[\\s]+([^\\s]*).*"
+		print("Found target: \(target)")
 
-    guard let targetMatch = try! match(regex: swiftcRegex, in: buildOutput).first else {
-      print("No target match found!!")
-      print(buildOutput)
-      exit(1)
-    }
+		guard let sourceFiles = try parseSourceFiles(from: archiveOutput) else {
+			print("Failed to find source files from output: ")
+			archiveOutput.split(separator: "\n").forEach { print($0) }
+			exit(1)
+		}
 
-    let target = (buildOutput as NSString).substring(with: targetMatch.range(at: 1))
-    print("Found target match! \(target)")
-
-    let sourceRegex = "(/([^ ]|(?<=\\\\) )*\\.swift(?<!\\\\))"
-
-    guard let sourceMatches = try? match(regex: sourceRegex, in: buildOutput) else {
-      print("No source match found!!")
-      print(buildOutput)
-      exit(1)
-    }
-
-    let sourceFiles = Set(ignoringBuildFiles(sourceMatches.map { unescaped(string: (buildOutput as NSString).substring(with: $0.range(at: 1))) }))
     print("------- source files ----------")
     print(sourceFiles)
 
-    for sourceFile in sourceFiles {
-      let filename = ((sourceFile as NSString).lastPathComponent as String)
+		// emit IR for each source file
+		try sourceFiles.map { file in
+			getArguments(for: file, target: target, with: config)
+		}.forEach { arguments in
+			do {
+				let result = try emitIR(with: arguments)
+				print("result: \(result)")
+			} catch {
+				print("Failed to emit IR")
+			}
+		}
 
-      var arguments = [
-        "-sdk",
-        sdkName,
-        "swiftc",
-        "-emit-sil",
-        "-o", "/Users/thedderwick/Desktop/sil/\(filename).sil",
-        "-F", frameworkPath,
-        "-target", target,
-        "-module-name", productModuleName,
-        sourceFile
-      ]
+		exit(0)
+	}
 
-      // HACK: see https://github.com/apple/swift/issues/55127
-      // TODO: improve this check by looking for @main or other attributes
-      if filename == "AppDelegate.swift" {
-        arguments.append("-parse-as-library")
-      }
+	private static func runXcodeArchive(with config: Configuration, environment: Environment) throws -> String? {
+		// clean the project so Xcode doesn't skip invocations of swiftc
+		_ = try Process.runShell(
+			xcrun,
+			arguments: [
+				"xcodebuild", "clean"
+			],
+			environment: environment
+		)
 
-      let silResult = run("/usr/bin/xcrun", arguments: arguments)
-      print(silResult)
-    }
+		// build the project
+		return try Process.runShell(
+			xcrun,
+			arguments: [
+				"xcodebuild",
+				"archive",
+				"-project", "\(config.projectName).xcodeproj",
+				"-target", config.targetName,
+				"-configuration", config.configuration,
+				"-sdk", config.sdkName,
+			],
+			environment: environment
+		)
+	}
 
-    exit(0)
-  }
+	/// Attempts to match a regex pattern in a string
+	/// - Parameters:
+	///   - regex: the regex pattern
+	///   - text: the text to attempt to match against
+	/// - Returns: the matches
+	private static func match(regex: String, in text: String) throws -> [NSTextCheckingResult] {
+		let regex = try NSRegularExpression(pattern: regex)
+		return regex.matches(in: text, range: NSMakeRange(0, text.count))
+	}
+
+	private static func parseTarget(from output: String) throws -> String? {
+		let swiftcRegex = ".*/swiftc.*[\\s]+-target[\\s]+([^\\s]*).*"
+		if let targetMatch = try match(regex: swiftcRegex, in: output).first {
+			return (output as NSString).substring(with: targetMatch.range(at: 1))
+		}
+
+		return nil
+	}
+
+	private static func parseSourceFiles(from output: String) throws -> Set<String>? {
+		let sourceRegex = "(/([^ ]|(?<=\\\\) )*\\.swift(?<!\\\\))"
+		let sourceMatches = try match(regex: sourceRegex, in: output)
+
+		return Set(sourceMatches.map {
+			(output as NSString).substring(with: $0.range(at: 1)).unescaped()
+		}.filter {
+			// TODO: lol no this is terrible
+			!$0.contains("/build/")
+		})
+	}
+
+	private static func getArguments(for path: String, target: String, with config: Configuration) -> [String] {
+		let filename = ((path as NSString).lastPathComponent as String)
+
+		var arguments = [
+			"-sdk",
+			config.sdkName,
+			"swiftc",
+			//        "-emit-sil",
+			"-emit-ir",
+			"-g",
+			"-o", "/Users/thedderwick/Desktop/sil/\(filename).ll",
+			"-F", config.frameworkPath,
+			"-target", target,
+			"-module-name", config.productModuleName,
+			path
+		]
+
+		// HACK: see https://github.com/apple/swift/issues/55127
+		// TODO: improve this check by looking for @main or other attributes
+		if filename == "AppDelegate.swift" || filename == "ContentView.swift" {
+			arguments.append("-parse-as-library")
+		}
+
+		return arguments
+	}
+
+	private static func emitIR(with arguments: [String]) throws -> String? {
+		var arguments = arguments
+		arguments.append("-emit-ir")
+
+		return try Process.runShell(xcrun, arguments: arguments)
+	}
+
+	private static func emitSIL(with arguments: [String]) throws -> String? {
+		var arguments = arguments
+		arguments.append("-emit-sil")
+
+		return try Process.runShell(xcrun, arguments: arguments)
+	}
 }
