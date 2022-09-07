@@ -10,3 +10,4 @@ DerivedData/
 .netrc
 .swiftpm
 .vscode
+output/

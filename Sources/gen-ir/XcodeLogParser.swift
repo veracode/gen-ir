@@ -14,47 +14,56 @@ enum Compiler: String {
 }
 
 struct CompilerCommand {
-	var command: String
-	var compiler: Compiler
+	let command: String
+	let compiler: Compiler
 }
+
+typealias TargetsAndCommands = [String: [CompilerCommand]]
 
 /// Parses an Xcode build log to extract compiler commands used in the build
 struct XcodeLogParser {
-	/// The commands found in the Xcode build log
-	private(set) var commands: [CompilerCommand] = []
+	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
+	private(set) var targetsAndCommands: TargetsAndCommands = [:]
 
 	/// The Xcode build log contents
 	private let log: [String]
 
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
+		case noTargetsFound(String)
 	}
 
 	/// Inits an XcodeLogParser from an Xcode build log file
 	/// - Parameter path: the path to the Xcode build log file
 	init(path: URL) throws {
 		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
-		self.commands = extractCompilerCommands(log)
+		self.targetsAndCommands = extractCompilerCommands(log)
 
-		if commands.isEmpty {
-			logger.debug("log: \(log)")
-			throw Error.noCommandsFound(
-				"""
-				No commands were parsed from the build log, \
-				if there are compiler commands in this log file please report this as a bug
-				"""
-			)
-		}
+		try checkTargetAndCommandValidity()
 	}
 
 	/// Creates an XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
 	init(log: [String]) throws {
 		self.log = log
-		self.commands = extractCompilerCommands(log)
+		self.targetsAndCommands = extractCompilerCommands(log)
 
-		if commands.isEmpty {
-			logger.debug("log: \(log)")
+		try checkTargetAndCommandValidity()
+	}
+
+	private func checkTargetAndCommandValidity() throws {
+		if targetsAndCommands.keys.isEmpty {
+			logger.debug("Found no targets in log: \(log)")
+
+			throw Error.noTargetsFound(
+				"""
+				No targets were parsed from the build log, if there are targets in the log file please report this as a bug
+				"""
+			)
+		}
+
+		if targetsAndCommands.values.filter({ $0.isEmpty }).count != 0 {
+			logger.debug("Found no compiler commands in log: \(log)")
 			throw Error.noCommandsFound(
 				"""
 				No commands were parsed from the build log, \
@@ -64,23 +73,62 @@ struct XcodeLogParser {
 		}
 	}
 
-	/// Extracts compiler commands from an array representing the contents of an Xcode build log
+	/// Extracts targets and compiler commands from an array representing the contents of an Xcode build log
 	/// - Parameter lines: contents of the Xcode build log lines
-	/// - Returns: list of commands and the compiler type used to generate them
-	private func extractCompilerCommands(_ lines: [String]) -> [CompilerCommand] {
-		return lines.compactMap {
-			var stripped = $0.trimmingCharacters(in: .whitespacesAndNewlines)
-			if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
-				stripped = String(stripped[index..<stripped.endIndex])
+	/// - Returns: map of targets and the commands the compiler used to generate them
+	private func extractCompilerCommands(_ lines: [String]) -> TargetsAndCommands {
+		var currentTarget: String?
+		var result: TargetsAndCommands = [:]
+
+		for line in lines {
+			if let target = getTarget(from: line) {
+				currentTarget = target
 			}
 
-			if stripped.contains("/swiftc") {
-				return .init(command: stripped, compiler: .swiftc)
-			} else if stripped.contains("/clang") {
-				return .init(command: stripped, compiler: .clang)
+			guard let compilerCommand = getCompilerCommand(from: line) else {
+				continue
 			}
 
-			return nil
+			guard let currentTarget else {
+				logger.warning("No target was found for this command - \(line)")
+				continue
+			}
+
+			if result[currentTarget] == nil {
+				result[currentTarget] = []
+			}
+
+			result[currentTarget]!.append(compilerCommand)
 		}
+
+		return result
+	}
+
+	private func getTarget(from line: String) -> String? {
+		guard line.contains("Build target ") else { return nil }
+
+		var result = line.replacingOccurrences(of: "Build target ", with: "")
+
+		if let bound = result.range(of: "of ")?.lowerBound {
+			result = String(result[result.startIndex..<bound])
+		}
+
+		return result.trimmingCharacters(in: .whitespacesAndNewlines)
+	}
+
+	private func getCompilerCommand(from line: String) -> CompilerCommand? {
+		var stripped = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
+			stripped = String(stripped[index..<stripped.endIndex])
+		}
+
+		if stripped.contains("/swiftc") {
+			return .init(command: stripped, compiler: .swiftc)
+		} else if stripped.contains("/clang") {
+			return .init(command: stripped, compiler: .clang)
+		}
+
+		return nil
 	}
 }

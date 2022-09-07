@@ -1,16 +1,48 @@
-# gen-ir
+<h1 align="center">
+  <br>Gen IR 🧞‍♂️<br>
+</h1>
 
-`gen-ir` is a tool designed to extract LLVM IR from an Xcode build process. 
+<h4 align="center">
+  Generate LLVM IR from an Xcode Build Log
+</h4>
 
-It does this by parsing calls to the compiler, and rerunning them with the appropriate flags to generate the IR.
+`gen-ir` is a tool to enable developers to generate LLVM IR from an Xcode Build Log. It does this by parsing the log for compiler commands, adjusting those commands to produce IR, and then rerunning them.
 
-## Requirements for use
+## ⚠️ Before you use
 
-`gen-ir` requires that a **full** build log is provided. 
+It's important to know that `gen-ir` requires that a **full** build log is provided.
 
-That means a clean, fresh build of a project. The reason behind this the compiler won't make calls for artifacts that are already generated and don't need to be touched again. So using this with a non-clean build may result in modules being missed.
+**This means a clean, fresh build of a project.**
 
-## Building 
+The compiler will **not** make a call for an object that doesn't need to be rebuilt, and we will not be able to parse what doesn't exist. Ensure you do a clean before your build otherwise `gen-ir` may miss some modules.
+
+## Usage
+
+Run `gen-ir --help` for the latest usage.
+
+`gen-ir` takes input by two means, a path to a file or stdin:
+
+```bash
+# Path to build log (you can export from inside of Xcode too)
+xcodebuild clean && xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug > build_log.txt
+gen-ir build_log.txt ir_files/
+
+# Stdin (you may need to redirect stderr to stdout here, Xcode is weird about writing to it sometimes)
+xcodebuild clean && xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug | gen-ir - ir_files/
+```
+
+## Installing
+
+### Homebrew
+
+A tap is avaliable 
+
+## Requirements
+
+- macOS 12+
+- Xcode 14+
+
+## Building
 
 In a shell, change into the project directory and run:
 

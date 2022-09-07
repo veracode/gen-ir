@@ -9,53 +9,68 @@ import Foundation
 import Logging
 
 struct CompilerCommandRunner {
-	/// List of compiler commands found in the build log
-	private let commands: [CompilerCommand]
+	/// Map of targets and the compiler commands that were part of the target build
+	private let targetsAndCommands: TargetsAndCommands
 
 	/// The directory to place the LLVM IR output
 	private let output: URL
+
+	private let fileManager = FileManager.default
 
 	enum Error: Swift.Error {
 		case failedToParse(String)
 	}
 
-	init(commands: [CompilerCommand], output: URL) {
-		self.commands = commands
+	init(targetsAndCommands: TargetsAndCommands, output: URL) {
+		self.targetsAndCommands = targetsAndCommands
 		self.output = output
 	}
 
 	/// Runs the compiler commands, modifying them to emit IR
 	func run() throws {
 		let tempDirectory = NSTemporaryDirectory().appending("gen-sil\(UUID().uuidString)").fileURL
-		try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-		defer { try? FileManager.default.removeItem(at: tempDirectory) }
+		try fileManager.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+		defer { try? fileManager.removeItem(at: tempDirectory) }
+
+		let totalCommands = targetsAndCommands.reduce(0, { $0 + $1.value.count })
 
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
-		logger.info("Total commands to run: \(commands.count)")
+		logger.info("Total commands to run: \(totalCommands)")
 
 		var swiftModuleID = 0
 		var clangModuleCount = 0
 
-		for (index, command) in commands.enumerated() {
-			logger.info("Running command \(index + 1) of \(commands.count), total modules processed: \(swiftModuleID + clangModuleCount)")
+		for (target, commands) in targetsAndCommands {
+			let targetOutput = output.appendingPathComponent(target)
+			try fileManager.createDirectory(at: targetOutput, withIntermediateDirectories: true)
 
-			let fixedCommand = fixup(command: command.command)
-			let (executable, arguments) = try split(command: fixedCommand)
-			let fixedArguments = fixup(arguments: arguments, for: command.compiler)
+			logger.info("Operating on target: \(target)")
 
-			let result = try Process.runShell(executable, arguments: fixedArguments, runInDirectory: tempDirectory)
+			for (index, command) in commands.enumerated() {
+				logger.info("Running command \(index + 1) of \(commands.count). Total modules processed: \(swiftModuleID + clangModuleCount)")
 
-			logger.debug(
-				"""
-				Command ran: \(result.code) - has stdout: \(String(describing: result.stdout?.isEmpty)), \
-				has stderr: \(String(describing: result.stderr?.isEmpty))
-				"""
-			)
+				let fixedCommand = fixup(command: command.command)
+				let (executable, arguments) = try split(command: fixedCommand)
+				let fixedArguments = fixup(arguments: arguments, for: command.compiler)
 
-			if command.compiler == .swiftc {
-				try splitSwiftOutput(result, moduleID: &swiftModuleID, to: output)
-			} else if command.compiler == .clang {
-				try moveClangOutput(from: tempDirectory, to: output, moduleCount: &clangModuleCount)
+				let result = try Process.runShell(executable, arguments: fixedArguments, runInDirectory: tempDirectory)
+
+				logger.debug(
+					"""
+					Command ran: \(result.code) - has stdout: \(String(describing: result.stdout?.isEmpty)), \
+					has stderr: \(String(describing: result.stderr?.isEmpty))
+					"""
+				)
+
+				if let stdout = result.stdout {
+					logger.debug("stdout: \(stdout)")
+				}
+
+				if command.compiler == .swiftc {
+					try splitSwiftOutput(result, moduleID: &swiftModuleID, to: targetOutput)
+				} else if command.compiler == .clang {
+					try moveClangOutput(from: tempDirectory, to: targetOutput, moduleCount: &clangModuleCount)
+				}
 			}
 		}
 	}
@@ -178,18 +193,18 @@ struct CompilerCommandRunner {
 	///   - source: The directory to search for IR files in
 	///   - destination: The destination directory to place the files in
 	private func moveClangOutput(from source: URL, to destination: URL, moduleCount: inout Int) throws {
-		let files = try FileManager.default.getFiles(at: source, withSuffix: ".ll")
+		let files = try fileManager.files(at: source, withSuffix: ".ll")
 
 		moduleCount += files.count
 
 		for file in files {
 			let destinationPath = destination.appendingPathComponent(file.lastPathComponent)
 
-			if FileManager.default.fileExists(atPath: destinationPath.filePath) {
-				try FileManager.default.removeItem(at: destinationPath)
+			if fileManager.fileExists(atPath: destinationPath.filePath) {
+				try fileManager.removeItem(at: destinationPath)
 			}
 
-			try FileManager.default.moveItem(at: file, to: destination.appendingPathComponent(file.lastPathComponent))
+			try fileManager.moveItem(at: file, to: destination.appendingPathComponent(file.lastPathComponent))
 		}
 	}
 }

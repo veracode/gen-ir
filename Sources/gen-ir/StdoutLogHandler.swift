@@ -22,6 +22,8 @@ struct StdOutLogHandler: LogHandler {
 
 	var logLevel: Logging.Logger.Level = .info
 
+	init(label: String) { }
+
 	func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, source: String, file: String, function: String, line: UInt) {
 		let levelPrefix = getLevelPrefix(level)
 		let timestamp = getTimeStamp(level)
@@ -41,11 +43,11 @@ struct StdOutLogHandler: LogHandler {
 		case .notice:
 			return "[~] "
 		case .warning:
-			return "[!] "
+			return "[~] "
 		case .error:
-			return "[ERROR] "
+			return "[!] "
 		case .critical:
-			return "[CRITICAL] "
+			return "[!!!] "
 		}
 	}
 
@@ -58,16 +60,12 @@ struct StdOutLogHandler: LogHandler {
 		}
 	}
 
-	private func getLineInfo(_ level: Logger.Level, _ source: String , _ file: String, _ function: String, _ line: UInt) -> String {
+	private func getLineInfo(_ level: Logger.Level, _ source: String, _ file: String, _ function: String, _ line: UInt) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
-			return "[\(source) \(file):\(line) \(function)] "
+			return "[\(file):\(line) \(function)] "
 		case .info:
 			return ""
 		}
-	}
-
-	static func standard(label: String) -> StdOutLogHandler {
-		Self.init()
 	}
 }

@@ -30,8 +30,8 @@ extension FileManager {
 	///   - suffix: The suffix to match against file names
 	///   - recursive: A Boolean value to indicate whether a recursive search should be performed
 	/// - Returns: An array of URL file paths matching the suffix found in the specifed path
-	func getFiles(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
-		if !recursive {
+	func files(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
+		guard recursive else {
 			return try self.contentsOfDirectory(at: path, includingPropertiesForKeys: [.isRegularFileKey])
 				.filter { $0.lastPathComponent.hasSuffix(suffix) }
 		}
@@ -48,7 +48,7 @@ extension FileManager {
 					files.append(url)
 				}
 			} catch {
-				logger.error("getFiles failed to get resource values for path: \(url) with error: \(error)")
+				logger.error("files failed to get resource values for path: \(url) with error: \(error)")
 			}
 		}
 

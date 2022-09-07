@@ -10,26 +10,13 @@ import Logging
 // - Do we want autoupdates?
 // - DOCUMENT
 // - TEST!!!!!!!
-// - find a nice way to get a module & source file name for swiftc invocations
+// - Write customer facing documentation about how to use this tool to create a submission
 
-var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
+var logger: Logger!
 
 /// This structure encapsulates the various modes of operation of the program via subcommands
 @main
 struct ArtifactBuilder: ParsableCommand {
-	//	static let configuration = CommandConfiguration(
-	//		commandName: "",
-	//		discussion:
-	//			"""
-	//			Note: This tool requires a **full** build log, this often means performing a clean before building.
-	//			If you notice missing modules, please ensure you have done a clean build.
-	//			""",
-	//		subcommands: [LogArtifactBuilder.self]
-	//	)
-	enum Error: Swift.Error {
-		case pathDoesntExists(URL)
-		case failedToRead(String)
-	}
 
 	static let configuration = CommandConfiguration(
 		commandName: "",
@@ -45,25 +32,29 @@ struct ArtifactBuilder: ParsableCommand {
 
 		Example with build log:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > log.txt
-			$ gen-sil output_folder/ log.txt
+			$ gen-sil log.txt output_folder/
 
 		Example with pipe:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | gen-sil output_folder/ -
+			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | gen-sil - output_folder/
 		"""
 	)
 
-	@Argument(help: "Directory to write LLVM IR files to")
-	var outputPath: String
-
 	@Argument(help: "Path to a full Xcode build log, or - if piping build log in")
 	var logPath: String
+
+	@Argument(help: "Directory to write LLVM IR files to")
+	var outputPath: String
 
 	@Flag(help: "Enables debug level logging")
 	var debug = false
 
 	func run() throws {
-		LoggingSystem.bootstrap(StdOutLogHandler.standard)
-		setLogLevel()
+		LoggingSystem.bootstrap(StdOutLogHandler.init)
+		logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
+
+		if debug {
+			logger.logLevel = .debug
+		}
 
 		let parser = try getParser()
 		let output = outputPath.fileURL
@@ -72,17 +63,9 @@ struct ArtifactBuilder: ParsableCommand {
 			try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 		}
 
-		let runner = CompilerCommandRunner(commands: parser.commands, output: output)
+		let runner = CompilerCommandRunner(targetsAndCommands: parser.targetsAndCommands, output: output)
 
 		try runner.run()
-	}
-
-	private func setLogLevel() {
-		if debug {
-			logger.logLevel = .debug
-		} else {
-			logger.logLevel = .info
-		}
 	}
 
 	private func getParser() throws -> XcodeLogParser {

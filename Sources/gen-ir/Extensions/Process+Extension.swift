@@ -47,10 +47,12 @@ extension Process {
 		let stderrPipe = Pipe()
 		let process = Process()
 
+		let executable = command.replacingOccurrences(of: "\\", with: "")
+
 		if #available(macOS 10.13, *) {
-			process.executableURL = command.fileURL
+			process.executableURL = executable.fileURL
 		} else {
-			process.launchPath = command
+			process.launchPath = executable
 		}
 
 		process.arguments = arguments.map { $0.replacingOccurrences(of: "\\", with: "") }
