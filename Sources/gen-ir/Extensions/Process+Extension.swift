@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Process+Extension.swift
 //
 //
 //  Created by Thomas Hedderwick on 04/07/2022.
@@ -12,10 +12,6 @@ extension Process {
 		let stdout: String?
 		let stderr: String?
 		let code: Int32
-
-		var didError: Bool {
-			code != 0
-		}
 
 		init(stdout: String?, stderr: String?, code: Int32) {
 			if let stdout, stdout.isEmpty {
@@ -34,30 +30,30 @@ extension Process {
 		}
 	}
 
-	/// Runs a command in a shell returning the stdout
+	/// Runs a command in a shell.
 	/// - Parameters:
-	///   - command: the command to run
-	///   - arguments: the arguments to pass to the command
-	///   - environment: the environment variables to set
-	/// - Returns: stdout of the command run
+	///   - command: The command to run
+	///   - arguments: The arguments to pass to the command
+	///   - environment: The environment variables to run with
+	///   - runInDirectory: The directory to execute the process in
+	/// - Returns: A struct with the error code, stdout, and stderr
 	static func runShell(
 		_ command: String,
 		arguments: [String],
 		environment: [String: String] = ProcessInfo.processInfo.environment,
 		runInDirectory: URL? = nil
 	) throws -> ReturnValue {
-		// TODO: change this to get stderr too
 		let stdoutPipe = Pipe()
 		let stderrPipe = Pipe()
 		let process = Process()
-		
-		if #available(macOS 13.0, *) {
-			process.executableURL = URL(filePath: command)
+
+		if #available(macOS 10.13, *) {
+			process.executableURL = command.fileURL
 		} else {
 			process.launchPath = command
 		}
 
-		process.arguments = arguments
+		process.arguments = arguments.map { $0.replacingOccurrences(of: "\\", with: "") }
 		process.standardOutput = stdoutPipe
 		process.standardError = stderrPipe
 		process.standardInput = FileHandle.nullDevice
@@ -67,8 +63,8 @@ extension Process {
 			process.currentDirectoryURL = runInDirectory
 		}
 
-//		print("[DEBUG] RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
-		
+		print("[DEBUG] RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
+
 		if #available(macOS 10.13, *) {
 			try process.run()
 		} else {
@@ -103,4 +99,3 @@ extension Process {
 		)
 	}
 }
-

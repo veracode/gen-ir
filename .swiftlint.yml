@@ -1,0 +1,6 @@
+excluded:
+  - .build/
+
+line_length:
+  warning: 120
+  ignores_comments: true
