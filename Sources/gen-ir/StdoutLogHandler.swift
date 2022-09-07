@@ -61,7 +61,7 @@ struct StdOutLogHandler: LogHandler {
 	private func getLineInfo(_ level: Logger.Level, _ source: String , _ file: String, _ function: String, _ line: UInt) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
-			return "[\(source) \(file) \(function) \(line)] "
+			return "[\(source) \(file):\(line) \(function)] "
 		case .info:
 			return ""
 		}

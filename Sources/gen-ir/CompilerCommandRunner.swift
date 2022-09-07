@@ -33,10 +33,11 @@ struct CompilerCommandRunner {
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 		logger.info("Total commands to run: \(commands.count)")
 
-		var moduleID = 0
+		var swiftModuleID = 0
+		var clangModuleCount = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info("Running command \(index) of \(commands.count), total modules processed: \(moduleID)")
+			logger.info("Running command \(index + 1) of \(commands.count), total modules processed: \(swiftModuleID + clangModuleCount)")
 
 			let fixedCommand = fixup(command: command.command)
 			let (executable, arguments) = try split(command: fixedCommand)
@@ -52,9 +53,9 @@ struct CompilerCommandRunner {
 			)
 
 			if command.compiler == .swiftc {
-				try splitSwiftOutput(result, moduleID: &moduleID, to: output)
+				try splitSwiftOutput(result, moduleID: &swiftModuleID, to: output)
 			} else if command.compiler == .clang {
-				try moveClangOutput(from: tempDirectory, to: output)
+				try moveClangOutput(from: tempDirectory, to: output, moduleCount: &clangModuleCount)
 			}
 		}
 	}
@@ -176,8 +177,10 @@ struct CompilerCommandRunner {
 	/// - Parameters:
 	///   - source: The directory to search for IR files in
 	///   - destination: The destination directory to place the files in
-	private func moveClangOutput(from source: URL, to destination: URL) throws {
+	private func moveClangOutput(from source: URL, to destination: URL, moduleCount: inout Int) throws {
 		let files = try FileManager.default.getFiles(at: source, withSuffix: ".ll")
+
+		moduleCount += files.count
 
 		for file in files {
 			let destinationPath = destination.appendingPathComponent(file.lastPathComponent)

@@ -37,6 +37,7 @@ struct XcodeLogParser {
 		self.commands = extractCompilerCommands(log)
 
 		if commands.isEmpty {
+			logger.debug("log: \(log)")
 			throw Error.noCommandsFound(
 				"""
 				No commands were parsed from the build log, \
@@ -53,6 +54,7 @@ struct XcodeLogParser {
 		self.commands = extractCompilerCommands(log)
 
 		if commands.isEmpty {
+			logger.debug("log: \(log)")
 			throw Error.noCommandsFound(
 				"""
 				No commands were parsed from the build log, \
