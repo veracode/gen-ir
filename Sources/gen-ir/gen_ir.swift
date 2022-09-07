@@ -2,21 +2,12 @@ import Foundation
 import ArgumentParser
 import Logging
 
-// This project is heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html
-
-// TODO: List of TODOs:
-// - Security Review, especially around executing commands - should we clense? How do we verify these?
-// - How do we want to distribute? Homebrew? Downloads (NO)? Source? GitHub?
-// - Do we want autoupdates?
-// - DOCUMENT
-// - TEST!!!!!!!
-// - Write customer facing documentation about how to use this tool to create a submission
-
+/// Global logger object
 var logger: Logger!
 
-/// This structure encapsulates the various modes of operation of the program via subcommands
+/// Command to emit LLVM IR from an Xcode build log
 @main
-struct ArtifactBuilder: ParsableCommand {
+struct IREmitterCommand: ParsableCommand {
 
 	static let configuration = CommandConfiguration(
 		commandName: "",
@@ -39,12 +30,15 @@ struct ArtifactBuilder: ParsableCommand {
 		"""
 	)
 
+	/// Path to an Xcode build log, or `-` if build log should be read from stdin
 	@Argument(help: "Path to a full Xcode build log. If `-` is provided, stdin will be read")
 	var logPath: String
 
+	/// Path to write the LLVM IR results to
 	@Argument(help: "Directory to write output to")
 	var outputPath: String
 
+	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
 	var debug = false
 
@@ -69,6 +63,9 @@ struct ArtifactBuilder: ParsableCommand {
 		try runner.run()
 	}
 
+	/// Gets an `XcodeLogParser` for a path
+	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
+	/// - Returns: An `XcodeLogParser` for the given path
 	private func parser(for path: String) throws -> XcodeLogParser {
 		if path == "-" {
 			logger.info("Collating input via pipe")
@@ -79,6 +76,8 @@ struct ArtifactBuilder: ParsableCommand {
 		return try XcodeLogParser(path: path.fileURL)
 	}
 
+	/// Reads stdin until an EOF is found
+	/// - Returns: An array of Strings representing stdin split by lines
 	private func readStdin() -> [String] {
 		var results = [String]()
 

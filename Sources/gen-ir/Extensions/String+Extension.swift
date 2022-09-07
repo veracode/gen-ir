@@ -8,8 +8,7 @@
 import Foundation
 
 extension String {
-
-	/// Returns a string, replacing double escapes with singles
+	/// Replacing double escapes with singles
 	/// - Returns: the unescaped string
 	func unescaped() -> String {
 		self.replacingOccurrences(of: "\\\\", with: "\\")
@@ -24,13 +23,13 @@ extension String {
 		return .init(fileURLWithPath: self)
 	}
 
-	/// Returns an array of all indicies of a given substring, optionally starting from a specified index
+	/// Returns an array of all indices of a given substring, optionally starting from a specified index
 	/// - Parameters:
 	///   - substring: The substring to find the indices of
 	///   - starting: The position in the string to start the search from
-	/// - Returns: An array of indicies representing the start index of substring matches
-	func indicies(of substring: String, from starting: Index? = nil) -> [Index] {
-		var indicies = [Index]()
+	/// - Returns: An array of indices representing the start index of substring matches
+	func indices(of substring: String, from starting: Index? = nil) -> [Index] {
+		var indices = [Index]()
 
 		var current = starting ?? startIndex
 
@@ -39,11 +38,11 @@ extension String {
 			let range = range(of: substring, range: current..<endIndex),
 			!range.isEmpty
 		{
-			indicies.append(range.lowerBound)
+			indices.append(range.lowerBound)
 			current = range.upperBound
 		}
 
-		return indicies
+		return indices
 	}
 
 	/// Returns the first index of a character that hasn't been escaped

@@ -8,7 +8,6 @@
 import Foundation
 
 extension FileManager {
-
 	/// Returns a Boolean value that indicates whether a directory exists at the specified url
 	/// - Parameter url: The url of the directory. This is tilde expanded
 	/// - Returns: true if a directory exists at the specified path exists, or false if it doesn't exist or it does exist, but is a file
@@ -53,5 +52,15 @@ extension FileManager {
 		}
 
 		return files
+	}
+
+	/// Creates a temporary directory with a given name
+	/// - Parameter name: The name of the temporary directory
+	/// - Returns: The URL of the created temporary directory
+	func temporaryDirectory(named name: String) throws -> URL {
+		let tempDirectory = NSTemporaryDirectory().appending(name).fileURL
+		try createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+
+		return tempDirectory
 	}
 }

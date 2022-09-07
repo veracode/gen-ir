@@ -8,6 +8,8 @@
 
 `gen-ir` is a tool to enable developers to generate LLVM IR from an Xcode Build Log. It does this by parsing the log for compiler commands, adjusting those commands to produce IR, and then rerunning them.
 
+This tool was heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html ❤️
+
 ## ⚠️ Before you use
 
 It's important to know that `gen-ir` requires that a **full** build log is provided.
@@ -20,7 +22,7 @@ The compiler will **not** make a call for an object that doesn't need to be rebu
 
 Run `gen-ir --help` for the latest usage.
 
-`gen-ir` takes input by two means, a path to a file or stdin:
+`gen-ir` takes a Xcode build log by two means, a path to a file or stdin:
 
 ```bash
 # Path to build log (you can export from inside of Xcode too)
@@ -35,7 +37,7 @@ xcodebuild clean && xcodebuild build -project TestProject.xcodeproj -scheme Test
 
 ### Homebrew
 
-A tap is avaliable 
+A tap is coming soon ™️
 
 ## Requirements
 
@@ -54,4 +56,6 @@ The tool will be output to `.build/debug/gen-ir`
 
 ## TODO
 
-See `gen_ir.swift` for a list of outstanding TODOs
+- Documentation
+- Distribution
+- Pipeline

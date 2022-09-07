@@ -8,19 +8,7 @@
 import Foundation
 import Logging
 
-enum Compiler: String {
-	case clang
-	case swiftc
-}
-
-struct CompilerCommand {
-	let command: String
-	let compiler: Compiler
-}
-
-typealias TargetsAndCommands = [String: [CompilerCommand]]
-
-/// Parses an Xcode build log to extract compiler commands used in the build
+/// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 struct XcodeLogParser {
 	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
 	private(set) var targetsAndCommands: TargetsAndCommands = [:]
@@ -33,7 +21,7 @@ struct XcodeLogParser {
 		case noTargetsFound(String)
 	}
 
-	/// Inits an XcodeLogParser from an Xcode build log file
+	/// Inits a XcodeLogParser from an Xcode build log file
 	/// - Parameter path: the path to the Xcode build log file
 	init(path: URL) throws {
 		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
@@ -42,7 +30,7 @@ struct XcodeLogParser {
 		try checkTargetAndCommandValidity()
 	}
 
-	/// Creates an XcodeLogParser from the contents of an Xcode build log
+	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
 	init(log: [String]) throws {
 		self.log = log
