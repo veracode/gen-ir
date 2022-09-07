@@ -110,6 +110,8 @@ struct XcodeLogParser {
 
 		if let bound = result.range(of: "of ")?.lowerBound {
 			result = String(result[result.startIndex..<bound])
+		} else if let bound = result.range(of: "with configuration ")?.lowerBound {
+			result = String(result[result.startIndex..<bound])
 		}
 
 		return result.trimmingCharacters(in: .whitespacesAndNewlines)
