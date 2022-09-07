@@ -25,14 +25,14 @@ struct StdOutLogHandler: LogHandler {
 	init(label: String) { }
 
 	func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, source: String, file: String, function: String, line: UInt) {
-		let levelPrefix = getLevelPrefix(level)
-		let timestamp = getTimeStamp(level)
-		let lineInfo = getLineInfo(level, source, file, function, line)
+		let levelPrefix = prefix(for: level)
+		let timestamp = timestamp(for: level)
+		let lineInfo = lineInfo(for: level, source: source, file: file, function: function, line: line)
 
 		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)")
 	}
 
-	private func getLevelPrefix(_ level: Logger.Level) -> String {
+	private func prefix(for level: Logger.Level) -> String {
 		switch level {
 		case .trace:
 			return "[TRACE] "
@@ -51,7 +51,7 @@ struct StdOutLogHandler: LogHandler {
 		}
 	}
 
-	private func getTimeStamp(_ level: Logger.Level) -> String {
+	private func timestamp(for level: Logger.Level) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
 			return "\(Date.now) "
@@ -60,7 +60,7 @@ struct StdOutLogHandler: LogHandler {
 		}
 	}
 
-	private func getLineInfo(_ level: Logger.Level, _ source: String, _ file: String, _ function: String, _ line: UInt) -> String {
+	private func lineInfo(for level: Logger.Level, source: String, file: String, function: String, line: UInt) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
 			return "[\(file):\(line) \(function)] "

@@ -56,7 +56,7 @@ struct ArtifactBuilder: ParsableCommand {
 			logger.logLevel = .debug
 		}
 
-		let parser = try getParser()
+		let parser = try parser(for: logPath)
 		let output = outputPath.fileURL
 
 		if !FileManager.default.directoryExists(at: output) {
@@ -69,14 +69,14 @@ struct ArtifactBuilder: ParsableCommand {
 		try runner.run()
 	}
 
-	private func getParser() throws -> XcodeLogParser {
-		if logPath == "-" {
+	private func parser(for path: String) throws -> XcodeLogParser {
+		if path == "-" {
 			logger.info("Collating input via pipe")
 			return try XcodeLogParser(log: readStdin())
 		}
 
 		logger.info("Reading from log file")
-		return try XcodeLogParser(path: logPath.fileURL)
+		return try XcodeLogParser(path: path.fileURL)
 	}
 
 	private func readStdin() -> [String] {

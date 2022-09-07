@@ -76,14 +76,29 @@ struct XcodeLogParser {
 		var currentTarget: String?
 		var result: TargetsAndCommands = [:]
 
-		for line in lines {
-			if let target = getTarget(from: line) {
+		for (index, line) in lines.enumerated() {
+			if let target = target(from: line), currentTarget != target {
 				logger.debug("Found target: \(target)")
 				currentTarget = target
 			}
 
-			guard let compilerCommand = getCompilerCommand(from: line) else {
+			guard let compilerCommand = compilerCommand(from: line) else {
 				continue
+			}
+
+			// Check if this is part of a Ld block, if it is - we want to skip it
+			let twoLinesBack = lines.index(index, offsetBy: -2)
+
+			if lines.indices.contains(twoLinesBack) {
+				if lines[twoLinesBack].starts(with: "Ld ") {
+					logger.debug(
+						"""
+						Skipping Ld command:
+						\(lines[twoLinesBack..<lines.index(after: index)])
+						"""
+					)
+					continue
+				}
 			}
 
 			guard let currentTarget else {
@@ -103,21 +118,26 @@ struct XcodeLogParser {
 		return result
 	}
 
-	private func getTarget(from line: String) -> String? {
-		guard line.contains("Build target ") else { return nil }
+	private func target(from line: String) -> String? {
+		if line.contains("Build target ") {
+			var result = line.replacingOccurrences(of: "Build target ", with: "")
 
-		var result = line.replacingOccurrences(of: "Build target ", with: "")
+			if let bound = result.range(of: "of ")?.lowerBound {
+				result = String(result[result.startIndex..<bound])
+			} else if let bound = result.range(of: "with configuration ")?.lowerBound {
+				result = String(result[result.startIndex..<bound])
+			}
 
-		if let bound = result.range(of: "of ")?.lowerBound {
-			result = String(result[result.startIndex..<bound])
-		} else if let bound = result.range(of: "with configuration ")?.lowerBound {
-			result = String(result[result.startIndex..<bound])
+			return result.trimmingCharacters(in: .whitespacesAndNewlines)
+		} else if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
+			// sometimes (seemingly for archives) build logs follow a different format for targets
+			return String(line[startIndex..<endIndex])
 		}
 
-		return result.trimmingCharacters(in: .whitespacesAndNewlines)
+		return nil
 	}
 
-	private func getCompilerCommand(from line: String) -> CompilerCommand? {
+	private func compilerCommand(from line: String) -> CompilerCommand? {
 		var stripped = line.trimmingCharacters(in: .whitespacesAndNewlines)
 
 		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {

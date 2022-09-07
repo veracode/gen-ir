@@ -37,8 +37,7 @@ struct CompilerCommandRunner {
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 		logger.info("Total commands to run: \(totalCommands)")
 
-		var swiftModuleID = 0
-		var clangModuleCount = 0
+		var totalModulesRun = 0
 
 		for (target, commands) in targetsAndCommands {
 			let targetOutput = output.appendingPathComponent(target)
@@ -46,8 +45,11 @@ struct CompilerCommandRunner {
 
 			logger.info("Operating on target: \(target)")
 
+			var swiftModuleID = 0
+			var clangModuleCount = 0
+
 			for (index, command) in commands.enumerated() {
-				logger.info("Running command \(index + 1) of \(commands.count). Total modules processed: \(swiftModuleID + clangModuleCount)")
+				logger.info("Running command \(index + 1) of \(commands.count). Total modules processed: \(totalModulesRun)")
 
 				let fixedCommand = fixup(command: command.command)
 				let (executable, arguments) = try split(command: fixedCommand)
@@ -66,10 +68,30 @@ struct CompilerCommandRunner {
 					logger.debug("stdout is not empty - unusual: \(stdout)")
 				}
 
+				let swiftModuleIDBefore = swiftModuleID
+				let clangModuleCountBefore = clangModuleCount
+
 				if command.compiler == .swiftc {
 					try splitSwiftOutput(result, moduleID: &swiftModuleID, to: targetOutput)
 				} else if command.compiler == .clang {
 					try moveClangOutput(from: tempDirectory, to: targetOutput, moduleCount: &clangModuleCount)
+				}
+
+				let swiftModuleDifference =  swiftModuleID - swiftModuleIDBefore
+				let clangModuleCountDifferent = clangModuleCount - clangModuleCountBefore
+
+				totalModulesRun += swiftModuleDifference + clangModuleCountDifferent
+
+				if clangModuleCountDifferent == 0 && swiftModuleDifference == 0, (result.stdout != nil || result.stderr != nil) {
+					logger.error(
+						"""
+						No modules were produced from compiler, potential failure. Results: \n\n \
+						executable: \(executable)\n\n \
+						arguments: \(fixedArguments.joined(separator: " "))\n\n \
+						stdout: \(result.stdout ?? "None")\n\n \
+						stderr: \(result.stderr ?? "None")
+						"""
+					)
 				}
 			}
 		}
