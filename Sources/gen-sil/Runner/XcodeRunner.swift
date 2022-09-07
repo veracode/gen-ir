@@ -31,9 +31,17 @@ struct XcodeRunner: Runner {
 
 		// we now want to skip any new invocations of this tool
 		var environment = ProcessInfo.processInfo.environment
-		environment["SHOULD_SKIP_GEN_SIL"] = "1"
-		print("running xcodebuild from gen_sil")
+		guard environment["SHOULD_SKIP_GEN_SIL"] == nil else {
+			print("Already running gen sil, skipping")
+			exit(0)
+		}
 
+		environment["SHOULD_SKIP_GEN_SIL"] = "1"
+		print("running xcodebuild from gen_sil - cleaning")
+
+		try coordinator.clean(with: config)
+
+		print("archiving")
 		let archiveReturn = try coordinator.archive(with: config, environment: environment)
 		guard !archiveReturn.didError, let archiveOutput = archiveReturn.stdout else {
 			print("Failed to get output from xcodebuild archive command")

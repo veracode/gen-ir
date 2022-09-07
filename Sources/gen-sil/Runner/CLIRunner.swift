@@ -47,7 +47,7 @@ public class CLIRunner: Runner {
 	}
 
 	public init(input path: XcodeProjectPath, output: URL, scheme: String) throws {
-		buildSettings = try xcodeCoordinator.getBuildSettings(for: path)
+		buildSettings = try xcodeCoordinator.getBuildSettings(for: path, scheme: scheme)
 
 		configuration = try .init(path, output: output, buildSettings: buildSettings, scheme: scheme)
 	}
@@ -83,7 +83,7 @@ public class CLIRunner: Runner {
 
 		/* Swift files */
 		print("attempting emit for swift files: \(files.swiftFiles)")
-		let result = try xcodeCoordinator.emit(forSwiftFiles: files.swiftFiles + files.objcFiles, type: .ir, config: configuration)
+		let result = try xcodeCoordinator.emit(forSwiftFiles: files.swiftFiles, type: .ir, config: configuration)
 
 		setState(.parsingOutput)
 
@@ -122,6 +122,7 @@ public class CLIRunner: Runner {
 			}
 
 		guard indicies.count >= 1 else {
+			print(splitOutput.joined(separator: "\n"))
 			throw Error.failedToFindRequiredData("Failed to find module markers in output")
 		}
 
@@ -186,7 +187,7 @@ public class CLIRunner: Runner {
 
 		func getBuildDirectory(at url: URL) throws -> URL? {
 			try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])
-				.filter { $0.lastPathComponent.hasSuffix("build") }
+				.filter { $0.lastPathComponent.hasSuffix("\(configuration.targetName).build") }
 				.first
 		}
 
@@ -247,24 +248,26 @@ public class CLIRunner: Runner {
 		let dependenciesToken = "dependencies: "
 		let allowedExtensions = ["m", "mm", "c"] // TODO: does this need to include cxx, c++, user provided file names etc
 
-		return try FileManager.default.getFiles(at: path, withSuffix: ".d")
+		let paths = try FileManager.default.getFiles(at: path, withSuffix: ".d")
 			.compactMap { try? String(contentsOf: $0) }
 			.filter { $0.starts(with: dependenciesToken) }
-			.flatMap { contents -> [String] in
+			.flatMap { contents /*-> [String]*/ in
 				// Strip file contents to just file paths
 				return contents.dropFirst(dependenciesToken.count)
-					.split(separator: "\\")
+					.split(separator: "\n")
+					.map { $0.last == "\\" ? $0.dropLast() : $0 }
 					.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 			}
-			.compactMap { file -> String? in
-				// Check the extension is in the allowed list
-				guard let index = file.lastIndex(of: ".") else {
-					return nil
-				}
 
-				let suffix = String(file.suffix(from: file.index(after: index)))
-				return allowedExtensions.contains(suffix.lowercased()) ? file : nil
+		return paths.compactMap { filePath -> String? in
+			guard let index = filePath.lastIndex(of: ".") else {
+				return nil
 			}
-			.map { $0.fileURL }
+
+			let suffix = filePath.lowercased().suffix(from: filePath.index(after: index))
+
+			return allowedExtensions.contains(String(suffix)) ? filePath : nil
+		}
+		.map { $0.fileURL }
 	}
 }

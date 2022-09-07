@@ -11,11 +11,105 @@ struct ArtifactBuilder: ParsableCommand {
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		discussion:
+			// TODO: rewrite this
 		"""
 		It is important to note, this tool requires access to build artifacts - this means it is required that a **debug** iOS build has been performed with the current version of the project.
 		""",
-		subcommands: [XcodeArtifactBuilder.self, CLIArtifactBuilder.self]
+		subcommands: [XcodeArtifactBuilder.self, CLIArtifactBuilder.self, StdInArtifactBuilder.self, LogArtifactBuilder.self]
 	)
+}
+
+extension ArtifactBuilder {
+	struct StdInArtifactBuilder: ParsableCommand {
+		enum Error: Swift.Error {
+			case failedToReadStdin(String)
+		}
+
+		static let configuration = CommandConfiguration(
+			commandName: "-",
+			abstract: "Consumes a build log via stdin or log file",
+			discussion:
+				"""
+				When running this command, a build log is expected via stdin. This can be accomplished by piping the
+				result of an xcodebuild command into the tool or pointing it to a build log.
+
+				Note: a _full_ build is required in order to capture the compiler commands for each file in the project.
+				To ensure this, run `xcodebuild clean` first.
+
+				Example:
+					$ xcodebuild clean && xcodebuild build | gen_sil build-log -
+				"""
+		)
+
+		@Argument(help: "Output directory to write to")
+		var outputPath: String
+
+		func run() throws {
+			print("running -")
+
+			guard let input = readStdin() else {
+				throw Error.failedToReadStdin("Failed to read the build log via stdin")
+			}
+		}
+
+		private func readStdin() -> String? {
+			var result: String?
+
+			while let line = readLine() {
+				if var result {
+					result.append("\n\(line)")
+				} else {
+					result = line
+				}
+			}
+
+			return result
+		}
+	}
+}
+
+extension ArtifactBuilder {
+	struct LogArtifactBuilder: ParsableCommand {
+		enum Error: Swift.Error {
+			case pathDoesntExists(URL)
+			case encodingError(String)
+		}
+
+		static let configuration = CommandConfiguration(
+			commandName: "log",
+			abstract: "Consumes a build log file",
+			discussion:
+			"""
+			When running this command, a clean build log is expected at the path provided.
+
+			Note: a _full_ build is required in order to capture the compiler commands for each file in the project.
+			To ensure this, run `xcodebuild clean` first.
+
+			Example:
+				$ xcodebuild clean && xcodebuild build > log.txt
+				$ gen-sil log --output output -
+			"""
+		)
+
+		@Argument(help: "A full Xcode build log")
+		var logPath: String
+
+		@Argument(help: "Output directory to write to")
+		var outputPath: String
+
+		func run() throws {
+			print("running log: \(CommandLine.arguments)")
+
+			let path = logPath.fileURL
+
+			guard FileManager.default.fileExists(atPath: logPath) else {
+				throw Error.pathDoesntExists(path)
+			}
+
+			let parser = try XcodeLogParser(path: path)
+			try parser.parse()
+		}
+	}
 }
 
 extension ArtifactBuilder {

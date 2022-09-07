@@ -22,4 +22,21 @@ extension String {
 
 		return .init(fileURLWithPath: self)
 	}
+
+	func indicies(of substring: String, from starting: Index? = nil) -> [Index] {
+		var indicies = [Index]()
+
+		var current = starting ?? startIndex
+
+		while
+			current < endIndex,
+			let range = range(of: substring, range: current..<endIndex),
+			!range.isEmpty
+		{
+			indicies.append(range.lowerBound)
+			current = range.upperBound
+		}
+
+		return indicies
+	}
 }

@@ -177,6 +177,8 @@ struct XcodeCoordinator {
 //		}
 
 		if let frameworkSearchPath = config.frameworkPaths {
+			// TODO: is it just easier to parse the build log for compiler commands and then 
+			// TODO: Frameworks need to be seperated out like so "-F framework -F framework2 -F framwork3"
 			arguments.append("-F")
 			arguments.append(frameworkSearchPath)
 		}
@@ -196,7 +198,7 @@ struct XcodeCoordinator {
 		return try FileManager.default.getFiles(at: temporaryDirectory, withSuffix: ".ll")
 	}
 
-	public func getBuildSettings(for path: XcodeProjectPath) throws -> [String: String] {
+	public func getBuildSettings(for path: XcodeProjectPath, scheme: String) throws -> [String: String] {
 		// Derived Data can be set at a per-project level, so we need to ask xcodebuild for this information
 		var arguments = ["xcodebuild", "-showBuildSettings"]
 
@@ -208,6 +210,9 @@ struct XcodeCoordinator {
 			arguments.append("-workspace")
 			arguments.append(url.path)
 		}
+
+		arguments.append("-scheme")
+		arguments.append(scheme)
 
 		let processReturn = try Process.runShell(Self.xcrun, arguments: arguments)
 
