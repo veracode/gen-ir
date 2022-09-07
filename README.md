@@ -10,7 +10,7 @@ It does this by parsing calls to the compiler, and rerunning them with the appro
 
 That means a clean, fresh build of a project. The reason behind this the compiler won't make calls for artifacts that are already generated and don't need to be touched again. So using this with a non-clean build may result in modules being missed.
 
-## Building
+## Building 
 
 In a shell, change into the project directory and run:
 
