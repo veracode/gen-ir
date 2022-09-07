@@ -14,4 +14,12 @@ extension String {
 	func unescaped() -> String {
 		self.replacingOccurrences(of: "\\\\", with: "\\")
 	}
+
+	var fileURL: URL {
+		if #available(macOS 13.0, *) {
+			return .init(filePath: self)
+		}
+
+		return .init(fileURLWithPath: self)
+	}
 }

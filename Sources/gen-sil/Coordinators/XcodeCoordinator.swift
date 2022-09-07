@@ -22,7 +22,7 @@ struct XcodeCoordinator {
 	}
 	
 	// MARK: - Public
-	func archive(with config: Configuration, environment: Environment) throws -> String? {
+	func archive(with config: XcodeConfiguration, environment: EnvironmentMap) throws -> String? {
 		// clean the project so Xcode doesn't skip invocations of swiftc
 		_ = try Process.runShell(
 			Self.xcrun,
@@ -68,7 +68,7 @@ struct XcodeCoordinator {
 		})
 	}
 	
-	func emit(_ emit: EmitType, for path: String, target: String, config: Configuration) throws -> String? {
+	func emit(_ emit: EmitType, for path: String, target: String, config: XcodeConfiguration) throws -> String? {
 		var arguments = getArguments(for: path, target: target, with: config)
 		arguments.append(emit.rawValue)
 		
@@ -77,7 +77,7 @@ struct XcodeCoordinator {
 	
 	
 	// MARK: - Private
-	private func getArguments(for path: String, target: String, with config: Configuration) -> [String] {
+	private func getArguments(for path: String, target: String, with config: XcodeConfiguration) -> [String] {
 		let filename = ((path as NSString).lastPathComponent as String)
 		
 		var arguments = [

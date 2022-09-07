@@ -1,71 +1,100 @@
 import Foundation
+import ArgumentParser
 
-// Heavily inspired by https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html
+// This project is heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html
+
+let toolName = ((CommandLine.arguments.first! as NSString).lastPathComponent as String)
+
 @main
-public struct gen_sil {
-	public static func main() throws {
-		var environment = ProcessInfo.processInfo.environment
-		let config: Configuration
-		
-		do {
-			config = try Configuration(from: environment)
-		} catch Configuration.Error.configurationError(let error) {
-			print("Configuration error: \(error)")
-			exit(EXIT_FAILURE)
-		} catch {
-			print("Unexpected error: \(error)")
-			exit(EXIT_FAILURE)
-		}
+struct ArtifactBuilder: ParsableCommand {
+	enum Configuration: String, CaseIterable {
+		case xcode
+		case cli
+	}
 
-		guard config.shouldSkipGenSil == false else {
-			// HACK: Because the new Xcode build system doesn't _yet_ support -dry-run
-			// we essentially have to compile twice. Have a env flag to stop the second run
-			// TODO: this will need to change - is there some metadata (or xcodeproj) we can parse for the file list?
-			print("============ should skip is set - skipping run ==============")
-			exit(EXIT_SUCCESS)
-		}
-		
-		// we now want to skip any new invocations of this tool
-		environment["SHOULD_SKIP_GEN_SIL"] = "1"
-		print("running xcodebuild from gen_sil")
-		
-		let coordinator = XcodeCoordinator()
-		
-		guard let archiveOutput = try coordinator.archive(with: config, environment: environment) else {
-			print("Failed to get output from xcodebuild archive command")
-			exit(EXIT_FAILURE)
-		}
+	static let configuration = CommandConfiguration(
+		commandName: "",
+		subcommands: [XcodeArtifactBuilder.self, CLIArtifactBuilder.self]
+	)
 
-		// TODO: is this ever different from the target in the environment? If not, get rid of this
-		guard let target = try coordinator.parseTarget(from: archiveOutput) else {
-			print("Failed to find target from output: ")
-			archiveOutput.split(separator: "\n").forEach { print($0) }
-			exit(EXIT_FAILURE)
+
+}
+
+extension ArtifactBuilder {
+	struct XcodeArtifactBuilder: ParsableCommand {
+		static let configuration = CommandConfiguration(
+			commandName: "xcode",
+			abstract: "Runs \(toolName) in Xcode mode",
+			discussion:
+			"""
+			When running this tool in Xcode mode (normally when used as part of a Run Script Phase, the required input is
+			derived from the environment. This requires that certain environment variables are set by Xcode.
+			"""
+		)
+
+		@Argument(help: "Output directory to write to")
+		var outputPath: String?
+
+		func run() throws {
+			// TODO: present user-sensible errors here
+			var environment = ProcessInfo.processInfo.environment
+
+			if let outputPath {
+				environment[XcodeConfigurationKeys.outputPath.rawValue] = outputPath
+			}
+			
+			let config = try XcodeConfiguration(from: environment)
+			let runner = try XcodeRunner(configuration: config)
+			try runner.run()
 		}
-		
-		print("Found target: \(target)")
-		
-		guard let sourceFiles = try coordinator.parseSourceFiles(from: archiveOutput) else {
-			print("Failed to find source files from output: ")
-			archiveOutput.split(separator: "\n").forEach { print($0) }
-			exit(EXIT_FAILURE)
-		}
-		
-		print("------- source files ----------")
-		print(sourceFiles)
-		print("-------------------------------")
-		
-		// emit IR for each source file
-		sourceFiles.forEach { sourceFile in
-			do {
-				if let result = try coordinator.emit(.ir, for: sourceFile, target: target, config: config) {
-					print("result: \(result)")
+	}
+}
+
+extension ArtifactBuilder {
+	struct CLIArtifactBuilder: ParsableCommand {
+		static let configuration = CommandConfiguration(
+			commandName: "cli",
+			abstract: "Runs \(toolName) in CLI mode",
+			discussion: "When running this tool in CLI mode required input is taken via the command line."
+		)
+
+		@Option(name: .shortAndLong, help: "", transform: PathOption.init)
+		var path: PathOption
+
+		@Option(name: .shortAndLong, help: "Output directory to write to")
+		var output: String
+
+		enum PathOption {
+			case path(PathType)
+
+			init(_ string: String) throws {
+				if string.hasSuffix("xcodeproj") {
+					self = .path(.project(string.fileURL))
+				} else if string.hasSuffix("xcworkspace") {
+					self = .path(.workspace(string.fileURL))
+				} else {
+					throw ValidationError("Path is required to end in either 'xcodeproj' or 'xcworkspace'.")
 				}
-			} catch {
-				print("Failed to emit for file: \(sourceFile), error: \(error)")
+
+				// We do this check as this user provided input will eventually make it to various shell commands
+				var isDirectory = ObjCBool(false)
+				guard FileManager.default.fileExists(atPath: string, isDirectory: &isDirectory) else {
+					throw ValidationError("Path should be an existing folder")
+				}
+
+				if isDirectory.boolValue {
+					throw ValidationError("Path should be an xcodeproj or xcworkspace folder, not a file")
+				}
 			}
 		}
-		
-		exit(EXIT_SUCCESS)
+
+		func run() throws {
+			guard case .path(let pathType) = path else {
+				throw ValidationError("Path is a required argument")
+			}
+
+			let runner = try CLIRunner(configuration: CLIConfiguration(pathType, output: output.fileURL))
+			try runner.run()
+		}
 	}
 }

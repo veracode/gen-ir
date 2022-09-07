@@ -19,6 +19,7 @@ extension Process {
 		arguments: [String],
 		environment: [String: String] = ProcessInfo.processInfo.environment
 	) throws -> String? {
+		// TODO: change this to get stderr too
 		let pipe = Pipe()
 		let process = Process()
 		
