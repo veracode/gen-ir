@@ -24,7 +24,10 @@ struct StdOutLogHandler: LogHandler {
 
 	func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, source: String, file: String, function: String, line: UInt) {
 		let levelPrefix = getLevelPrefix(level)
-		print("\(levelPrefix)\(message)")
+		let timestamp = getTimeStamp(level)
+		let lineInfo = getLineInfo(level, source, file, function, line)
+
+		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)")
 	}
 
 	private func getLevelPrefix(_ level: Logger.Level) -> String {
@@ -43,6 +46,24 @@ struct StdOutLogHandler: LogHandler {
 			return "[ERROR] "
 		case .critical:
 			return "[CRITICAL] "
+		}
+	}
+
+	private func getTimeStamp(_ level: Logger.Level) -> String {
+		switch level {
+		case .trace, .debug, .notice, .warning, .error, .critical:
+			return "\(Date.now) "
+		case .info:
+			return ""
+		}
+	}
+
+	private func getLineInfo(_ level: Logger.Level, _ source: String , _ file: String, _ function: String, _ line: UInt) -> String {
+		switch level {
+		case .trace, .debug, .notice, .warning, .error, .critical:
+			return "[\(source) \(file) \(function) \(line)] "
+		case .info:
+			return ""
 		}
 	}
 

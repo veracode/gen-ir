@@ -15,16 +15,13 @@ struct CompilerCommandRunner {
 	/// The directory to place the LLVM IR output
 	private let output: URL
 
-	private let logger: Logger
-
 	enum Error: Swift.Error {
 		case failedToParse(String)
 	}
 
-	init(commands: [CompilerCommand], output: URL, logger: Logger) {
+	init(commands: [CompilerCommand], output: URL) {
 		self.commands = commands
 		self.output = output
-		self.logger = logger
 	}
 
 	/// Runs the compiler commands, modifying them to emit IR

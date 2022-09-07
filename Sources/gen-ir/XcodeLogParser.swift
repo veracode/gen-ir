@@ -26,19 +26,14 @@ struct XcodeLogParser {
 	/// The Xcode build log contents
 	private let log: [String]
 
-	private let logger: Logger
-
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
 	}
 
-	// MARK: - Initializers
-
 	/// Inits an XcodeLogParser from an Xcode build log file
 	/// - Parameter path: the path to the Xcode build log file
-	init(path: URL, logger: Logger) throws {
+	init(path: URL) throws {
 		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
-		self.logger = logger
 		self.commands = extractCompilerCommands(log)
 
 		if commands.isEmpty {
@@ -53,9 +48,8 @@ struct XcodeLogParser {
 
 	/// Creates an XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
-	init(log: [String], logger: Logger) throws {
+	init(log: [String]) throws {
 		self.log = log
-		self.logger = logger
 		self.commands = extractCompilerCommands(log)
 
 		if commands.isEmpty {
@@ -67,8 +61,6 @@ struct XcodeLogParser {
 			)
 		}
 	}
-
-	// MARK: - Functions
 
 	/// Extracts compiler commands from an array representing the contents of an Xcode build log
 	/// - Parameter lines: contents of the Xcode build log lines

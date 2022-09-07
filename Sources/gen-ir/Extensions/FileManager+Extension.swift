@@ -48,7 +48,7 @@ extension FileManager {
 					files.append(url)
 				}
 			} catch {
-				print("getFiles failed to get resource values for path: \(url) with error: \(error)")
+				logger.error("getFiles failed to get resource values for path: \(url) with error: \(error)")
 			}
 		}
 

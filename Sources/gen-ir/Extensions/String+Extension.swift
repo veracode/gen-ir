@@ -10,7 +10,7 @@ import Foundation
 extension String {
 
 	/// Returns a string, replacing double escapes with singles
-	/// - Returns: <#description#>
+	/// - Returns: the unescaped string
 	func unescaped() -> String {
 		self.replacingOccurrences(of: "\\\\", with: "\\")
 	}

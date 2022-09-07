@@ -63,7 +63,7 @@ extension Process {
 			process.currentDirectoryURL = runInDirectory
 		}
 
-		print("[DEBUG] RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
+		logger.debug("RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
 
 		if #available(macOS 10.13, *) {
 			try process.run()

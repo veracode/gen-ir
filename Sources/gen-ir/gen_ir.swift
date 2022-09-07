@@ -12,6 +12,8 @@ import Logging
 // - TEST!!!!!!!
 // - find a nice way to get a module & source file name for swiftc invocations
 
+var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
+
 /// This structure encapsulates the various modes of operation of the program via subcommands
 @main
 struct ArtifactBuilder: ParsableCommand {
@@ -58,35 +60,44 @@ extension ArtifactBuilder {
 		@Argument(help: "Directory to write LLVM IR files to")
 		var outputPath: String
 
-		@Argument(help: "Path to a full Xcode build log")
-		var logPath: String?
+		@Argument(help: "Path to a full Xcode build log, or - if piping build log in")
+		var logPath: String
+
+		@Flag(help: "Enables debug level logging")
+		var debug = false
 
 		func run() throws {
 			LoggingSystem.bootstrap(StdOutLogHandler.standard)
+			setLogLevel()
 
-			let parser: XcodeLogParser
+			let parser = try getParser()
 			let output = outputPath.fileURL
-			var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
-			logger.logLevel = .debug
-
-			if let last = CommandLine.arguments.last, last == "-" {
-				logger.info("> Collating input via pipe")
-				let input = readStdin()
-				parser = try XcodeLogParser(log: input, logger: logger)
-			} else if let logPath {
-				logger.info("> Reading from log file")
-				parser = try XcodeLogParser(path: logPath.fileURL, logger: logger)
-			} else {
-				throw Error.failedToRead("Failed to read build log via stdin or log file")
-			}
 
 			if !FileManager.default.directoryExists(at: output) {
 				try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 			}
 
-			let runner = CompilerCommandRunner(commands: parser.commands, output: output, logger: logger)
+			let runner = CompilerCommandRunner(commands: parser.commands, output: output)
 
 			try runner.run()
+		}
+
+		private func setLogLevel() {
+			if debug {
+				logger.logLevel = .debug
+			} else {
+				logger.logLevel = .info
+			}
+		}
+
+		private func getParser() throws -> XcodeLogParser {
+			if logPath == "-" {
+				logger.info("> Collating input via pipe")
+				return try XcodeLogParser(log: readStdin())
+			}
+
+			logger.info("> Reading from log file")
+			return try XcodeLogParser(path: logPath.fileURL)
 		}
 
 		private func readStdin() -> [String] {
