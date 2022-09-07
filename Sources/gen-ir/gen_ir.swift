@@ -39,10 +39,10 @@ struct ArtifactBuilder: ParsableCommand {
 		"""
 	)
 
-	@Argument(help: "Path to a full Xcode build log, or - if piping build log in")
+	@Argument(help: "Path to a full Xcode build log. If `-` is provided, stdin will be read")
 	var logPath: String
 
-	@Argument(help: "Directory to write LLVM IR files to")
+	@Argument(help: "Directory to write output to")
 	var outputPath: String
 
 	@Flag(help: "Enables debug level logging")
@@ -60,6 +60,7 @@ struct ArtifactBuilder: ParsableCommand {
 		let output = outputPath.fileURL
 
 		if !FileManager.default.directoryExists(at: output) {
+			logger.debug("Output path doesn't exist, creating \(output)")
 			try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 		}
 
@@ -70,11 +71,11 @@ struct ArtifactBuilder: ParsableCommand {
 
 	private func getParser() throws -> XcodeLogParser {
 		if logPath == "-" {
-			logger.info("> Collating input via pipe")
+			logger.info("Collating input via pipe")
 			return try XcodeLogParser(log: readStdin())
 		}
 
-		logger.info("> Reading from log file")
+		logger.info("Reading from log file")
 		return try XcodeLogParser(path: logPath.fileURL)
 	}
 

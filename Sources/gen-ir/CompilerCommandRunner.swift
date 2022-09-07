@@ -62,8 +62,8 @@ struct CompilerCommandRunner {
 					"""
 				)
 
-				if let stdout = result.stdout {
-					logger.debug("stdout: \(stdout)")
+				if let stdout = result.stdout, !stdout.isEmpty {
+					logger.debug("stdout is not empty - unusual: \(stdout)")
 				}
 
 				if command.compiler == .swiftc {
@@ -116,7 +116,7 @@ struct CompilerCommandRunner {
 	private func split(command: String) throws -> (String, [String]) {
 		// For the executable: substring up to the first whitespace
 		guard let index = command.firstIndexWithEscapes(of: " ") else {
-			throw Error.failedToParse("Failed to find executable for command: \(command)")
+			throw Error.failedToParse("Failed to parse executable for command: \(command)")
 		}
 
 		let executable = String(command[command.startIndex..<index])

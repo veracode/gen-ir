@@ -62,14 +62,10 @@ struct XcodeLogParser {
 			)
 		}
 
-		if targetsAndCommands.values.filter({ $0.isEmpty }).count != 0 {
-			logger.debug("Found no compiler commands in log: \(log)")
-			throw Error.noCommandsFound(
-				"""
-				No commands were parsed from the build log, \
-				if there are compiler commands in this log file please report this as a bug
-				"""
-			)
+		targetsAndCommands.forEach { (target, commands) in
+			if commands.isEmpty {
+				logger.warning("Found no commands for target: \(target)")
+			}
 		}
 	}
 
@@ -82,6 +78,7 @@ struct XcodeLogParser {
 
 		for line in lines {
 			if let target = getTarget(from: line) {
+				logger.debug("Found target: \(target)")
 				currentTarget = target
 			}
 
@@ -97,6 +94,8 @@ struct XcodeLogParser {
 			if result[currentTarget] == nil {
 				result[currentTarget] = []
 			}
+
+			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command")
 
 			result[currentTarget]!.append(compilerCommand)
 		}
