@@ -6,7 +6,7 @@
   Generate LLVM IR from an Xcode Build Log
 </h4>
 
-`gen-ir` is a tool to enable developers to generate LLVM IR from an Xcode Build Log. It does this by parsing the log for compiler commands, adjusting those commands to produce IR, and then rerunning them.
+`gen-ir` enables developers to generate LLVM Bitcode from an Xcode Build Log.
 
 This tool was heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html ❤️
 
