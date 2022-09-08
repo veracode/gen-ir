@@ -71,7 +71,7 @@ struct CompilerCommandRunner {
 		var swiftModuleID = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info("Running command \(index + 1) of \(commands.count). Target modules processed: \(targetModulesRun)")
+			logger.info("Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). Target modules processed: \(targetModulesRun)")
 
 			let (executable, arguments) = try parse(command: command)
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
@@ -108,7 +108,7 @@ struct CompilerCommandRunner {
 				clangAdditionalModules = try moveClangOutput(from: directory, to: targetDirectory)
 			}
 
-			if clangAdditionalModules == 0 && swiftModuleID == 0 {
+			if clangAdditionalModules == 0 && swiftAdditionalModules == 0 {
 				logger.error(
 					"""
 					No modules were produced from compiler, potential failure. Results: \n\n \
@@ -147,6 +147,7 @@ struct CompilerCommandRunner {
 			.replacingOccurrences(of: "-parseable-output ", with: "")
 		// for some reason this throws an error if included?
 			.replacingOccurrences(of: "-use-frontend-save-temps", with: "")
+			.replacingOccurrences(of: "-experimental-emit-module-separately", with: "")
 	}
 
 	/// Corrects the compiler arguments by removing options that aren't needed and adds options to emit IR
@@ -161,7 +162,7 @@ struct CompilerCommandRunner {
 		case .swiftc:
 			arguments.append("-emit-ir")
 		case .clang:
-			arguments.append(contentsOf: ["-emit-llvm", "-S"])
+			arguments.append(contentsOf: ["-S", "-Xclang", "-emit-llvm-bc"])
 			if let outputArgument = arguments.firstIndex(of: "-o") {
 				// remove the output & filepath arguments, this will make the compiler emit the IR to the current working directory
 				arguments.remove(at: arguments.index(after: outputArgument))
@@ -242,7 +243,20 @@ struct CompilerCommandRunner {
 			let startIndex = indices[index]
 			let endIndex = index < (indices.count - 1) ? indices[index + 1] : text.endIndex
 
-			modules.append(String(text[startIndex..<endIndex]))
+			let module = text[startIndex..<endIndex]
+
+			// Because of swiftc's steadfast refusal to play nice, we need to also find the 'end' of the module we're looking for
+			// otherwise we might have a bunch of swiftc warnings and cruft that will make the module unusable...
+			// so, search for the last debug metadata declaraction and cut everything past it off
+			let lines = module.split(separator: "\n")
+			var result: String
+			if let lastIndex = lines.lastIndex(where: { $0.starts(with: "!")} ) {
+				result = lines[0...lastIndex].joined(separator: "\n")
+			} else {
+				result = String(module)
+			}
+
+			modules.append(result)
 		}
 
 		return modules
@@ -256,7 +270,7 @@ struct CompilerCommandRunner {
 	///   - destination: The destination directory to place the files in
 	/// - Returns: The total number of files moved
 	private func moveClangOutput(from source: URL, to destination: URL) throws -> Int {
-		let files = try fileManager.files(at: source, withSuffix: ".ll")
+		let files = try fileManager.files(at: source, withSuffix: ".bc")
 
 		for file in files {
 			let destinationPath = destination.appendingPathComponent(file.lastPathComponent)

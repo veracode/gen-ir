@@ -16,10 +16,6 @@ extension String {
 
 	/// Returns a file URL
 	var fileURL: URL {
-		if #available(macOS 13.0, *) {
-			return .init(filePath: self)
-		}
-
 		return .init(fileURLWithPath: self)
 	}
 
