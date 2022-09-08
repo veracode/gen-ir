@@ -43,7 +43,7 @@ extension FileManager {
 		for case let url as URL in enumerator {
 			do {
 				let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
-				if let isFile = attributes.isRegularFile, isFile {
+				if let isFile = attributes.isRegularFile, isFile, url.lastPathComponent.hasSuffix(suffix) {
 					files.append(url)
 				}
 			} catch {
@@ -62,5 +62,17 @@ extension FileManager {
 		try createDirectory(at: tempDirectory, withIntermediateDirectories: true)
 
 		return tempDirectory
+	}
+
+	/// Moves an item from source to destination, removing destination if it already exists
+	/// - Parameters:
+	///   - source: The item to move
+	///   - destination: The destination to move the item to
+	func moveItemReplacingExisting(from source: URL, to destination: URL) throws {
+		if fileExists(atPath: destination.filePath) {
+			try removeItem(at: destination)
+		}
+
+		try moveItem(at: source, to: destination)
 	}
 }

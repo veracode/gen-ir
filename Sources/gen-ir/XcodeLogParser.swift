@@ -50,10 +50,22 @@ struct XcodeLogParser {
 			)
 		}
 
-		targetsAndCommands.forEach { (target, commands) in
+		let totalCommands = targetsAndCommands.map { (target, commands) in
 			if commands.isEmpty {
 				logger.warning("Found no commands for target: \(target)")
 			}
+
+			return commands.count
+		}.reduce(0, +)
+
+		if totalCommands == 0 {
+			logger.debug("Found no commands in log: \(log)")
+
+			throw Error.noCommandsFound(
+				"""
+				No commands were parsed from the build log, if there are commands in the log file please report this as a bug
+				"""
+			)
 		}
 	}
 
@@ -74,14 +86,16 @@ struct XcodeLogParser {
 				continue
 			}
 
-			// Check if this is part of a Ld block, if it is - we want to skip it
+			// Check the line starts with either 'CompileC' or 'SwiftDriver' to ensure we only pick up compilation commands
 			let twoLinesBack = lines.index(index, offsetBy: -2)
 
 			if lines.indices.contains(twoLinesBack) {
-				if lines[twoLinesBack].starts(with: "Ld ") {
+				let instructionLine = lines[twoLinesBack]
+
+				if !(instructionLine.starts(with: "CompileC") || instructionLine.starts(with: "SwiftDriver")) {
 					logger.debug(
 						"""
-						Skipping Ld command:
+						Skipping non-compile command block:
 						\(lines[twoLinesBack..<lines.index(after: index)])
 						"""
 					)

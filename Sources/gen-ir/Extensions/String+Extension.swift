@@ -16,33 +16,7 @@ extension String {
 
 	/// Returns a file URL
 	var fileURL: URL {
-		if #available(macOS 13.0, *) {
-			return .init(filePath: self)
-		}
-
 		return .init(fileURLWithPath: self)
-	}
-
-	/// Returns an array of all indices of a given substring, optionally starting from a specified index
-	/// - Parameters:
-	///   - substring: The substring to find the indices of
-	///   - starting: The position in the string to start the search from
-	/// - Returns: An array of indices representing the start index of substring matches
-	func indices(of substring: String, from starting: Index? = nil) -> [Index] {
-		var indices = [Index]()
-
-		var current = starting ?? startIndex
-
-		while
-			current < endIndex,
-			let range = range(of: substring, range: current..<endIndex),
-			!range.isEmpty
-		{
-			indices.append(range.lowerBound)
-			current = range.upperBound
-		}
-
-		return indices
 	}
 
 	/// Returns the first index of a character that hasn't been escaped

@@ -11,10 +11,6 @@ extension URL {
 
 	/// Returns the path component of a URL
 	var filePath: String {
-		if #available(macOS 13.0, *) {
-			return self.path()
-		}
-
 		return self.path
 	}
 }
