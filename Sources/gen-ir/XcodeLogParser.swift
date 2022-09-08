@@ -50,10 +50,22 @@ struct XcodeLogParser {
 			)
 		}
 
-		targetsAndCommands.forEach { (target, commands) in
+		let totalCommands = targetsAndCommands.map { (target, commands) in
 			if commands.isEmpty {
 				logger.warning("Found no commands for target: \(target)")
 			}
+
+			return commands.count
+		}.reduce(0, +)
+
+		if totalCommands == 0 {
+			logger.debug("Found no commands in log: \(log)")
+
+			throw Error.noCommandsFound(
+				"""
+				No commands were parsed from the build log, if there are commands in the log file please report this as a bug
+				"""
+			)
 		}
 	}
 

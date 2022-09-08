@@ -8,18 +8,19 @@
 import Foundation
 import Logging
 
+/// A model of the contents of an output file map json
+typealias OutputFileMap = [String: [String: String]]
+
 /// A runner responsible for editing and running compiler commands, and moving or splitting the output to a given location.
 ///
-/// >  swiftc will emit LLVM IR to stderr (???) and will output multiple modules at once, this means the runner has to parse the output looking for module markers and
-/// > attempt to split the modules into separate files. These need to be numbered as swiftc doesn't set module/file names for the output.
+/// >  swiftc will emit LLVM BC files to the build directory. In this case, the runner will look for the OutputFileMap to locate the path of the BC files, and move them to the output location
 ///
-/// > clang will emit LLVM IR to the current working directory in a named file.
-/// > The runner in this case is responsible for managing the temporary storage, and moving of the files.
+/// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
 	/// Map of targets and the compiler commands that were part of the target build
 	private let targetsAndCommands: TargetsAndCommands
 
-	/// The directory to place the LLVM IR output
+	/// The directory to place the LLVM BC output
 	private let output: URL
 
 	private let fileManager = FileManager.default
@@ -54,6 +55,9 @@ struct CompilerCommandRunner {
 
 			totalModulesRun += try run(commands: commands, for: target, at: tempDirectory)
 		}
+
+		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
+		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 	}
 
 	/// Runs all commands for a given target
@@ -68,7 +72,6 @@ struct CompilerCommandRunner {
 		logger.debug("Created target directory: \(targetDirectory)")
 
 		var targetModulesRun = 0
-		var swiftModuleID = 0
 
 		for (index, command) in commands.enumerated() {
 			logger.info("Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). Target modules processed: \(targetModulesRun)")
@@ -90,20 +93,12 @@ struct CompilerCommandRunner {
 
 			switch command.compiler {
 			case .swiftc:
-				guard let stderr = result.stderr else {
-					logger.error("stderr was empty for swiftc run, possible failure?")
-					continue
+				guard let outputFileMap = try getOutputFileMap(from: arguments) else {
+					logger.error("Failed to find OutputFileMap for command, ")
+					break
 				}
 
-				let modules = try splitModules(stderr)
-				swiftAdditionalModules = modules.count
-
-				try modules.forEach { module in
-					let modulePath = targetDirectory.appendingPathComponent("\(swiftModuleID).ll")
-					try module.write(to: modulePath, atomically: true, encoding: .utf8)
-
-					swiftModuleID += 1
-				}
+				swiftAdditionalModules = try moveSwiftOutput(from: outputFileMap, to: targetDirectory)
 			case .clang:
 				clangAdditionalModules = try moveClangOutput(from: directory, to: targetDirectory)
 			}
@@ -147,10 +142,9 @@ struct CompilerCommandRunner {
 			.replacingOccurrences(of: "-parseable-output ", with: "")
 		// for some reason this throws an error if included?
 			.replacingOccurrences(of: "-use-frontend-save-temps", with: "")
-			.replacingOccurrences(of: "-experimental-emit-module-separately", with: "")
 	}
 
-	/// Corrects the compiler arguments by removing options that aren't needed and adds options to emit IR
+	/// Corrects the compiler arguments by removing options block BC generation and adding options to emit BC
 	/// - Parameters:
 	///   - arguments: The arguments to correct
 	///   - compiler: The compiler the arguments relate to
@@ -160,11 +154,13 @@ struct CompilerCommandRunner {
 
 		switch compiler {
 		case .swiftc:
-			arguments.append("-emit-ir")
+			// When using this option, swiftc will output the .bc file to DerivedData/Build folder
+			// FIXME: if SR-327 ever happens, we should update
+			arguments.append("-emit-bc")
 		case .clang:
 			arguments.append(contentsOf: ["-S", "-Xclang", "-emit-llvm-bc"])
 			if let outputArgument = arguments.firstIndex(of: "-o") {
-				// remove the output & filepath arguments, this will make the compiler emit the IR to the current working directory
+				// remove the output location, forces emitting to the current working directory
 				arguments.remove(at: arguments.index(after: outputArgument))
 				arguments.remove(at: outputArgument)
 			}
@@ -198,70 +194,55 @@ struct CompilerCommandRunner {
 
 		return (executable, arguments)
 	}
+}
 
-	/// Splits the output (IR Modules) of the swift compiler and writes them to disk at the specified output location
-	///
-	/// Swiftc doesn't name outputs like Clang does, so we use the `moduleID` parameter to track how many modules we've already seen
+// MARK: - Swiftc specific functions
+extension CompilerCommandRunner {
+	/// Moves all BC files detected in the output map to the target directory
 	/// - Parameters:
-	///   - result: The return value from the swiftc invocation
-	///   - moduleID: The module ID that was last used
-	///   - output: The destination path to write results to
-	private func splitSwiftOutput(_ result: Process.ReturnValue, moduleID: inout Int, to output: URL) throws {
-		if let error = result.stderr, !error.isEmpty {
-			// This will have a _bunch_ of cruft, and then the modules...
-			// So we have to: remove the cruft, split the modules
-			let modules = try splitModules(error)
+	///   - outputMap: The output file map to parse for bc file paths
+	///   - targetDirectory: The target directory to place the BC files
+	/// - Returns: The total amount of bitcode paths moved
+	private func moveSwiftOutput(from outputMap: OutputFileMap, to targetDirectory: URL) throws -> Int {
+		// read the contents of the output file map, and extract the bitcode path for each file
+		let bitcodePaths = bitcodeFiles(from: outputMap)
 
-			for module in modules {
-				let modulePath = output.appendingPathComponent("\(moduleID).ll")
-				do {
-					try module.write(to: modulePath, atomically: true, encoding: .utf8)
-				} catch {
-					logger.error("Failed to write module \(moduleID) to path: \(modulePath) with error: \(error)")
-				}
+		for bitcodePath in bitcodePaths {
+			let destination = targetDirectory.appendingPathComponent(bitcodePath.lastPathComponent)
+			try fileManager.moveItemReplacingExisting(from: bitcodePath, to: destination)
+		}
 
-				moduleID += 1
-			}
+		return bitcodePaths.count
+	}
+
+	/// Gets BC paths for an output file map
+	/// - Parameter outputMap: The output file map to parse
+	/// - Returns: An array of BC file path URLs found in the output map
+	private func bitcodeFiles(from outputMap: OutputFileMap) -> [URL] {
+		outputMap.compactMap { (source, values) in
+			// First key in the OutputFileMap is always empty, ignore it
+			guard !source.isEmpty else { return nil }
+
+			return values["llvm-bc"]?.fileURL
 		}
 	}
 
-	/// Splits a string of LLVM IR modules into an array of LLVM IR modules
-	///
-	/// Again, this is because swiftc outputs all modules as one big blob of text
-	/// - Parameters:
-	///   - text: The string to split
-	/// - Returns: An array of module contents, with each entry representing a module
-	private func splitModules(_ text: String) throws -> [String] {
-		let moduleMarker = "; ModuleID ="
-
-		// find all indices of the module markers (for splitting on)
-		let indices = text.indices(of: moduleMarker)
-
-		var modules = [String]()
-
-		for index in 0..<indices.count {
-			let startIndex = indices[index]
-			let endIndex = index < (indices.count - 1) ? indices[index + 1] : text.endIndex
-
-			let module = text[startIndex..<endIndex]
-
-			// Because of swiftc's steadfast refusal to play nice, we need to also find the 'end' of the module we're looking for
-			// otherwise we might have a bunch of swiftc warnings and cruft that will make the module unusable...
-			// so, search for the last debug metadata declaraction and cut everything past it off
-			let lines = module.split(separator: "\n")
-			var result: String
-			if let lastIndex = lines.lastIndex(where: { $0.starts(with: "!")} ) {
-				result = lines[0...lastIndex].joined(separator: "\n")
-			} else {
-				result = String(module)
-			}
-
-			modules.append(result)
+	/// Finds, and parses an output file map from an array of compiler flags
+	/// - Parameter arguments: The arguments to parse
+	/// - Returns: An `OutputFileMap` representing the output file map
+	private func getOutputFileMap(from arguments: [String]) throws -> OutputFileMap? {
+		guard let index = arguments.firstIndex(of: "-output-file-map") else {
+			return nil
 		}
 
-		return modules
+		let path = arguments[index + 1].fileURL
+		let data = try Data(contentsOf: path)
+		return try JSONDecoder().decode(OutputFileMap.self, from: data)
 	}
+}
 
+// MARK: - Clang specific functions
+extension CompilerCommandRunner {
 	/// Moves the output artifacts of clang from a specified source to a specified destination
 	///
 	/// Clang will output LLVM IR into files in the current working directory, so we need to move them to the user specified location
@@ -270,16 +251,14 @@ struct CompilerCommandRunner {
 	///   - destination: The destination directory to place the files in
 	/// - Returns: The total number of files moved
 	private func moveClangOutput(from source: URL, to destination: URL) throws -> Int {
-		let files = try fileManager.files(at: source, withSuffix: ".bc")
+		let files = try fileManager.files(at: source, withSuffix: ".s")
 
 		for file in files {
-			let destinationPath = destination.appendingPathComponent(file.lastPathComponent)
+			let destinationPath = destination.appendingPathComponent(
+				file.lastPathComponent.replacingOccurrences(of: ".s", with: ".bc")
+			)
 
-			if fileManager.fileExists(atPath: destinationPath.filePath) {
-				try fileManager.removeItem(at: destinationPath)
-			}
-
-			try fileManager.moveItem(at: file, to: destination.appendingPathComponent(file.lastPathComponent))
+			try fileManager.moveItemReplacingExisting(from: file, to: destinationPath)
 		}
 
 		return files.count

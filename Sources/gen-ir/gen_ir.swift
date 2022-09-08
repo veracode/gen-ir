@@ -11,10 +11,10 @@ struct IREmitterCommand: ParsableCommand {
 
 	static let configuration = CommandConfiguration(
 		commandName: "",
-		abstract: "Consumes an Xcode build log, and outputs LLVM IR to the folder specified",
+		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
 		discussion:
 		"""
-		This can either be done via a file, or via stdin. You will have to redirect stderr to stdin before piping it to this tool.
+		This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this tool.
 
 		This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, \
 		you may notice that not all modules are emitted.
@@ -34,7 +34,7 @@ struct IREmitterCommand: ParsableCommand {
 	@Argument(help: "Path to a full Xcode build log. If `-` is provided, stdin will be read")
 	var logPath: String
 
-	/// Path to write the LLVM IR results to
+	/// Path to write the LLVM BC results to
 	@Argument(help: "Directory to write output to")
 	var outputPath: String
 
