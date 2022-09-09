@@ -6,8 +6,6 @@
   Generate LLVM IR from an Xcode Build Log
 </h4>
 
-`gen-ir` enables developers to generate LLVM Bitcode from an Xcode Build Log.
-
 This tool was heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html ❤️
 
 ## ⚠️ Before you use
@@ -33,16 +31,21 @@ gen-ir build_log.txt ir_files/
 xcodebuild clean && xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug | gen-ir - ir_files/
 ```
 
-## Installing
-
-### Homebrew
-
-A tap is coming soon ™️
-
 ## Requirements
 
 - macOS 12+
 - Xcode 14+
+
+## Installing
+
+### Homebrew
+
+A tap is available for `gen-ir`:
+
+```bash
+brew tap ninjalikescheez/tap
+brew install gen-ir
+```
 
 ## Building
 
@@ -57,5 +60,3 @@ The tool will be output to `.build/debug/gen-ir`
 ## TODO
 
 - Documentation
-- Distribution
-- Pipeline
