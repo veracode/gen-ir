@@ -1,0 +1,36 @@
+name: Release
+
+# This pipeline is run manually, taking a version to release.
+# It will: update the version in the tool, add a commit to main with the new version, tag & release the commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to Release
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: bump version
+        run: sed -i 's/.*static let version.*/static let version = ${{ github.event.inputs.version }}/g' Sources/gen-ir/Versions.swift
+      
+      - name: commit 
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git add main.swift
+          git commit -m "Bump version: ${{ github.event.inputs.version }}"
+          git push
+      
+      - uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
