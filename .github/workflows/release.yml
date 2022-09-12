@@ -24,7 +24,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git add main.swift
+          git add Sources/gen-ir/Versions.swift
           git commit -m "Bump version: ${{ github.event.inputs.version }}"
           git push
       
