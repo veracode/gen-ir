@@ -27,7 +27,8 @@ struct IREmitterCommand: ParsableCommand {
 
 		Example with pipe:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | gen-sil - output_folder/
-		"""
+		""",
+		version: "v\(Versions.version)"
 	)
 
 	/// Path to an Xcode build log, or `-` if build log should be read from stdin
