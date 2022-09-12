@@ -8,5 +8,5 @@
 import Foundation
 
 enum Versions {
-static let version = 0.1.1
+static let version = "0.1.1"
 }
