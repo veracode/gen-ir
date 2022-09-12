@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: bump version
-        run: sed -i 's/.*static let version.*/static let version = ${{ github.event.inputs.version }}/g' Sources/gen-ir/Versions.swift
+        run: sed -i 's/.*static let version.*/static let version = "${{ github.event.inputs.version }}"/g' Sources/gen-ir/Versions.swift
       
       - name: commit 
         run: |
