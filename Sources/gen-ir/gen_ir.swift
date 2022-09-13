@@ -71,7 +71,7 @@ struct IREmitterCommand: ParsableCommand {
 		if path == "-" {
 			logger.info("Collating input via pipe")
 			return try XcodeLogParser(log: readStdin())
-		}
+		} 
 
 		logger.info("Reading from log file")
 		return try XcodeLogParser(path: path.fileURL)
