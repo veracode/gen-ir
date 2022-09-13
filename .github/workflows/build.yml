@@ -1,0 +1,19 @@
+name: Build
+
+on:
+  pull_request:
+    paths:
+      - Sources/**
+
+jobs:
+  build:
+    runs-on: macos-12
+    # This doesn't seem to work, even when the internet seems to indicate it should...
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+    steps:
+      - name: 🔨 Build
+        run: |
+          sudo xcode-select -s /Applications/Xcode_14.0.app/
+          swift build
+          [[ -f ./.build/debug/gen-ir ]] || echo "Build failed" && exit 1

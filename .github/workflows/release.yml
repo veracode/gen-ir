@@ -1,36 +1,98 @@
-name: Release
+name: Release Update
 
-# This pipeline is run manually, taking a version to release.
-# It will: update the version in the tool, add a commit to main with the new version, tag & release the commit.
+# This workflow merges a PR and, optionally, releases a GitHub Release with an auto bumped version.
 
+# Using the merge-bump-<VERSION> label on a PR, you can choose to bump the major, minor, or patch version
+# Using the merge-no-bump label on a PR, you can merge the PR with no version change
+
+# You should only attach **one** of these labels, anymore will result in undefined behavior as to which bump will be performed.
+
+
+# Run only on labeled Pull Requests
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version to Release
-        required: true
+  pull_request_target:
+    types:
+      - labeled
 
 jobs:
   release:
+    # Limit job to requests with a merge-* label on them
+    if: contains(${{ github.event.pull_request.labels.*.name }}, 'merge-')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: bump version
-        run: sed -i 's/.*static let version.*/$(printf '\t')static let version = "${{ github.event.inputs.version }}"/g' Sources/gen-ir/Versions.swift
+      # Fetches the last tag in the repo
+      - name: 🔙 Get Previous Tag
+        id: previous_tag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       
-      - name: commit 
+      # Generates the next major, minor, and patch version given the previous tag
+      - name: ⏭ Get Next Versions
+        id: next_versions
+        uses: "WyriHaximus/github-action-next-semvers@v1"
+        with:
+          version: ${{ steps.previous_tag.outputs.tag }}
+
+      # Selects the next version based off the label attached to the PR
+      # NOTE: it will select _the first_ tag it sees. Do **not** attach more than one `merge-bump-` labels
+      - name: ✅ Select Next Version
+        id: next_version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LABEL=$(gh pr view ${{ github.head_ref }} --json labels -q '.labels[] | select(.name | contains("merge-bump-")) | .name' | head -n 1)
+          echo "Found label: $LABEL"
+
+          if [[ $LABEL == "merge-bump-major" ]]; then
+            echo "::set-output name=tag::${{ steps.next_versions.outputs.major }}"
+          elif [[ $LABEL == "merge-bump-minor" ]]; then
+            echo "::set-output name=tag::${{ steps.next_versions.outputs.minor }}"
+          elif [[ $LABEL == "merge-bump-patch" ]]; then
+            echo "::set-output name=tag::${{ steps.next_versions.outputs.patch }}"
+          else
+            echo "Setting no-bump as no bump label was found"
+            echo "::set-output name=tag::no-bump"
+          fi
+
+      # Merges the underlying PR
+      - name: ㊗️ Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --merge ${{ github.head_ref }}
+
+      # Checkout main again, the PR has merged so we want to pull that update down before bumping the version
+      - uses: actions/checkout@v3
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+        with:
+          ref: main
+
+      # Apply the version bump by editing the Versions.swift file
+      - name: 👊 Bump Version
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+        run: sed -i 's/.*static let version.*/(printf '\\t')static let version = "${{ steps.next_version.outputs.tag }}"/g' Sources/gen-ir/Versions.swift
+      
+      # Commit the change to main
+      - name: 💍 Commit Version Change
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
 
           git add Sources/gen-ir/Versions.swift
-          git commit -m "Bump version: ${{ github.event.inputs.version }}"
+          git commit -m "Gen IR version: ${{ steps.next_version.outputs.tag }}"
           git push
       
-      - uses: softprops/action-gh-release@v1
+      # Create a new GitHub release with the new version
+      - name: 🚀 Release New Version
+        uses: softprops/action-gh-release@v1
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: ${{ github.event.inputs.version }}
+          tag_name: ${{ steps.next_version.outputs.tag }}
+          name: ${{ steps.next_version.outputs.tag }}

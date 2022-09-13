@@ -7,8 +7,8 @@
 </h4>
 
 <p align="center">
- <a href="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/release.yml">
-    <img src="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/release.yml/badge.svg?branch=main" />
+ <a href="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/build.yml">
+    <img src="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/build.yml/badge.svg?branch=main" />
   </a>
   <a href="">
     <img src="https://img.shields.io/github/v/release/NinjaLikesCheez/gen-ir" />
