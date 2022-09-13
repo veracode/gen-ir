@@ -12,6 +12,8 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
     steps:
+      - uses: actions/checkout@v3
+      
       - name: 🔨 Build
         run: |
           sudo xcode-select -s /Applications/Xcode_14.0.app/
