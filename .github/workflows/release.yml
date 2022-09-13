@@ -80,8 +80,8 @@ jobs:
       - name: 💍 Commit Version Change
         if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@github.com'
 
           git add Sources/gen-ir/Versions.swift
           git commit -m "Gen IR version: ${{ steps.next_version.outputs.tag }}"
