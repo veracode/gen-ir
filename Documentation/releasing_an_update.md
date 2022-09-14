@@ -7,18 +7,18 @@ When you have an update for `gen-ir`, there's a couple things that need to happe
 
 ## Releasing a gen-ir version
 
-Currently, there is automation once a version has merged to `main` to handle the updates, tagging, and releasing required for a version. Hopefully, this will eventually be automated into the PR workflow, but for now it sits as a manual action. To kick it off:
+To release a new version of `gen-ir`, create a Pull Request with your changes, ensuring the `build` pipeline finishes successfully, then attach one of the following labels to the PR.
 
-- Navigate to the Actions tab of `gen-ir`'s repo
-- Under workflows, on the left hand side, select `Release`
-- On the right hand side of the workflow run pane, select `Run Workflow`
-- Enter the version number you'd like to release
+- `merge-bump-major`
+  - This will merge the PR & bump a major version (i.e. 1.0.0 to 2.0.0)
+- `merge-bump-minor`
+	- This will merge the PR & bump a minor version (i.e. 1.0.0 to 1.1.0)
+- `merge-bump-patch`
+	- This will merge the PR & bump a patch version (i.e. 1.0.0 to 1.0.1)
+- `merge-no-bump`
+	- This will merge the PR with no version bump
 
-If all goes well, this should:
-
-- Edit the [`Versions.swift`](../Sources/gen-ir/Versions.swift) file with the version being released
-- Commit that version change onto `main`
-- Create a Release with that tag
+This will merge the PR, bump the version, fix the version in the Versions.swift file, push the commit to main, tag the _new_ commit with the version number, and perform a GitHub release with that tag.
 
 Now, navigate to the release and note the tag name & revision for the next part
 
@@ -26,9 +26,12 @@ Now, navigate to the release and note the tag name & revision for the next part
 
 The formula for the tap lives in the [NinjaLikesCheez/homebrew-taps](https://github.com/NinjaLikesCheez/homebrew-tap) repo. This needs to be updated in order to propagate a new version to users.
 
-- Clone the `homebrew-taps` repo
-- Edit the `tag` & `revision` portion of the `gen-ir` formula
-  - Note: _only_ adjust the formula, any other addition will cause the bot to refuse to squash
-- Create a PR and let the pipeline run
-- When you and the pipeline robot overlords are happy, add the `pr-pull` tag to release
-  - This will merge the PR, tag the commit on `main`, and release that commit via GitHub Releases
+- Go to the Actions tab of the homebrew-tap repo
+- Choose the `Make Pull Request` workflow
+- Run the workflow inputting the tag and revision hash
+	- A PR will be created with the change
+  - The PR should kick off the `brew test-bot` workflow
+- Once `brew test-bot` has completed and you're happy, add the `pr-pull` label
+  - Automation will be kicked off to merge, tag, and release the change.
+
+Users can now run `brew update && brew upgrade` to update `gen-ir`
