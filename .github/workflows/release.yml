@@ -44,26 +44,39 @@ jobs:
         id: next_version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.head_ref }}
+          MAJOR_VERSION: ${{ steps.next_versions.outputs.major }}
+          MINOR_VERSION: ${{ steps.next_versions.outputs.minor }}
+          PATCH_VERSION: ${{ steps.next_versions.outputs.patch }}
+          NO_VERSION: no-bump
         run: |
-          LABEL=$(gh pr view ${{ github.head_ref }} --json labels -q '.labels[] | select(.name | contains("merge-bump-")) | .name' | head -n 1)
+          LABEL=$(gh pr view $HEAD_REF --json labels -q '.labels[] | select(.name | contains("merge-bump-")) | .name' | head -n 1)
           echo "Found label: $LABEL"
 
           if [[ $LABEL == "merge-bump-major" ]]; then
-            echo "::set-output name=tag::${{ steps.next_versions.outputs.major }}"
+            echo "::set-output name=tag::$MAJOR_VERSION"
           elif [[ $LABEL == "merge-bump-minor" ]]; then
-            echo "::set-output name=tag::${{ steps.next_versions.outputs.minor }}"
+            echo "::set-output name=tag::$MINOR_VERSION"
           elif [[ $LABEL == "merge-bump-patch" ]]; then
-            echo "::set-output name=tag::${{ steps.next_versions.outputs.patch }}"
+            echo "::set-output name=tag::$PATCH_VERSION"
           else
             echo "Setting no-bump as no bump label was found"
-            echo "::set-output name=tag::no-bump"
+            echo "::set-output name=tag::$NO_VERSION"
           fi
 
       # Merges the underlying PR
       - name: ㊗️ Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --merge ${{ github.head_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: gh pr merge --merge $HEAD_REF
+
+      # Delete the underlying PR branch
+      - name: ␡ Delete PR Branch
+        if: github.event.pull_request.head.repo.fork == false
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: git push --delete origin $HEAD_REF
 
       # Checkout main again, the PR has merged so we want to pull that update down before bumping the version
       - uses: actions/checkout@v3
@@ -74,17 +87,21 @@ jobs:
       # Apply the version bump by editing the Versions.swift file
       - name: 👊 Bump Version
         if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
-        run: sed -i 's/.*static let version.*/(printf '\\t')static let version = "${{ steps.next_version.outputs.tag }}"/g' Sources/gen-ir/Versions.swift
+        env:
+          TAG: ${{ steps.next_version.outputs.tag }}
+        run: sed -i 's/.*static let version.*/(printf '\\t')static let version = "$TAG"/g' Sources/gen-ir/Versions.swift
       
       # Commit the change to main
       - name: 💍 Commit Version Change
         if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+        env:
+          TAG: ${{ steps.next_version.outputs.tag }} 
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@github.com'
 
           git add Sources/gen-ir/Versions.swift
-          git commit -m "Gen IR version: ${{ steps.next_version.outputs.tag }}"
+          git commit -m "Gen IR version: $TAG"
           git push
       
       # Create a new GitHub release with the new version
