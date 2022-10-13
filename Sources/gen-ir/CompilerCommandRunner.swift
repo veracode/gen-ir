@@ -41,7 +41,7 @@ struct CompilerCommandRunner {
 
 	/// Starts the runner
 	func run() throws {
-		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-sil\(UUID().uuidString)")
+		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 

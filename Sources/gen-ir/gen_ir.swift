@@ -5,6 +5,8 @@ import Logging
 /// Global logger object
 var logger: Logger!
 
+let programName = CommandLine.arguments.first!
+
 /// Command to emit LLVM IR from an Xcode build log
 @main
 struct IREmitterCommand: ParsableCommand {
@@ -23,10 +25,10 @@ struct IREmitterCommand: ParsableCommand {
 
 		Example with build log:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > log.txt
-			$ gen-sil log.txt output_folder/
+			$ \(programName) log.txt output_folder/
 
 		Example with pipe:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | gen-sil - output_folder/
+			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | \(programName) - output_folder/
 		""",
 		version: "v\(Versions.version)"
 	)
