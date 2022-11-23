@@ -54,14 +54,14 @@ jobs:
           echo "Found label: $LABEL"
 
           if [[ $LABEL == "merge-bump-major" ]]; then
-            echo "next_tag=$MAJOR_VERSION" >> $GITHUB_ENVIRONMENT
+            echo "next_tag=$MAJOR_VERSION" >> $GITHUB_ENV
           elif [[ $LABEL == "merge-bump-minor" ]]; then
-            echo "next_tag=$MINOR_VERSION" >> $GITHUB_ENVIRONMENT
+            echo "next_tag=$MINOR_VERSION" >> $GITHUB_ENV
           elif [[ $LABEL == "merge-bump-patch" ]]; then
-            echo "next_tag=$PATCH_VERSION" >> $GITHUB_ENVIRONMENT
+            echo "next_tag=$PATCH_VERSION" >> $GITHUB_ENV
           else
             echo "Setting no-bump as no bump label was found"
-            echo "next_tag=$NO_VERSION" >> $GITHUB_ENVIRONMENT
+            echo "next_tag=$NO_VERSION" >> $GITHUB_ENV
           fi
 
       # Merges the underlying PR
