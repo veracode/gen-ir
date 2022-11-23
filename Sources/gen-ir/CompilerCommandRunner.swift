@@ -138,10 +138,13 @@ struct CompilerCommandRunner {
 	private func fixup(command: String) -> String {
 		command.unescaped()
 			.replacingOccurrences(of: "\\=", with: "=")
-		// this reduces the output by telling the driver to not output JSON, saves a _lot_ of memory
+			// this reduces the output by telling the driver to not output JSON, saves a _lot_ of memory
 			.replacingOccurrences(of: "-parseable-output ", with: "")
-		// for some reason this throws an error if included?
+			// for some reason this throws an error if included?
 			.replacingOccurrences(of: "-use-frontend-save-temps", with: "")
+			// Clang, if given -fembed-bitcode & -emit-bc will emit.... Textual ASM????
+			// swiftc behaves correctly and ignores the embed flag
+			.replacingOccurrences(of: "-fembed-bitcode", with: "")
 	}
 
 	/// Corrects the compiler arguments by removing options block BC generation and adding options to emit BC
