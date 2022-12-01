@@ -16,7 +16,8 @@ extension String {
 
 	/// Returns a file URL
 	var fileURL: URL {
-		return .init(fileURLWithPath: self)
+		// We have to replace \ in strings otherwise they'll end up encoded into the URL and break resolution for paths with spaces
+		return .init(fileURLWithPath: self.replacingOccurrences(of: "\\", with: ""))
 	}
 
 	/// Returns the first index of a character that hasn't been escaped

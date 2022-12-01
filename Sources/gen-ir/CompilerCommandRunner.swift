@@ -239,6 +239,13 @@ extension CompilerCommandRunner {
 		}
 
 		let path = arguments[index + 1].fileURL
+
+		guard fileManager.fileExists(atPath: path.filePath) else {
+			logger.error("Found an OuputFileMap, but it doesn't exist on disk? Please report this issue.")
+			logger.debug("OutputFileMap path: \(path)")
+			return nil
+		}
+
 		let data = try Data(contentsOf: path)
 		return try JSONDecoder().decode(OutputFileMap.self, from: data)
 	}
