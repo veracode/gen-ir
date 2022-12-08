@@ -24,7 +24,7 @@ Now, navigate to the release and note the tag name & revision for the next part
 
 ## Updating Homebrew Tap
 
-The formula for the tap lives in the [NinjaLikesCheez/homebrew-taps](https://github.com/NinjaLikesCheez/homebrew-tap) repo. This needs to be updated in order to propagate a new version to users.
+The formula for the tap lives in the [veracode/homebrew-taps](https://github.com/veracode/homebrew-tap) repo. This needs to be updated in order to propagate a new version to users.
 
 - Go to the Actions tab of the homebrew-tap repo
 - Choose the `Make Pull Request` workflow

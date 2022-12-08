@@ -7,13 +7,12 @@
 </h4>
 
 <p align="center">
- <a href="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/build.yml">
-    <img src="https://github.com/NinjaLikesCheez/gen-ir/actions/workflows/build.yml/badge.svg?branch=main" />
+ <a href="https://github.com/veracode/gen-ir/actions/workflows/build.yml">
+    <img src="https://github.com/veracode/gen-ir/actions/workflows/build.yml/badge.svg?branch=main" />
   </a>
   <a href="">
-    <img src="https://img.shields.io/github/v/release/NinjaLikesCheez/gen-ir" />
+    <img src="https://img.shields.io/github/v/release/veracode/gen-ir" />
   </a>
-
 </p>
 
 This tool was heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html ❤️
@@ -30,7 +29,7 @@ To **install and run** the tool, you'll need Homebrew, Xcode, and macOS 12 or gr
 # If you don't have brew installed, install it: https://brew.sh/
 
 # Add the brew tap to your local machine
-brew tap NinjaLikesCheez/tap
+brew tap veracode/tap
 
 # Install the tool
 brew install gen-ir
@@ -43,6 +42,7 @@ All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir 
 ## Usage
 
 > ### ⚠️ Before you use
+>
 >It's important to know that `gen-ir` requires that a **full** build log is provided.
 >
 >**This means a clean, fresh build of a project.**
@@ -54,13 +54,13 @@ All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir 
 ```bash
 # Path to build log (you can export from inside of Xcode too)
 xcodebuild clean && \
-xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug > build_log.txt
+xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS > build_log.txt
 
 gen-ir build_log.txt ir_files/
 
 # Stdin (you may need to redirect stderr to stdout here, Xcode is weird about writing to it sometimes)
 xcodebuild clean && \
-xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug | gen-ir - ir_files/
+xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS | gen-ir - ir_files/
 ```
 
 ## Building
