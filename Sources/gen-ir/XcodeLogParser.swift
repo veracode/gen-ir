@@ -86,21 +86,8 @@ struct XcodeLogParser {
 				continue
 			}
 
-			// Check the line starts with either 'CompileC' or 'SwiftDriver' to ensure we only pick up compilation commands
-			let twoLinesBack = lines.index(index, offsetBy: -2)
-
-			if lines.indices.contains(twoLinesBack) {
-				let instructionLine = lines[twoLinesBack]
-
-				if !(instructionLine.starts(with: "CompileC") || instructionLine.starts(with: "SwiftDriver")) {
-					logger.debug(
-						"""
-						Skipping non-compile command block:
-						\(lines[twoLinesBack..<lines.index(after: index)])
-						"""
-					)
-					continue
-				}
+			guard isPartOfCompilerCommand(lines, index) else {
+				continue
 			}
 
 			guard let currentTarget else {
@@ -115,6 +102,42 @@ struct XcodeLogParser {
 			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command")
 
 			result[currentTarget]!.append(compilerCommand)
+		}
+
+		return result
+	}
+
+	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
+		var result = false
+		var offset = lines.index(index, offsetBy: -2)
+
+		// Check the line starts with either 'CompileC', 'SwiftDriver', or 'CompileSwiftSources' to ensure we only pick up compilation commands
+		while lines.indices.contains(offset) {
+			let previousLine = lines[offset].trimmingCharacters(in: .whitespacesAndNewlines)
+			offset -= 1
+
+			logger.debug("Looking at previous line: \(previousLine)")
+
+			if previousLine.isEmpty {
+				// hit the top of the block, exit loop
+				break
+			}
+
+			if previousLine.starts(with: "CompileC")
+					|| previousLine.starts(with: "SwiftDriver")
+					|| previousLine.starts(with: "CompileSwiftSources") {
+				result = true
+				break
+			}
+		}
+
+		if !result, lines.indices.contains(lines.index(index, offsetBy: -2)) {
+			logger.debug(
+			 """
+			 Skipping non-compile command block:
+			 \(lines[lines.index(index, offsetBy: -2)..<lines.index(after: index)])
+			 """
+			)
 		}
 
 		return result
@@ -141,6 +164,9 @@ struct XcodeLogParser {
 
 	private func compilerCommand(from line: String) -> CompilerCommand? {
 		var stripped = line.trimmingCharacters(in: .whitespacesAndNewlines)
+		if (line.contains("swiftc")) {
+			print(line)
+		}
 
 		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
 			stripped = String(stripped[index..<stripped.endIndex])

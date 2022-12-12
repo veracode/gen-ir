@@ -45,6 +45,9 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Enables debug level logging")
 	var debug = false
 
+	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
+	var quieter = false
+
 	func run() throws {
 		LoggingSystem.bootstrap(StdOutLogHandler.init)
 		logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
@@ -72,7 +75,9 @@ struct IREmitterCommand: ParsableCommand {
 	private func parser(for path: String) throws -> XcodeLogParser {
 		if path == "-" {
 			logger.info("Collating input via pipe")
-			return try XcodeLogParser(log: readStdin())
+			let parser =  try XcodeLogParser(log: readStdin())
+			logger.info("Finished reading from pipe")
+			return parser
 		} 
 
 		logger.info("Reading from log file")
@@ -85,7 +90,14 @@ struct IREmitterCommand: ParsableCommand {
 		var results = [String]()
 
 		while let line = readLine() {
+			if !quieter {
+				print(line) // shows user that build is happening
+			}
 			results.append(line)
+		}
+
+		if !quieter {
+			print("\n\n")
 		}
 
 		return results
