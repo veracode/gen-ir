@@ -74,3 +74,12 @@ swift build
 # Release output: ./.build/release/gen-ir
 swift build -c release
 ```
+
+## Remove older version
+
+If you previously installed the test version during early access testing, run the following commands to remove the test version from your system before installing:
+
+ ```sh
+ brew uninstall gen-ir && 
+ brew untap NinjaLikesCheez/tap
+ ```
