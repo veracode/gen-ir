@@ -35,6 +35,12 @@ brew tap veracode/tap
 brew install gen-ir
 ```
 
+## Update (if previously installed)
+
+```bash
+brew upgrade gen-ir
+```
+
 ## 🎉 Done!
 
 All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir --help` to check the available commands and options.
