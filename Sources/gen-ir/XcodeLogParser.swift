@@ -11,7 +11,9 @@ import Logging
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 struct XcodeLogParser {
 	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
-	private(set) var targetsAndCommands: TargetsAndCommands = [:]
+	private(set) var targetToCommands: TargetToCommands = [:]
+	/// Mapping of target names to product names
+	private(set) var targetToProduct: TargetToProduct = [:]
 
 	/// The Xcode build log contents
 	private let log: [String]
@@ -25,7 +27,10 @@ struct XcodeLogParser {
 	/// - Parameter path: the path to the Xcode build log file
 	init(path: URL) throws {
 		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
-		self.targetsAndCommands = extractCompilerCommands(log)
+
+		let (targetToCommands, targetToProduct) = parseBuildLog(log)
+		self.targetToCommands = targetToCommands
+		self.targetToProduct = targetToProduct
 
 		try checkTargetAndCommandValidity()
 	}
@@ -34,13 +39,16 @@ struct XcodeLogParser {
 	/// - Parameter log: the contents of the build log
 	init(log: [String]) throws {
 		self.log = log
-		self.targetsAndCommands = extractCompilerCommands(log)
+
+		let (targetToCommands, targetToProduct) = parseBuildLog(log)
+		self.targetToCommands = targetToCommands
+		self.targetToProduct = targetToProduct
 
 		try checkTargetAndCommandValidity()
 	}
 
 	private func checkTargetAndCommandValidity() throws {
-		if targetsAndCommands.keys.isEmpty {
+		if targetToCommands.keys.isEmpty {
 			logger.debug("Found no targets in log: \(log)")
 
 			throw Error.noTargetsFound(
@@ -50,7 +58,7 @@ struct XcodeLogParser {
 			)
 		}
 
-		let totalCommands = targetsAndCommands.map { (target, commands) in
+		let totalCommands = targetToCommands.map { (target, commands) in
 			if commands.isEmpty {
 				logger.warning("Found no commands for target: \(target)")
 			}
@@ -69,17 +77,29 @@ struct XcodeLogParser {
 		}
 	}
 
-	/// Extracts targets and compiler commands from an array representing the contents of an Xcode build log
+	/// Parses  an array representing the contents of an Xcode build log
 	/// - Parameter lines: contents of the Xcode build log lines
-	/// - Returns: map of targets and the commands the compiler used to generate them
-	private func extractCompilerCommands(_ lines: [String]) -> TargetsAndCommands {
+	/// - Returns: A tuple of the targets and their commands, and the targets and their product names
+	private func parseBuildLog(_ lines: [String]) -> (TargetToCommands, TargetToProduct) {
 		var currentTarget: String?
-		var result: TargetsAndCommands = [:]
+		var targetToCommands: TargetToCommands = [:]
+		var targetToProduct: TargetToProduct = [:]
 
 		for (index, line) in lines.enumerated() {
+			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
 			if let target = target(from: line), currentTarget != target {
 				logger.debug("Found target: \(target)")
 				currentTarget = target
+			}
+
+			guard let currentTarget else {
+				logger.warning("No target was found for this command - \(line)")
+				continue
+			}
+
+			if let productName = product(from: line) {
+				targetToProduct[currentTarget] = productName
 			}
 
 			guard let compilerCommand = compilerCommand(from: line) else {
@@ -90,21 +110,16 @@ struct XcodeLogParser {
 				continue
 			}
 
-			guard let currentTarget else {
-				logger.warning("No target was found for this command - \(line)")
-				continue
-			}
-
-			if result[currentTarget] == nil {
-				result[currentTarget] = []
+			if targetToCommands[currentTarget] == nil {
+				targetToCommands[currentTarget] = []
 			}
 
 			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command")
 
-			result[currentTarget]!.append(compilerCommand)
+			targetToCommands[currentTarget]!.append(compilerCommand)
 		}
 
-		return result
+		return (targetToCommands, targetToProduct)
 	}
 
 	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
@@ -163,11 +178,7 @@ struct XcodeLogParser {
 	}
 
 	private func compilerCommand(from line: String) -> CompilerCommand? {
-		var stripped = line.trimmingCharacters(in: .whitespacesAndNewlines)
-		if (line.contains("swiftc")) {
-			print(line)
-		}
-
+		var stripped = line
 		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
 			stripped = String(stripped[index..<stripped.endIndex])
 		}
@@ -176,6 +187,35 @@ struct XcodeLogParser {
 			return .init(command: stripped, compiler: .swiftc)
 		} else if stripped.contains("/clang") {
 			return .init(command: stripped, compiler: .clang)
+		}
+
+		return nil
+	}
+
+	/// Gets a 'product' (app, framework, etc) name from a GenerateDSYM command
+	/// This is done in order to correctly line up products with targets of a different name
+	private func product(from line: String) -> String? {
+		// example line:
+		// GenerateDSYMFile /path/to/something.app.dSYM /path/to/something.app (in target 'target' from project 'project')
+		guard line.starts(with: "GenerateDSYMFile") else {
+			return nil
+		}
+
+		let split = line.splitIgnoringEscapes(separator: " ")
+
+		// Second item in the line should be the dSYM path, grab the file name from it
+		let suffix = ".dSYM"
+		if let dsymPath = split.first(where: { $0.hasSuffix(suffix)}) {
+			var productName = String(dsymPath).fileURL.lastPathComponent.dropLast(suffix.count)
+
+			if let dotIndex = productName.lastIndex(of: ".") {
+				productName = productName[productName.startIndex..<dotIndex]
+			}
+
+			return String(productName)
+		} else {
+			logger.error("Failed to parse a dSYM path from a GenerateDSYMFile command...")
+			assert(true, "Failed to parse a dSYM path from a GenerateDSYMFile command...")
 		}
 
 		return nil
