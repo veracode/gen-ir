@@ -20,4 +20,6 @@ struct CompilerCommand {
 }
 
 /// A mapping of targets to the commands used when building them
-typealias TargetsAndCommands = [String: [CompilerCommand]]
+typealias TargetToCommands = [String: [CompilerCommand]]
+///  A mapping of targets to their inferred product name
+typealias TargetToProduct = [String: String]

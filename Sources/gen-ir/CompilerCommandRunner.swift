@@ -18,7 +18,9 @@ typealias OutputFileMap = [String: [String: String]]
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
 	/// Map of targets and the compiler commands that were part of the target build
-	private let targetsAndCommands: TargetsAndCommands
+	private let targetToCommands: TargetToCommands
+	/// Map of target to product names
+	private let targetToProduct: TargetToProduct
 
 	/// The directory to place the LLVM BC output
 	private let output: URL
@@ -32,10 +34,12 @@ struct CompilerCommandRunner {
 
 	/// Initializes a runner
 	/// - Parameters:
-	///   - targetsAndCommands: Mapping of targets to the commands used to generate them
+	///   - targetToCommands: Mapping of targets to the commands used to generate them
+	///   - targetToProduct: Mapping of target names to product names
 	///   - output: The location to place the resulting LLVM IR
-	init(targetsAndCommands: TargetsAndCommands, output: URL) {
-		self.targetsAndCommands = targetsAndCommands
+	init(targetToCommands: TargetToCommands, targetToProduct: TargetToProduct, output: URL) {
+		self.targetToCommands = targetToCommands
+		self.targetToProduct = targetToProduct
 		self.output = output
 	}
 
@@ -45,12 +49,12 @@ struct CompilerCommandRunner {
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targetsAndCommands.reduce(0, { $0 + $1.value.count })
+		let totalCommands = targetToCommands.reduce(0, { $0 + $1.value.count })
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for (target, commands) in targetsAndCommands {
+		for (target, commands) in targetToCommands {
 			logger.info("Operating on target: \(target). Total modules processed: \(totalModulesRun)")
 
 			totalModulesRun += try run(commands: commands, for: target, at: tempDirectory)
@@ -67,7 +71,9 @@ struct CompilerCommandRunner {
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
 	private func run(commands: [CompilerCommand], for target: String, at directory: URL) throws -> Int {
-		let targetDirectory = output.appendingPathComponent(target)
+		let directoryName = targetToProduct[target] ?? target
+		let targetDirectory = output.appendingPathComponent(directoryName)
+
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
 		logger.debug("Created target directory: \(targetDirectory)")
 

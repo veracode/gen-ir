@@ -64,7 +64,11 @@ struct IREmitterCommand: ParsableCommand {
 			try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 		}
 
-		let runner = CompilerCommandRunner(targetsAndCommands: parser.targetsAndCommands, output: output)
+		let runner = CompilerCommandRunner(
+			targetToCommands: parser.targetToCommands,
+			targetToProduct: parser.targetToProduct,
+			output: output
+		)
 
 		try runner.run()
 	}
