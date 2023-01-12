@@ -94,7 +94,7 @@ struct XcodeLogParser {
 			}
 
 			guard let currentTarget else {
-				logger.warning("No target was found for this command - \(line)")
+				logger.debug("No target was found for this command - \(line)")
 				continue
 			}
 
