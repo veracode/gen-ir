@@ -1,11 +1,14 @@
 import Foundation
 import ArgumentParser
 import Logging
+import pbxproj_parser
 
 /// Global logger object
 var logger: Logger!
 
 let programName = CommandLine.arguments.first!
+
+// TODO: ValidationError could be used when trying to accept the xcodeprojectworkspace path
 
 /// Command to emit LLVM IR from an Xcode build log
 @main
@@ -39,16 +42,22 @@ struct IREmitterCommand: ParsableCommand {
 
 	/// Path to write the LLVM BC results to
 	@Argument(help: "Directory to write output to")
-	var outputPath: String
+	var outputPath: URL
+
+	/// Path to xcodeproj or xcworkspace file
+	@Option(help: "Path to your Xcode Project or Workspace file")
+	var projectPath: URL
 
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
 	var debug = false
 
+	/// Reduces log noise
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
 
-	func run() throws {
+	func validate() throws {
+		// Validate runs before run() so bootstrap logging here
 		LoggingSystem.bootstrap(StdOutLogHandler.init)
 		logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
 
@@ -56,18 +65,25 @@ struct IREmitterCommand: ParsableCommand {
 			logger.logLevel = .debug
 		}
 
-		let parser = try parser(for: logPath)
-		let output = outputPath.fileURL
-
-		if !FileManager.default.directoryExists(at: output) {
-			logger.debug("Output path doesn't exist, creating \(output)")
-			try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+		if !FileManager.default.directoryExists(at: outputPath) {
+			logger.debug("Output path doesn't exist, creating \(outputPath)")
+			try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
 		}
+
+		guard FileManager.default.directoryExists(at: projectPath) else {
+			throw ValidationError("Project not found at path: \(projectPath)")
+		}
+	}
+
+	func run() throws {
+		let parser = try parser(for: logPath)
+		let project = try ProjectParser(path: projectPath)
+		print(project)
 
 		let runner = CompilerCommandRunner(
 			targetToCommands: parser.targetToCommands,
 			targetToProduct: parser.targetToProduct,
-			output: output
+			output: outputPath
 		)
 
 		try runner.run()
@@ -78,19 +94,17 @@ struct IREmitterCommand: ParsableCommand {
 	/// - Returns: An `XcodeLogParser` for the given path
 	private func parser(for path: String) throws -> XcodeLogParser {
 		if path == "-" {
-			logger.info("Collating input via pipe")
-			let parser =  try XcodeLogParser(log: readStdin())
-			logger.info("Finished reading from pipe")
-			return parser
-		} 
-
-		logger.info("Reading from log file")
-		return try XcodeLogParser(path: path.fileURL)
+			return try XcodeLogParser(log: readStdin())
+		} else {
+			return try XcodeLogParser(path: path.fileURL)
+		}
 	}
 
 	/// Reads stdin until an EOF is found
 	/// - Returns: An array of Strings representing stdin split by lines
 	private func readStdin() -> [String] {
+		logger.info("Collating input via pipe")
+
 		var results = [String]()
 
 		while let line = readLine() {
@@ -104,6 +118,14 @@ struct IREmitterCommand: ParsableCommand {
 			print("\n\n")
 		}
 
+		logger.info("Finished reading from pipe")
+
 		return results
+	}
+}
+
+extension URL: ExpressibleByArgument {
+	public init?(argument: String) {
+		self = argument.fileURL.absoluteURL
 	}
 }

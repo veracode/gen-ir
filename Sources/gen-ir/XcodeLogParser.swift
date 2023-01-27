@@ -9,7 +9,7 @@ import Foundation
 import Logging
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
-struct XcodeLogParser {
+class XcodeLogParser {
 	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
 	private(set) var targetToCommands: TargetToCommands = [:]
 	/// Mapping of target names to product names
@@ -26,11 +26,10 @@ struct XcodeLogParser {
 	/// Inits a XcodeLogParser from an Xcode build log file
 	/// - Parameter path: the path to the Xcode build log file
 	init(path: URL) throws {
+		logger.info("Reading from log file")
 		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
 
-		let (targetToCommands, targetToProduct) = parseBuildLog(log)
-		self.targetToCommands = targetToCommands
-		self.targetToProduct = targetToProduct
+		parseBuildLog(log)
 
 		try checkTargetAndCommandValidity()
 	}
@@ -40,9 +39,7 @@ struct XcodeLogParser {
 	init(log: [String]) throws {
 		self.log = log
 
-		let (targetToCommands, targetToProduct) = parseBuildLog(log)
-		self.targetToCommands = targetToCommands
-		self.targetToProduct = targetToProduct
+		parseBuildLog(log)
 
 		try checkTargetAndCommandValidity()
 	}
@@ -80,7 +77,7 @@ struct XcodeLogParser {
 	/// Parses  an array representing the contents of an Xcode build log
 	/// - Parameter lines: contents of the Xcode build log lines
 	/// - Returns: A tuple of the targets and their commands, and the targets and their product names
-	private func parseBuildLog(_ lines: [String]) -> (TargetToCommands, TargetToProduct) {
+	private func parseBuildLog(_ lines: [String]) {
 		var currentTarget: String?
 		var targetToCommands: TargetToCommands = [:]
 		var targetToProduct: TargetToProduct = [:]
@@ -119,7 +116,8 @@ struct XcodeLogParser {
 			targetToCommands[currentTarget]!.append(compilerCommand)
 		}
 
-		return (targetToCommands, targetToProduct)
+		self.targetToCommands = targetToCommands
+		self.targetToProduct = targetToProduct
 	}
 
 	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {

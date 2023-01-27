@@ -55,7 +55,7 @@ extension String {
 
 		for index in indices {
 			results.append(self[startIndex..<index])
-			startIndex = index
+			startIndex = substring.index(after: index)
 		}
 
 		return results
