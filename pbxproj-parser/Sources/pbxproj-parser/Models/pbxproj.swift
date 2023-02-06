@@ -27,7 +27,7 @@ class pbxproj: Decodable {
 	/// Version of the `objects`
 	let objectVersion: String
 	///  Mapping of UUID to their corresponding object
-	private let objects: [String: Object]
+	let objects: [String: Object]
 	/// UUID of the root object (probably a PBXProject
 	let rootObject: String
 
@@ -37,7 +37,16 @@ class pbxproj: Decodable {
 	static func contentsOf(_ path: URL) throws -> pbxproj {
 		let data = try Data(contentsOf: path)
 		let decoder = PropertyListDecoder()
-		return try decoder.decode(Self.self, from: data)
+		let project = try decoder.decode(Self.self, from: data)
+		project.fixup()
+		return project
+	}
+
+	/// Fixes up `Object`s by unwrapping them and assigning the key that reprensents them to the reference field
+	private func fixup() {
+		_ = objects.map { (key, object) in
+			object.unwrap().reference = key
+		}
 	}
 
 	func object(key: String) -> PBXObject? {

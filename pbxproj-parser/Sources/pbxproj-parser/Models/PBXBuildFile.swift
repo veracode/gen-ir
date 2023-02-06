@@ -13,9 +13,7 @@ class PBXBuildFile: PBXObject {
 	let platformFilter: String?
 	let platformFilters: [String]?
 	let productRef: String?
-	// TODO: until we can define this a little better
-	/// Settings related to this file -  not currently decoded
-	let settings: [String: [String]]?
+	let settings: [String: Any]?
 
 	private enum CodingKeys: String, CodingKey {
 		case fileRef
@@ -32,7 +30,7 @@ class PBXBuildFile: PBXObject {
 		platformFilter = try container.decodeIfPresent(String.self, forKey: .platformFilter)
 		platformFilters = try container.decodeIfPresent([String].self, forKey: .platformFilters)
 		productRef = try container.decodeIfPresent(String.self, forKey: .productRef)
-		settings = try container.decodeIfPresent([String: [String]].self, forKey: .settings)
+		settings = try container.decodeIfPresent([String: Any].self, forKey: .settings)
 
 		try super.init(from: decoder)
 	}

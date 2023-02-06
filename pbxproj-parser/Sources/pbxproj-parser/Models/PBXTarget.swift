@@ -11,7 +11,7 @@ class PBXTarget: PBXObject {
 	let buildConfigurationList: String
 	let comments: String?
 	let name: String
-	let productName: String
+	let productName: String?
 	let dependencies: [String]
 
 	private enum CodingKeys: String, CodingKey {
@@ -28,7 +28,7 @@ class PBXTarget: PBXObject {
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
 		comments = try container.decodeIfPresent(String.self, forKey: .comments)
 		name = try container.decode(String.self, forKey: .name)
-		productName = try container.decode(String.self, forKey: .productName)
+		productName = try container.decodeIfPresent(String.self, forKey: .productName)
 		dependencies = try container.decode([String].self, forKey: .dependencies)
 
 		try super.init(from: decoder)
@@ -78,4 +78,21 @@ class PBXNativeTarget: PBXTarget {
 	}
 }
 
-class PBXTargetDependency: PBXObject {}
+class PBXTargetDependency: PBXObject {
+	let target: String
+	let targetProxy: String
+
+	private enum CodingKeys: String, CodingKey {
+		case target
+		case targetProxy
+	}
+
+	required init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+
+		target = try container.decode(String.self, forKey: .target)
+		targetProxy = try container.decode(String.self, forKey: .targetProxy)
+
+		try super.init(from: decoder)
+	}
+}

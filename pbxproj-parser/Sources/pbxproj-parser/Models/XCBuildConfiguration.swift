@@ -9,7 +9,7 @@ import Foundation
 
 class XCBuildConfiguration: PBXObject {
 	var baseConfigurationReference: String?
-	var buildSettings: BuildSettings
+	var buildSettings: [String: Any]
 	var name: String
 
 	private enum CodingKeys: String, CodingKey {
@@ -22,7 +22,7 @@ class XCBuildConfiguration: PBXObject {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		baseConfigurationReference = try container.decodeIfPresent(String.self, forKey: .baseConfigurationReference)
-		buildSettings = try container.decode(BuildSettings.self, forKey: .buildSettings)
+		buildSettings = try container.decode([String: Any].self, forKey: .buildSettings)
 		name = try container.decode(String.self, forKey: .name)
 
 		try super.init(from: decoder)

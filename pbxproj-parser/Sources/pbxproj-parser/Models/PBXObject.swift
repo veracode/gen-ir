@@ -11,6 +11,7 @@ import Foundation
 class PBXObject: Decodable {
 	/// Objects class name
 	let isa: PBXObjectType
+	var reference: String!
 }
 
 /// Single case enum that decodes and holds a reference to an underlying `PBXObject` subclass
@@ -27,7 +28,6 @@ enum Object: Decodable {
 		let isa = try container.decode(PBXObjectType.self, forKey: .isa)
 		let singleContainer = try decoder.singleValueContainer()
 
-		let keys = PBXObjectType.allCases
 		self = .object(try singleContainer.decode(isa.getType()))
 	}
 

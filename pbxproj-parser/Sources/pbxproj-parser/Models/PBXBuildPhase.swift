@@ -61,8 +61,8 @@ class PBXCopyFilesBuildPhase: PBXBuildPhase {
 }
 
 class PBXShellScriptBuildPhase: PBXBuildPhase {
-	let inputPaths: [String]
-	let outputPaths: [String]
+	let inputPaths: [String]?
+	let outputPaths: [String]?
 	let shellPath: String
 	let shellScript: String
 
@@ -76,8 +76,8 @@ class PBXShellScriptBuildPhase: PBXBuildPhase {
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
-		inputPaths = try container.decode([String].self, forKey: .inputPaths)
-		outputPaths = try container.decode([String].self, forKey: .outputPaths)
+		inputPaths = try container.decodeIfPresent([String].self, forKey: .inputPaths)
+		outputPaths = try container.decodeIfPresent([String].self, forKey: .outputPaths)
 		shellPath = try container.decode(String.self, forKey: .shellPath)
 		shellScript = try container.decode(String.self, forKey: .shellScript)
 

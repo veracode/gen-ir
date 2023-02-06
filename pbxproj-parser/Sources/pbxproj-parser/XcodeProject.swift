@@ -13,20 +13,14 @@ enum ParsingError: Error {
 }
 
 public struct XcodeProject {
-	/// Path to the Project or Workspace
+	/// Path to the Workspace
 	public let path: URL
 	private let pbxprojPath: URL
 	private let model: pbxproj
 
 	let project: PBXProject
 	let targets: [PBXTarget]
-
-	/// Mapping of target UUID to target name
-//	let targets: [PBXTarget]
-
-	enum Error: Swift.Error {
-		case parsingFailure(String)
-	}
+	var dependencyGraphs: [String: DependencyGraph] = [:]
 
 	public init(path: URL) throws {
 		self.path = path
@@ -36,21 +30,52 @@ public struct XcodeProject {
 		project = model.project()
 		targets = model.objects(for: project.targets).compactMap { $0 as? PBXTarget }
 
-		print(targets)
-
-
-
-//		targets = try Self.targets(from: model)
-//		print(targets)
+		dependencyGraphs = targets.reduce(into: [String: DependencyGraph](), { partialResult, target in
+			partialResult[target.reference] = .init(target, for: model)
+		})
 	}
 
-//	private static func targets(from model: pbxproj) throws -> [PBXTarget] {
-//		guard let project = model.project() else {
-//			throw Error.parsingFailure("Failed to get projects from pbxproj")
-//		}
-//
-//		let targets = project.targets
-//
-//		return targets.compactMap { model.objects[$0] as? PBXTarget }
-//	}
+	func targetsAndProducts() -> [String: String] {
+		targets.reduce(into: [String: String]()) { partialResult, target in
+			partialResult[target.name] = target.productName ?? target.name
+		}
+	}
 }
+
+class DependencyGraph {
+	private let model: pbxproj
+	var root: Node
+
+	init(_ target: PBXTarget, for project: pbxproj) {
+		root = .init(object: target, model: project)
+		model = project
+	}
+
+	class Node {
+		let object: PBXTarget
+		let model: pbxproj // TODO: Welp, my poor memory bytes. Will the COWs rise up and take us?
+		var children: [Node] = []
+
+		init(object: PBXTarget, model: pbxproj) {
+			self.object = object
+			self.model = model
+
+			self.object.dependencies
+				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
+				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
+				.forEach(insert)
+		}
+
+		func insert(_ child: PBXTarget) {
+			var node = Node(object: child, model: model)
+
+			node.object.dependencies
+				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
+				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
+				.forEach(insert)
+
+			children.append(node)
+		}
+	}
+}
+
