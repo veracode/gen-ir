@@ -8,8 +8,6 @@ var logger: Logger!
 
 let programName = CommandLine.arguments.first!
 
-// TODO: ValidationError could be used when trying to accept the xcodeprojectworkspace path
-
 /// Command to emit LLVM IR from an Xcode build log
 @main
 struct IREmitterCommand: ParsableCommand {
@@ -19,7 +17,8 @@ struct IREmitterCommand: ParsableCommand {
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
 		discussion:
 		"""
-		This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this tool.
+		This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
+		tool.
 
 		This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, \
 		you may notice that not all modules are emitted.
@@ -27,11 +26,13 @@ struct IREmitterCommand: ParsableCommand {
 		To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
 
 		Example with build log:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > log.txt
+			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > \
+		log.txt
 			$ \(programName) log.txt output_folder/
 
 		Example with pipe:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 | \(programName) - output_folder/
+			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 \
+		| \(programName) - output_folder/
 		""",
 		version: "v\(Versions.version)"
 	)
@@ -76,13 +77,13 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	func run() throws {
-		let parser = try parser(for: logPath)
 		let project = try ProjectParser(path: projectPath)
 		print(project)
+		let parser = try parser(for: logPath)
 
 		let runner = CompilerCommandRunner(
 			targetToCommands: parser.targetToCommands,
-			targetToProduct: parser.targetToProduct,
+			targetToProduct: project.targetsToProducts,
 			output: outputPath
 		)
 

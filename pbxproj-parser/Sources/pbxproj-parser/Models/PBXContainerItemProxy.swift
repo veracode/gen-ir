@@ -30,6 +30,4 @@ class PBXContainerItemProxy: PBXObject {
 
 		try super.init(from: decoder)
 	}
-
-	
 }

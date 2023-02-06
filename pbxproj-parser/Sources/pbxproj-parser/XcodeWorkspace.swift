@@ -43,7 +43,7 @@ struct XcodeWorkspace {
 	}
 }
 
-
+// swiftlint:disable private_over_fileprivate
 fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	let parser: XMLParser
 	var projects = [String]()
@@ -62,7 +62,7 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		didStartElement elementName: String,
 		namespaceURI: String?,
 		qualifiedName qName: String?,
-		attributes attributeDict: [String : String] = [:]
+		attributes attributeDict: [String: String] = [:]
 	) {
 		guard
 			elementName == "FileRef",

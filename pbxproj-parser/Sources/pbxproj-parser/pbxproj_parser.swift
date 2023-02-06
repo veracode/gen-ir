@@ -7,7 +7,7 @@ public struct ProjectParser {
 	let project: XcodeProject?
 	let workspace: XcodeWorkspace?
 
-	let targetsToProducts: [String: String]
+	public let targetsToProducts: [String: String]
 
 	enum ProjectType {
 		case project
@@ -22,18 +22,12 @@ public struct ProjectParser {
 		case .project:
 			project = try XcodeProject(path: path)
 			workspace = nil
-
 			targetsToProducts = project!.targetsAndProducts()
-			break
 		case .workspace:
 			// For workspaces, we need to parse the XML file: contents.xcworkspacedata for xcodeprojects and load them up
 			project = nil
 			workspace = try XcodeWorkspace(path: path)
-//			targetsToProducts = workspace!.targetsToProducts()
 			targetsToProducts = workspace!.targetsAndProducts()
-			break
 		}
-
-		print(targetsToProducts)
 	}
 }

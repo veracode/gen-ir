@@ -54,7 +54,7 @@ class pbxproj: Decodable {
 	}
 
 	func objects(of type: PBXObjectType) -> [PBXObject] {
-		objects.compactMap { (key, value) -> PBXObject? in
+		objects.compactMap { (_, value) -> PBXObject? in
 			let object = value.unwrap()
 
 			if object.isa == type {

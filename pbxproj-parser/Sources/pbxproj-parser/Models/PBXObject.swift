@@ -62,6 +62,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 	case buildConfiguration = "XCBuildConfiguration"
 	case configurationList = "XCConfigurationList"
 
+	// swiftlint:disable cyclomatic_complexity
 	func getType() -> PBXObject.Type {
 		switch self {
 		case .buildFile:             return PBXBuildFile.self

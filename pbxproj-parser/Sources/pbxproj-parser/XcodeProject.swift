@@ -53,7 +53,7 @@ class DependencyGraph {
 
 	class Node {
 		let object: PBXTarget
-		let model: pbxproj // TODO: Welp, my poor memory bytes. Will the COWs rise up and take us?
+		let model: pbxproj
 		var children: [Node] = []
 
 		init(object: PBXTarget, model: pbxproj) {
@@ -67,7 +67,7 @@ class DependencyGraph {
 		}
 
 		func insert(_ child: PBXTarget) {
-			var node = Node(object: child, model: model)
+			let node = Node(object: child, model: model)
 
 			node.object.dependencies
 				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
@@ -78,4 +78,3 @@ class DependencyGraph {
 		}
 	}
 }
-

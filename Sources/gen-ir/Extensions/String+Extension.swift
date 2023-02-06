@@ -62,7 +62,6 @@ extension String {
 	}
 }
 
-
 extension Substring {
 	/// Returns the first index of a character that hasn't been escaped
 	/// - Parameters:

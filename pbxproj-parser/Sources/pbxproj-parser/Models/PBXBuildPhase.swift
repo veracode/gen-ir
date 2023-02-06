@@ -83,6 +83,4 @@ class PBXShellScriptBuildPhase: PBXBuildPhase {
 
 		try super.init(from: decoder)
 	}
-
-
 }

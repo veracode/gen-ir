@@ -27,6 +27,4 @@ class PBXGroup: PBXObject {
 
 		try super.init(from: decoder)
 	}
-
-
 }
