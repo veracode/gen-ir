@@ -9,11 +9,12 @@ import Foundation
 
 struct XcodeWorkspace {
 	/// Path to the Workspace
-	public let path: URL
+	let path: URL
 	private let contentsPath: URL
 
-	private let projectPaths: [URL]
-	private let models: [URL: XcodeProject]
+	private(set) var projectPaths: [URL]
+	let models: [URL: XcodeProject]
+	let targetsToProject: [String: XcodeProject]
 
 	init(path: URL) throws {
 		// Parse the `contents.xcworkspacedata` file and get the list of projects
@@ -31,6 +32,12 @@ struct XcodeWorkspace {
 		models = try projectPaths.reduce(into: [URL: XcodeProject](), { partialResult, path in
 			partialResult[path] = try .init(path: path)
 		})
+
+		targetsToProject = models.values.reduce(into: [String: XcodeProject](), { partialResult, project in
+			project.targets.forEach {
+				partialResult[$0.nameOfProduct()] = project
+			}
+		})
 	}
 
 	func targetsAndProducts() -> [String: String] {
@@ -40,6 +47,10 @@ struct XcodeWorkspace {
 				// Keep existing keys and values in place
 				partialResult.merge(dict, uniquingKeysWith: { (current, _) in current })
 			}
+	}
+
+	func dependencyGraph(for target: String) -> DependencyGraph? {
+		targetsToProject[target]?.dependencyGraphs[target]
 	}
 }
 
@@ -66,12 +77,12 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	) {
 		guard
 			elementName == "FileRef",
-			let location = attributeDict["location"],
+			var location = attributeDict["location"]?.replacingOccurrences(of: "group:", with: ""),
 			location.hasSuffix(".xcodeproj")
 		else {
 			return
 		}
 
-		projects.append(location.replacingOccurrences(of: "group:", with: ""))
+		projects.append(location)
 	}
 }

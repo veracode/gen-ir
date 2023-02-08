@@ -31,50 +31,13 @@ public struct XcodeProject {
 		targets = model.objects(for: project.targets).compactMap { $0 as? PBXTarget }
 
 		dependencyGraphs = targets.reduce(into: [String: DependencyGraph](), { partialResult, target in
-			partialResult[target.reference] = .init(target, for: model)
+			partialResult[target.nameOfProduct()] = .init(target, for: model)
 		})
 	}
 
 	func targetsAndProducts() -> [String: String] {
 		targets.reduce(into: [String: String]()) { partialResult, target in
-			partialResult[target.name] = target.productName ?? target.name
-		}
-	}
-}
-
-class DependencyGraph {
-	private let model: pbxproj
-	var root: Node
-
-	init(_ target: PBXTarget, for project: pbxproj) {
-		root = .init(object: target, model: project)
-		model = project
-	}
-
-	class Node {
-		let object: PBXTarget
-		let model: pbxproj
-		var children: [Node] = []
-
-		init(object: PBXTarget, model: pbxproj) {
-			self.object = object
-			self.model = model
-
-			self.object.dependencies
-				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
-				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
-				.forEach(insert)
-		}
-
-		func insert(_ child: PBXTarget) {
-			let node = Node(object: child, model: model)
-
-			node.object.dependencies
-				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
-				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
-				.forEach(insert)
-
-			children.append(node)
+			partialResult[target.name] = target.nameOfProduct()
 		}
 	}
 }

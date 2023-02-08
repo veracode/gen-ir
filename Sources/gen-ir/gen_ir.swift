@@ -77,13 +77,13 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	func run() throws {
-		let project = try ProjectParser(path: projectPath)
-		print(project)
-		let parser = try parser(for: logPath)
+		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
+		let parser = try logParser(for: logPath)
 
 		let runner = CompilerCommandRunner(
 			targetToCommands: parser.targetToCommands,
 			targetToProduct: project.targetsToProducts,
+			projectParser: project,
 			output: outputPath
 		)
 
@@ -93,7 +93,7 @@ struct IREmitterCommand: ParsableCommand {
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
 	/// - Returns: An `XcodeLogParser` for the given path
-	private func parser(for path: String) throws -> XcodeLogParser {
+	private func logParser(for path: String) throws -> XcodeLogParser {
 		if path == "-" {
 			return try XcodeLogParser(log: readStdin())
 		} else {

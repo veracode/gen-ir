@@ -23,6 +23,10 @@ extension FileManager {
 		return result && bool.boolValue
 	}
 
+	func directories(at path: URL) throws -> [URL] {
+		try contentsOfDirectory(at: path, includingPropertiesForKeys: [.isDirectoryKey])
+	}
+
 	/// Returns an array of URL file paths found at the specified path ending in the specified suffix. If recursive is provided, a deep search of the path is performed
 	/// - Parameters:
 	///   - path: The path of the directory to search in

@@ -33,6 +33,10 @@ class PBXTarget: PBXObject {
 
 		try super.init(from: decoder)
 	}
+
+	func nameOfProduct() -> String {
+		productName ?? name
+	}
 }
 
 class PBXAggregateTarget: PBXTarget {
@@ -75,6 +79,12 @@ class PBXNativeTarget: PBXTarget {
 		productType = try container.decode(String.self, forKey: .productType)
 
 		try super.init(from: decoder)
+	}
+}
+
+extension PBXNativeTarget: CustomStringConvertible {
+	var description: String {
+		"<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") productReference: \(productReference), productType: \(productType)>"
 	}
 }
 
