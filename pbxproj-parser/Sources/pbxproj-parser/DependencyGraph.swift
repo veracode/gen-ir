@@ -26,8 +26,8 @@ class DependencyGraph {
 			self.model = model
 
 			self.object.dependencies
-				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
-				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
+				.compactMap({ model.object(key: $0, as: PBXTargetDependency.self) })
+				.compactMap({ model.object(key: $0.target, as: PBXNativeTarget.self) })
 				.forEach(insert)
 		}
 
@@ -35,8 +35,8 @@ class DependencyGraph {
 			let node = Node(object: child, model: model)
 
 			node.object.dependencies
-				.compactMap({ model.object(key: $0) as? PBXTargetDependency })
-				.compactMap({ model.object(key: $0.target) as? PBXNativeTarget })
+				.compactMap({ model.object(key: $0, as: PBXTargetDependency.self) })
+				.compactMap({ model.object(key: $0.target, as: PBXNativeTarget.self) })
 				.forEach(insert)
 
 			children.append(node)

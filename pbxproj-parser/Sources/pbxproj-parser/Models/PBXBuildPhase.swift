@@ -9,9 +9,9 @@ import Foundation
 
 class PBXBuildPhase: PBXObject {
 	let alwaysOutOfDate: String?
-	let buildActionMask: UInt32 /// always UInt32.max
+	let buildActionMask: UInt32
 	let files: [String]
-	let runOnlyForDeploymentPostprocessing: Int /// always 0
+	let runOnlyForDeploymentPostprocessing: Int
 
 	private enum CodingKeys: String, CodingKey {
 		case alwaysOutOfDate
@@ -24,22 +24,18 @@ class PBXBuildPhase: PBXObject {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		alwaysOutOfDate = try container.decodeIfPresent(String.self, forKey: .alwaysOutOfDate)
+
 		let mask = try container.decode(String.self, forKey: .buildActionMask)
 		buildActionMask = UInt32(mask) ?? 0
+
 		files = try container.decode([String].self, forKey: .files)
+
 		let flag = try container.decode(String.self, forKey: .runOnlyForDeploymentPostprocessing)
 		runOnlyForDeploymentPostprocessing = Int(flag) ?? 0
 
 		try super.init(from: decoder)
 	}
 }
-
-class PBXFrameworksBuildPhase: PBXBuildPhase {}
-class PBXHeadersBuildPhase: PBXBuildPhase {}
-class PBXResourcesBuildPhase: PBXBuildPhase {}
-class PBXSourcesBuildPhase: PBXBuildPhase {}
-class PBXAppleScriptBuildPhase: PBXBuildPhase {}
-class PBXRezBuildPhase: PBXBuildPhase {}
 
 class PBXCopyFilesBuildPhase: PBXBuildPhase {
 	let dstPath: String
@@ -84,3 +80,10 @@ class PBXShellScriptBuildPhase: PBXBuildPhase {
 		try super.init(from: decoder)
 	}
 }
+
+class PBXFrameworksBuildPhase: PBXBuildPhase {}
+class PBXHeadersBuildPhase: PBXBuildPhase {}
+class PBXResourcesBuildPhase: PBXBuildPhase {}
+class PBXSourcesBuildPhase: PBXBuildPhase {}
+class PBXAppleScriptBuildPhase: PBXBuildPhase {}
+class PBXRezBuildPhase: PBXBuildPhase {}

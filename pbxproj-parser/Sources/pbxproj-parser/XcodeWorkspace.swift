@@ -35,7 +35,7 @@ struct XcodeWorkspace {
 
 		targetsToProject = models.values.reduce(into: [String: XcodeProject](), { partialResult, project in
 			project.targets.forEach {
-				partialResult[$0.nameOfProduct()] = project
+				partialResult[project.path(for: $0)] = project
 			}
 		})
 	}

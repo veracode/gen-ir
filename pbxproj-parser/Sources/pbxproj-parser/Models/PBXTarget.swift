@@ -33,10 +33,6 @@ class PBXTarget: PBXObject {
 
 		try super.init(from: decoder)
 	}
-
-	func nameOfProduct() -> String {
-		productName ?? name
-	}
 }
 
 class PBXAggregateTarget: PBXTarget {

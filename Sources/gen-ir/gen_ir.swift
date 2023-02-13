@@ -12,6 +12,7 @@ let programName = CommandLine.arguments.first!
 @main
 struct IREmitterCommand: ParsableCommand {
 
+	// TODO: update me to use new xcarhive and project path
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
@@ -41,9 +42,9 @@ struct IREmitterCommand: ParsableCommand {
 	@Argument(help: "Path to a full Xcode build log. If `-` is provided, stdin will be read")
 	var logPath: String
 
-	/// Path to write the LLVM BC results to
-	@Argument(help: "Directory to write output to")
-	var outputPath: URL
+	/// Path to the xcarchive to write the LLVM BC files to
+	@Argument(help: "Path to the xcarchive associated with the build log")
+	var xcarchivePath: URL
 
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
@@ -57,6 +58,10 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
 
+	private var outputPath: URL {
+		xcarchivePath.appendingPathComponent("IR")
+	}
+
 	func validate() throws {
 		// Validate runs before run() so bootstrap logging here
 		LoggingSystem.bootstrap(StdOutLogHandler.init)
@@ -64,6 +69,10 @@ struct IREmitterCommand: ParsableCommand {
 
 		if debug {
 			logger.logLevel = .debug
+		}
+
+		guard xcarchivePath.lastPathComponent.hasSuffix("xcarchive") else {
+			throw ValidationError("xcarchive path must have an .xcarchive extension. Found \(xcarchivePath.lastPathComponent)")
 		}
 
 		if !FileManager.default.directoryExists(at: outputPath) {
@@ -88,6 +97,9 @@ struct IREmitterCommand: ParsableCommand {
 		)
 
 		try runner.run()
+
+		let postprocessor = try OutputPostprocessor(project: project, xcarchive: xcarchivePath, output: outputPath)
+		try postprocessor.process()
 	}
 
 	/// Gets an `XcodeLogParser` for a path

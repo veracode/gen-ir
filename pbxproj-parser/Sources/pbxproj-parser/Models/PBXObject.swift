@@ -36,8 +36,7 @@ enum Object: Decodable {
 			return object
 		}
 
-		// TODO: Make this human readadbleer
-		fatalError("Failed to unwrap an object, this should only happen if someone has messed with the object. Don't do that")
+		fatalError("Failed to unwrap the underlying PBXObject, this should only happen if someone adds a case to `Object` and didn't handle it.")
 	}
 }
 

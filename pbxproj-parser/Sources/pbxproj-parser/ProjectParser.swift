@@ -45,9 +45,14 @@ public struct ProjectParser {
 			return []
 		}
 
+		guard let project = project(for: target) else {
+			logger.error("Failed to find project for target: \(project)")
+			return []
+		}
+
 		// Search graph for dependencies
 		logger.debug("graph: \(graph)")
-		var dependencies = [PBXTarget]()
+		var dependencies = [PBXNativeTarget]()
 		var nodesToVisit = graph.root.children
 
 		for node in nodesToVisit {
@@ -55,16 +60,31 @@ public struct ProjectParser {
 				nodesToVisit.append(contentsOf: node.children)
 			}
 
-			dependencies.append(node.object)
+			if let dependency = node.object as? PBXNativeTarget {
+				dependencies.append(dependency)
+			} else {
+				logger.error("Failed to cast node's object as PBXNativeTarget: \(node.object)")
+			}
 		}
 
-		return dependencies.map { $0.nameOfProduct() }
+		// Use the product reference to look up the FileReference path
+		return dependencies
+			.map { $0.productReference }
+			.compactMap { project.object(for: $0, as: PBXFileReference.self) }
+			.map { $0.path }
 	}
 
 	private func graph(for target: String) -> DependencyGraph? {
 		switch type {
 		case .project(let project): return project.dependencyGraphs[target]
 		case .workspace(let workspace): return workspace.dependencyGraph(for: target)
+		}
+	}
+
+	private func project(for target: String) -> XcodeProject? {
+		switch type {
+		case .project(let project): return project
+		case .workspace(let workspace): return workspace.targetsToProject[target]
 		}
 	}
 }

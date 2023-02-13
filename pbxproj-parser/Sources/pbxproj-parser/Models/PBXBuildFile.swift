@@ -8,7 +8,6 @@
 import Foundation
 
 class PBXBuildFile: PBXObject {
-	/// The file that will be built
 	let fileRef: String
 	let platformFilter: String?
 	let platformFilters: [String]?

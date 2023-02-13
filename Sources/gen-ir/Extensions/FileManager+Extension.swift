@@ -23,8 +23,29 @@ extension FileManager {
 		return result && bool.boolValue
 	}
 
-	func directories(at path: URL) throws -> [URL] {
-		try contentsOfDirectory(at: path, includingPropertiesForKeys: [.isDirectoryKey])
+	func filteredContents(
+		of path: URL,
+		properties: [URLResourceKey]? = nil,
+		recursive: Bool = true,
+		filter: (URL) throws -> Bool
+	) rethrows -> [URL] {
+		guard recursive else {
+			let contents = (try? contentsOfDirectory(at: path, includingPropertiesForKeys: properties)) ?? []
+			return try contents.filter(filter)
+		}
+
+		guard let enumerator = enumerator(at: path, includingPropertiesForKeys: properties) else {
+			return []
+		}
+
+		return try enumerator.compactMap {
+			if case let url as URL = $0 {
+				return url
+			}
+
+			return nil
+		}
+		.filter { try filter($0) }
 	}
 
 	/// Returns an array of URL file paths found at the specified path ending in the specified suffix. If recursive is provided, a deep search of the path is performed
@@ -34,28 +55,17 @@ extension FileManager {
 	///   - recursive: A Boolean value to indicate whether a recursive search should be performed
 	/// - Returns: An array of URL file paths matching the suffix found in the specifed path
 	func files(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
-		guard recursive else {
-			return try self.contentsOfDirectory(at: path, includingPropertiesForKeys: [.isRegularFileKey])
-				.filter { $0.lastPathComponent.hasSuffix(suffix) }
+		try filteredContents(of: path, recursive: recursive) { url in
+			let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
+			return attributes.isRegularFile ?? false && url.lastPathComponent.hasSuffix(suffix)
 		}
+	}
 
-		guard let enumerator = self.enumerator(at: path, includingPropertiesForKeys: [.isRegularFileKey]) else {
-			return []
-		}
-
-		var files = [URL]()
-		for case let url as URL in enumerator {
-			do {
-				let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
-				if let isFile = attributes.isRegularFile, isFile, url.lastPathComponent.hasSuffix(suffix) {
-					files.append(url)
-				}
-			} catch {
-				logger.error("files failed to get resource values for path: \(url) with error: \(error)")
-			}
-		}
-
-		return files
+	func directories(at path: URL, recursive: Bool = true) throws -> [URL] {
+		try filteredContents(of: path, recursive: recursive, filter: { path in
+			let attributes = try path.resourceValues(forKeys: [.isDirectoryKey])
+			return attributes.isDirectory ?? false
+		})
 	}
 
 	/// Creates a temporary directory with a given name
@@ -78,5 +88,34 @@ extension FileManager {
 		}
 
 		try moveItem(at: source, to: destination)
+	}
+
+	func copyItemMerging(at source: URL, to destination: URL, replacing: Bool = false) throws {
+		let sourceFiles = try contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
+
+		for sourceFile in sourceFiles {
+			let destinationFile = uniqueFilename(directory: destination, filename: sourceFile.lastPathComponent)
+
+			try copyItem(at: sourceFile, to: destinationFile)
+		}
+	}
+
+	func uniqueFilename(directory: URL, filename: String) -> URL {
+		var path = directory.appendingPathComponent(filename)
+		var index = 2
+
+		while fileExists(atPath: path.filePath) {
+			let splitName = filename.split(separator: ".")
+
+			if splitName.count == 2 {
+				path = directory.appendingPathComponent("\(splitName[0]) \(index)\(splitName[1])")
+			} else {
+				path = directory.appendingPathComponent("\(filename) \(index)")
+			}
+
+			index += 1
+		}
+
+		return path
 	}
 }

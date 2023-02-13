@@ -71,15 +71,7 @@ struct CompilerCommandRunner {
 		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
 		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 
-		// TODO: Post process IR files into their product folders, move to the output path
-		try postprocess(tempDirectory)
-
-		if fileManager.fileExists(atPath: output.filePath) {
-			logger.warning("Clearing output path to prepare for bitcode moving")
-			try fileManager.removeItem(at: output)
-		}
-
-		try fileManager.moveItem(at: tempDirectory, to: output)
+		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
 	}
 
 	/// Runs all commands for a given target
@@ -143,23 +135,6 @@ struct CompilerCommandRunner {
 		}
 
 		return targetModulesRun
-	}
-
-	/// Attempt to find dependencies between targets and move IR files into their repective product folders if a static dependency is detected
-	/// - Parameter directory: the directory holding the unpostprocessed files
-	private func postprocess(_ directory: URL) throws {
-		let productsToPaths = try fileManager.directories(at: directory)
-			.reduce(into: [String: URL](), { partialResult, path in
-				partialResult[path.lastPathComponent] = path
-			})
-
-		print("productsToPaths: \(productsToPaths)")
-
-		for (target, path) in productsToPaths {
-			print("target: \(target), path: \(path)")
-			let dependencies = projectParser.dependencies(for: target)
-			print("dependencies \(dependencies)")
-		}
 	}
 
 	/// Parses, and corrects, the executable name and arguments for a given command.

@@ -42,23 +42,46 @@ class pbxproj: Decodable {
 		return project
 	}
 
-	/// Fixes up `Object`s by unwrapping them and assigning the key that reprensents them to the reference field
+	/// Fixes `Object`s by unwrapping them and assigning the key that reprensents them to the reference field
 	private func fixup() {
 		_ = objects.map { (key, object) in
 			object.unwrap().reference = key
 		}
 	}
+}
 
-	func object(key: String) -> PBXObject? {
-		objects[key]?.unwrap()
+extension pbxproj {
+	/// Get an object for a
+	/// - Parameters:
+	///   - key: <#key description#>
+	///   - type: <#type description#>
+	/// - Returns: <#description#>
+	func object<T>(key: String, as type: T.Type) -> T? {
+		objects[key]?.unwrap() as? T
 	}
 
-	func objects(of type: PBXObjectType) -> [PBXObject] {
-		objects.compactMap { (_, value) -> PBXObject? in
+	func object<T>(forKey key: String) -> T? {
+		objects[key]?.unwrap() as? T
+	}
+
+	func objects<T>(of type: PBXObjectType) -> [T] {
+		objects.compactMap { (_, value) -> T? in
 			let object = value.unwrap()
 
 			if object.isa == type {
-				return object
+				return object as? T
+			}
+
+			return nil
+		}
+	}
+
+	func objects<T>(of objectType: PBXObjectType, as type: T.Type) -> [T] {
+		objects.compactMap { (_, value) -> T? in
+			let object = value.unwrap()
+
+			if object.isa == objectType {
+				return object as? T
 			}
 
 			return nil
@@ -66,7 +89,7 @@ class pbxproj: Decodable {
 	}
 
 	func project() -> PBXProject {
-		guard let item = object(key: rootObject), let project = item as? PBXProject else {
+		guard let project: PBXProject = object(forKey: rootObject) else {
 			// TODO: throw useful errors here
 			fatalError("The root object of the pbxproj doesn't exist... this shouldn't happen")
 		}
@@ -74,8 +97,8 @@ class pbxproj: Decodable {
 		return project
 	}
 
-	func objects(for identifiers: [String]) -> [PBXObject] {
-		identifiers.compactMap { object(key: $0) }
+	func objects<T>(for identifiers: [String]) -> [T] {
+		identifiers.compactMap { object(forKey: $0) }
 	}
 }
 
