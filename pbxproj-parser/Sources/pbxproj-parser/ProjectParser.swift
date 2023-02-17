@@ -4,9 +4,12 @@ import Logging
 var logger: Logger = .init(label: "com.veracode.pbxproj_parser")
 
 public struct ProjectParser {
+	/// Path to the xcodeproj or xcworkspace bundle
 	let path: URL
+	/// The type of project
 	let type: ProjectType
 
+	/// Mapping of targets (the specification of a build) to products (the result of a build of a target)
 	public let targetsToProducts: [String: String]
 
 	enum ProjectType {
@@ -38,49 +41,37 @@ public struct ProjectParser {
 		}
 	}
 
+	/// Lists dependencies for a given target
+	/// - Parameter target: the target to get dependencies for
+	/// - Returns: an array of dependencies
 	public func dependencies(for target: String) -> [String] {
-		guard let graph = graph(for: target) else {
-			// TODO: make a fucking logger
-			logger.error("Failed to find graph for target: \(target)")
-			return []
-		}
+		// HACK: Swift pacackges don't have a way to look up dependencies, so ignore them... for now
+		if !target.contains(".") { return [] }
 
 		guard let project = project(for: target) else {
-			logger.error("Failed to find project for target: \(project)")
+			logger.error("Failed to find project for target: \(target)")
 			return []
 		}
 
-		// Search graph for dependencies
-		logger.debug("graph: \(graph)")
-		var dependencies = [PBXNativeTarget]()
-		var nodesToVisit = graph.root.children
-
-		for node in nodesToVisit {
-			if !node.children.isEmpty {
-				nodesToVisit.append(contentsOf: node.children)
-			}
-
-			if let dependency = node.object as? PBXNativeTarget {
-				dependencies.append(dependency)
-			} else {
-				logger.error("Failed to cast node's object as PBXNativeTarget: \(node.object)")
-			}
+		// TODO: Swift package support here please
+		guard let target = project.targets[target] else {
+			logger.error("Failed to find a target: \(target) in project: \(project.path)")
+			return []
 		}
 
-		// Use the product reference to look up the FileReference path
-		return dependencies
-			.map { $0.productReference }
-			.compactMap { project.object(for: $0, as: PBXFileReference.self) }
-			.map { $0.path }
+		return target.targetDependencies.values
+			.compactMap { dependency in
+				if case .native(let native) = dependency {
+					return project.path(for: native)
+				}
+
+				return dependency.name
+			}
 	}
 
-	private func graph(for target: String) -> DependencyGraph? {
-		switch type {
-		case .project(let project): return project.dependencyGraphs[target]
-		case .workspace(let workspace): return workspace.dependencyGraph(for: target)
-		}
-	}
-
+	/// Gets a project for a given target
+	/// - Parameter target: the target to search for
+	/// - Returns: a `XcodeProject` that holds the target, if one was found
 	private func project(for target: String) -> XcodeProject? {
 		switch type {
 		case .project(let project): return project

@@ -18,7 +18,7 @@ import Foundation
 
 // NOTE! Big thanks to http://www.monobjc.net/xcode-project-file-format.html for the file format reference - a lot of the layout here is based on that work
 
-/// Represents a pbxproj file classure
+/// Represents a pbxproj file
 class pbxproj: Decodable {
 	/// Version of the pbxproj
 	let archiveVersion: String
@@ -42,25 +42,16 @@ class pbxproj: Decodable {
 		return project
 	}
 
-	/// Fixes `Object`s by unwrapping them and assigning the key that reprensents them to the reference field
+	/// Fixes `Object`s by unwrapping them and assigning the key that represents them to the reference field
 	private func fixup() {
-		_ = objects.map { (key, object) in
+		objects.forEach { (key, object) in
 			object.unwrap().reference = key
 		}
 	}
 }
 
 extension pbxproj {
-	/// Get an object for a
-	/// - Parameters:
-	///   - key: <#key description#>
-	///   - type: <#type description#>
-	/// - Returns: <#description#>
-	func object<T>(key: String, as type: T.Type) -> T? {
-		objects[key]?.unwrap() as? T
-	}
-
-	func object<T>(forKey key: String) -> T? {
+	func object<T>(forKey key: String, as type: T.Type = T.Type) -> T? {
 		objects[key]?.unwrap() as? T
 	}
 
@@ -101,5 +92,3 @@ extension pbxproj {
 		identifiers.compactMap { object(forKey: $0) }
 	}
 }
-
-class XCSwiftPackageProductDependency: Codable {}

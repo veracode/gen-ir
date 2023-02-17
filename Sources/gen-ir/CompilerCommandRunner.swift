@@ -22,7 +22,6 @@ struct CompilerCommandRunner {
 	private let targetToCommands: TargetToCommands
 	/// Map of target to product names
 	private let targetToProduct: TargetToProduct
-	private let projectParser: ProjectParser
 
 	/// The directory to place the LLVM BC output
 	private let output: URL
@@ -42,12 +41,10 @@ struct CompilerCommandRunner {
 	init(
 		targetToCommands: TargetToCommands,
 		targetToProduct: TargetToProduct,
-		projectParser: ProjectParser,
 		output: URL
 	) {
 		self.targetToCommands = targetToCommands
 		self.targetToProduct = targetToProduct
-		self.projectParser = projectParser
 		self.output = output
 	}
 
@@ -95,14 +92,16 @@ struct CompilerCommandRunner {
 			let (executable, arguments) = try parse(command: command)
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
 
-			logger.debug(
+			if result.code != 0 {
+				logger.debug(
 				"""
 				Command finished:
 					- code: \(result.code)
 					- has stdout: \(String(describing: result.stdout?.isEmpty))
 					- has stderr: \(String(describing: result.stderr?.isEmpty))
 				"""
-			)
+				)
+			}
 
 			var clangAdditionalModules = 0
 			var swiftAdditionalModules = 0
@@ -110,7 +109,7 @@ struct CompilerCommandRunner {
 			switch command.compiler {
 			case .swiftc:
 				guard let outputFileMap = try getOutputFileMap(from: arguments) else {
-					logger.error("Failed to find OutputFileMap for command, ")
+					logger.error("Failed to find OutputFileMap for command \(command.command) ")
 					break
 				}
 
@@ -257,7 +256,7 @@ extension CompilerCommandRunner {
 		let path = arguments[index + 1].fileURL
 
 		guard fileManager.fileExists(atPath: path.filePath) else {
-			logger.error("Found an OuputFileMap, but it doesn't exist on disk? Please report this issue.")
+			logger.error("Found an OutputFileMap, but it doesn't exist on disk? Please report this issue.")
 			logger.debug("OutputFileMap path: \(path)")
 			return nil
 		}

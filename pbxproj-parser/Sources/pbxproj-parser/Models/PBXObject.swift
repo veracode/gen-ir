@@ -60,29 +60,37 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 	case targetDependency = "PBXTargetDependency"
 	case buildConfiguration = "XCBuildConfiguration"
 	case configurationList = "XCConfigurationList"
+	case swiftPackageProductDependecy = "XCSwiftPackageProductDependency"
+	case remoteSwiftPackageReference = "XCRemoteSwiftPackageReference"
+	case referenceProxy = "PBXReferenceProxy"
+	case versionGroup = "XCVersionGroup"
 
 	// swiftlint:disable cyclomatic_complexity
 	func getType() -> PBXObject.Type {
 		switch self {
-		case .buildFile:             return PBXBuildFile.self
-		case .appleScriptBuildPhase: return PBXAppleScriptBuildPhase.self
-		case .copyFilesBuildPhase:   return PBXCopyFilesBuildPhase.self
-		case .frameworksBuildPhase:  return PBXFrameworksBuildPhase.self
-		case .headersBuildPhase:     return PBXHeadersBuildPhase.self
-		case .resourcesBuildPhase:   return PBXResourcesBuildPhase.self
-		case .shellScriptBuildPhase: return PBXShellScriptBuildPhase.self
-		case .sourcesBuildPhase:     return PBXSourcesBuildPhase.self
-		case .containerItemProxy:    return PBXContainerItemProxy.self
-		case .fileReference:         return PBXFileReference.self
-		case .group:                 return PBXGroup.self
-		case .variantGroup:          return PBXVariantGroup.self
-		case .aggregateTarget:       return PBXAggregateTarget.self
-		case .legacyTarget:          return PBXLegacyTarget.self
-		case .nativeTarget:          return PBXNativeTarget.self
-		case .project:               return PBXProject.self
-		case .targetDependency:      return PBXTargetDependency.self
-		case .buildConfiguration:    return XCBuildConfiguration.self
-		case .configurationList:     return XCConfigurationList.self
+		case .buildFile:						return PBXBuildFile.self
+		case .appleScriptBuildPhase:				return PBXAppleScriptBuildPhase.self
+		case .copyFilesBuildPhase:					return PBXCopyFilesBuildPhase.self
+		case .frameworksBuildPhase:					return PBXFrameworksBuildPhase.self
+		case .headersBuildPhase:						return PBXHeadersBuildPhase.self
+		case .resourcesBuildPhase:					return PBXResourcesBuildPhase.self
+		case .shellScriptBuildPhase:				return PBXShellScriptBuildPhase.self
+		case .sourcesBuildPhase:						return PBXSourcesBuildPhase.self
+		case .containerItemProxy:						return PBXContainerItemProxy.self
+		case .fileReference:								return PBXFileReference.self
+		case .group:												return PBXGroup.self
+		case .variantGroup:									return PBXVariantGroup.self
+		case .aggregateTarget:							return PBXAggregateTarget.self
+		case .legacyTarget:									return PBXLegacyTarget.self
+		case .nativeTarget:									return PBXNativeTarget.self
+		case .project:											return PBXProject.self
+		case .targetDependency:							return PBXTargetDependency.self
+		case .buildConfiguration:						return XCBuildConfiguration.self
+		case .configurationList:						return XCConfigurationList.self
+		case .swiftPackageProductDependecy:	return XCSwiftPackageProductDependency.self
+		case .remoteSwiftPackageReference:	return XCRemoteSwiftPackageReference.self
+		case .referenceProxy:								return PBXReferenceProxy.self
+		case .versionGroup:									return XCVersionGroup.self
 		}
 	}
 }

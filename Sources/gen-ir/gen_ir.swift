@@ -92,7 +92,6 @@ struct IREmitterCommand: ParsableCommand {
 		let runner = CompilerCommandRunner(
 			targetToCommands: parser.targetToCommands,
 			targetToProduct: project.targetsToProducts,
-			projectParser: project,
 			output: outputPath
 		)
 
@@ -115,7 +114,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	/// Reads stdin until an EOF is found
 	/// - Returns: An array of Strings representing stdin split by lines
-	private func readStdin() -> [String] {
+	private func readStdin() throws -> [String] {
 		logger.info("Collating input via pipe")
 
 		var results = [String]()
@@ -125,6 +124,10 @@ struct IREmitterCommand: ParsableCommand {
 				print(line) // shows user that build is happening
 			}
 			results.append(line)
+
+			if line.contains("** ARCHIVE FAILED **") {
+				throw ValidationError("xcodebuild failed to archive app, please correct any compilation errors and try again")
+			}
 		}
 
 		if !quieter {

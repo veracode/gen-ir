@@ -64,8 +64,9 @@ extension Process {
 		if let runInDirectory {
 			process.currentDirectoryURL = runInDirectory
 		}
-
+		#if false
 		logger.debug("RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
+		#endif
 
 		if #available(macOS 10.13, *) {
 			try process.run()
@@ -93,6 +94,10 @@ extension Process {
 
 		process.waitUntilExit()
 		group.wait()
+
+		// see: https://github.com/apple/swift/issues/57827
+		try? stdoutHandle.close()
+		try? stderrHandle.close()
 
 		return .init(
 			stdout: String(data: stdout, encoding: .utf8),

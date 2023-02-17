@@ -10,18 +10,20 @@ import Foundation
 struct XcodeWorkspace {
 	/// Path to the Workspace
 	let path: URL
-	private let contentsPath: URL
 
+	/// Path to the various underlying xcodeproj bundles
 	private(set) var projectPaths: [URL]
-	let models: [URL: XcodeProject]
+	/// List of projects this workspace references
+	let projects: [XcodeProject]
+	/// A mapping of targets to the projects that define them
 	let targetsToProject: [String: XcodeProject]
 
 	init(path: URL) throws {
-		// Parse the `contents.xcworkspacedata` file and get the list of projects
 		self.path = path
-		contentsPath = path.appendingPathComponent("contents.xcworkspacedata")
 
-		// Parse the contents path (XML) to get a list of pbxproj's
+		// Parse the `contents.xcworkspacedata` (XML) file and get the list of projects
+		let contentsPath = path.appendingPathComponent("contents.xcworkspacedata")
+
 		let data = try Data(contentsOf: contentsPath)
 		let parser = XCWorkspaceDataParser(data: data)
 
@@ -29,28 +31,27 @@ struct XcodeWorkspace {
 		projectPaths = parser.projects
 			.map { baseFolder.appendingPathComponent($0, isDirectory: true) }
 
-		models = try projectPaths.reduce(into: [URL: XcodeProject](), { partialResult, path in
-			partialResult[path] = try .init(path: path)
-		})
+		projects = try projectPaths.map(XcodeProject.init(path:))
 
-		targetsToProject = models.values.reduce(into: [String: XcodeProject](), { partialResult, project in
-			project.targets.forEach {
-				partialResult[project.path(for: $0)] = project
+		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
+			project.targets.forEach { (name, _) in
+				partialResult[name] = project
+			}
+
+			project.packages.forEach { (name, _) in
+				partialResult[name] = project
 			}
 		})
 	}
 
+	/// Gets a map of targets to products
 	func targetsAndProducts() -> [String: String] {
-		models.values
+		projects
 			.map { $0.targetsAndProducts() }
 			.reduce(into: [String: String]()) { partialResult, dict in
 				// Keep existing keys and values in place
 				partialResult.merge(dict, uniquingKeysWith: { (current, _) in current })
 			}
-	}
-
-	func dependencyGraph(for target: String) -> DependencyGraph? {
-		targetsToProject[target]?.dependencyGraphs[target]
 	}
 }
 
@@ -77,7 +78,7 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	) {
 		guard
 			elementName == "FileRef",
-			var location = attributeDict["location"]?.replacingOccurrences(of: "group:", with: ""),
+			let location = attributeDict["location"]?.replacingOccurrences(of: "group:", with: ""),
 			location.hasSuffix(".xcodeproj")
 		else {
 			return

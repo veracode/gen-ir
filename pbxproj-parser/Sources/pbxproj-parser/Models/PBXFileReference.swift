@@ -40,3 +40,5 @@ class PBXFileReference: PBXObject {
 		try super.init(from: decoder)
 	}
 }
+
+class PBXReferenceProxy: PBXObject {}

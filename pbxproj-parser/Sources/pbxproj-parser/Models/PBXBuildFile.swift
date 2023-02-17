@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXBuildFile: PBXObject {
-	let fileRef: String
+	let fileRef: String?
 	let platformFilter: String?
 	let platformFilters: [String]?
 	let productRef: String?
@@ -25,7 +25,7 @@ class PBXBuildFile: PBXObject {
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
-		fileRef = try container.decode(String.self, forKey: .fileRef)
+		fileRef = try container.decodeIfPresent(String.self, forKey: .fileRef)
 		platformFilter = try container.decodeIfPresent(String.self, forKey: .platformFilter)
 		platformFilters = try container.decodeIfPresent([String].self, forKey: .platformFilters)
 		productRef = try container.decodeIfPresent(String.self, forKey: .productRef)

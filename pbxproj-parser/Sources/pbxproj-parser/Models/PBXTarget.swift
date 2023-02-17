@@ -58,12 +58,30 @@ class PBXNativeTarget: PBXTarget {
 	let productInstallPath: String?
 	let productReference: String
 	let productType: String
+	let packageProductDependencies: [String]
+
+	private(set) var targetDependencies: [String: TargetDependency] = [:]
+
+	enum TargetDependency {
+		case native(PBXNativeTarget)
+		case package(XCSwiftPackageProductDependency)
+
+		var name: String {
+			switch self {
+			case .native(let target):
+				return target.name
+			case .package(let package):
+				return package.productName
+			}
+		}
+	}
 
 	private enum CodingKeys: String, CodingKey {
 		case buildPhases
 		case productInstallPath
 		case productReference
 		case productType
+		case packageProductDependencies
 	}
 
 	required init(from decoder: Decoder) throws {
@@ -73,14 +91,19 @@ class PBXNativeTarget: PBXTarget {
 		productInstallPath = try container.decodeIfPresent(String.self, forKey: .productInstallPath)
 		productReference = try container.decode(String.self, forKey: .productReference)
 		productType = try container.decode(String.self, forKey: .productType)
+		packageProductDependencies = try container.decodeIfPresent([String].self, forKey: .packageProductDependencies) ?? []
 
 		try super.init(from: decoder)
+	}
+
+	func add(dependency: TargetDependency) {
+		targetDependencies[dependency.name] = dependency
 	}
 }
 
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
-		"<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") productReference: \(productReference), productType: \(productType)>"
+		"<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") productReference: \(productReference), productType: \(productType), packageProductDependencies: \(packageProductDependencies)>"
 	}
 }
 

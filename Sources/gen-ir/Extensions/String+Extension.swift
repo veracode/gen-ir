@@ -14,7 +14,7 @@ extension String {
 		self.replacingOccurrences(of: "\\\\", with: "\\")
 	}
 
-	/// Returns a file URL
+	/// FileURL of a String path
 	var fileURL: URL {
 		// We have to replace \ in strings otherwise they'll end up encoded into the URL and break resolution for paths with spaces
 		return .init(fileURLWithPath: self.replacingOccurrences(of: "\\", with: ""))

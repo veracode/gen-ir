@@ -23,6 +23,13 @@ extension FileManager {
 		return result && bool.boolValue
 	}
 
+	/// Filters the contents of a directory based on the provided closure
+	/// - Parameters:
+	///   - path: the path to search through
+	///   - properties: properties to pass to the DirectoryEnumerator
+	///   - recursive: should search recursively
+	///   - filter: a closure that filters the results
+	/// - Returns: an filtered array of URL paths
 	func filteredContents(
 		of path: URL,
 		properties: [URLResourceKey]? = nil,
@@ -61,6 +68,11 @@ extension FileManager {
 		}
 	}
 
+	/// Returns an array of URL paths found at the specified path that are directories
+	/// - Parameters:
+	///   - path: the path to search
+	///   - recursive: should the search be recursive
+	/// - Returns: An array of URL directory paths found in the specified path
 	func directories(at path: URL, recursive: Bool = true) throws -> [URL] {
 		try filteredContents(of: path, recursive: recursive, filter: { path in
 			let attributes = try path.resourceValues(forKeys: [.isDirectoryKey])
@@ -90,16 +102,32 @@ extension FileManager {
 		try moveItem(at: source, to: destination)
 	}
 
+	/// Copies an item, merging with the existing path. Replacement of existing paths is performed if specified.
+	/// - Parameters:
+	///   - source: the item to copy
+	///   - destination: the destination of the copy
+	///   - replacing: should existing items be replaced?
 	func copyItemMerging(at source: URL, to destination: URL, replacing: Bool = false) throws {
 		let sourceFiles = try contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
 		for sourceFile in sourceFiles {
+			let path = destination.appendingPathComponent(sourceFile.lastPathComponent)
+
+			if replacing && fileExists(atPath: sourceFile.filePath) {
+				try removeItem(at: path)
+			}
+
 			let destinationFile = uniqueFilename(directory: destination, filename: sourceFile.lastPathComponent)
 
 			try copyItem(at: sourceFile, to: destinationFile)
 		}
 	}
 
+	/// Generates a unique filename for a file at the given directory. This attempts to emulates finders style of appending a 'version' number at the end of the filename
+	/// - Parameters:
+	///   - directory: the directory the file would exist in
+	///   - filename: the name of the file
+	/// - Returns: a URL to a unique file in the given directory
 	func uniqueFilename(directory: URL, filename: String) -> URL {
 		var path = directory.appendingPathComponent(filename)
 		var index = 2
