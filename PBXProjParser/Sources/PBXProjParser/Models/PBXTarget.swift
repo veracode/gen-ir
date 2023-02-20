@@ -103,7 +103,11 @@ class PBXNativeTarget: PBXTarget {
 
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
-		"<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") productReference: \(productReference), productType: \(productType), packageProductDependencies: \(packageProductDependencies)>"
+		"""
+		<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
+		productReference: \(productReference), productType: \(productType), \
+		packageProductDependencies: \(packageProductDependencies)>
+		"""
 	}
 }
 

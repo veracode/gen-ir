@@ -64,9 +64,6 @@ extension Process {
 		if let runInDirectory {
 			process.currentDirectoryURL = runInDirectory
 		}
-		#if false
-		logger.debug("RUNNING COMMAND: \(command) \(arguments.joined(separator: " "))")
-		#endif
 
 		if #available(macOS 10.13, *) {
 			try process.run()

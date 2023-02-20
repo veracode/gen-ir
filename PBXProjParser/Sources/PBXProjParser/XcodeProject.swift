@@ -16,7 +16,7 @@ public struct XcodeProject {
 	/// Path to the Workspace
 	public let path: URL
 	/// The underlying pbxproj model
-	private let model: pbxproj
+	private let model: PBXProj
 
 	/// The 'project' object for the pbxproj
 	let project: PBXProject
@@ -30,9 +30,9 @@ public struct XcodeProject {
 	public init(path: URL) throws {
 		self.path = path
 		let pbxprojPath = path.appendingPathComponent("project.pbxproj")
-		model = try pbxproj.contentsOf(pbxprojPath)
+		model = try PBXProj.contentsOf(pbxprojPath)
 
-		project = model.project()
+		project = try model.project()
 
 		let nativeTargets: [PBXNativeTarget] = model.objects(for: project.targets)
 		targets = nativeTargets.reduce(into: [String: PBXNativeTarget](), { partialResult, target in

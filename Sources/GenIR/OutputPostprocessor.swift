@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import pbxproj_parser
+import PBXProjParser
 
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.

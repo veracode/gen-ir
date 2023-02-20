@@ -62,11 +62,11 @@ All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir 
 xcodebuild clean && \
 xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS > build_log.txt
 
-gen-ir build_log.txt ir_files/
+gen-ir build_log.txt ir_files/ --project-path TestProject.xcodeproj
 
 # Stdin (you may need to redirect stderr to stdout here, Xcode is weird about writing to it sometimes)
 xcodebuild clean && \
-xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS | gen-ir - ir_files/
+xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS | gen-ir - ir_files/  --project-path TestProject.xcodeproj
 ```
 
 ## Building

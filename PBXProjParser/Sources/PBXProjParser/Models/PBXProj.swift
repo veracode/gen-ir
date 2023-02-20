@@ -19,7 +19,7 @@ import Foundation
 // NOTE! Big thanks to http://www.monobjc.net/xcode-project-file-format.html for the file format reference - a lot of the layout here is based on that work
 
 /// Represents a pbxproj file
-class pbxproj: Decodable {
+class PBXProj: Decodable {
 	/// Version of the pbxproj
 	let archiveVersion: String
 	/// ???
@@ -31,10 +31,14 @@ class pbxproj: Decodable {
 	/// UUID of the root object (probably a PBXProject
 	let rootObject: String
 
+	enum Error: Swift.Error {
+		case projectNotFound(String)
+	}
+
 	/// Decodes a `pbxproj` object from the contents of `path`
 	/// - Parameter path: path to `project.pbxproj` to parse
 	/// - Returns: a deserialized pbxproj structure
-	static func contentsOf(_ path: URL) throws -> pbxproj {
+	static func contentsOf(_ path: URL) throws -> PBXProj {
 		let data = try Data(contentsOf: path)
 		let decoder = PropertyListDecoder()
 		let project = try decoder.decode(Self.self, from: data)
@@ -50,7 +54,7 @@ class pbxproj: Decodable {
 	}
 }
 
-extension pbxproj {
+extension PBXProj {
 	func object<T>(forKey key: String, as type: T.Type = T.Type) -> T? {
 		objects[key]?.unwrap() as? T
 	}
@@ -79,10 +83,11 @@ extension pbxproj {
 		}
 	}
 
-	func project() -> PBXProject {
+	func project() throws -> PBXProject {
 		guard let project: PBXProject = object(forKey: rootObject) else {
-			// TODO: throw useful errors here
-			fatalError("The root object of the pbxproj doesn't exist... this shouldn't happen")
+			throw Error.projectNotFound(
+				"The root object of the pbxproj doesn't exist, or isn't castable to PBXProject... this shouldn't happen"
+			)
 		}
 
 		return project

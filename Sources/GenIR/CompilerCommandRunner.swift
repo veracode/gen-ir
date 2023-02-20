@@ -7,7 +7,7 @@
 
 import Foundation
 import Logging
-import pbxproj_parser
+import PBXProjParser
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -87,7 +87,12 @@ struct CompilerCommandRunner {
 		var targetModulesRun = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info("Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). Target modules processed: \(targetModulesRun)")
+			logger.info(
+				"""
+				Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
+				Target modules processed: \(targetModulesRun)
+				"""
+			)
 
 			let (executable, arguments) = try parse(command: command)
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)

@@ -1,5 +1,8 @@
 excluded:
   - .build/
+  - .swiftpm/
+  - .vscode/
+  - PBXProjParser/.build/ # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
 
 line_length:
   warning: 120

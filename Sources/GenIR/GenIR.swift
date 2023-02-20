@@ -1,7 +1,7 @@
 import Foundation
 import ArgumentParser
 import Logging
-import pbxproj_parser
+import PBXProjParser
 
 /// Global logger object
 var logger: Logger!
@@ -11,8 +11,6 @@ let programName = CommandLine.arguments.first!
 /// Command to emit LLVM IR from an Xcode build log
 @main
 struct IREmitterCommand: ParsableCommand {
-
-	// TODO: update me to use new xcarhive and project path
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
@@ -29,11 +27,11 @@ struct IREmitterCommand: ParsableCommand {
 		Example with build log:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > \
 		log.txt
-			$ \(programName) log.txt output_folder/
+			$ \(programName) log.txt output_folder/ --project-path MyProject.xcodeproj
 
 		Example with pipe:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 \
-		| \(programName) - output_folder/
+		| \(programName) - output_folder/ --project-path MyProject.xcodeproj
 		""",
 		version: "v\(Versions.version)"
 	)

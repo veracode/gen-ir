@@ -36,7 +36,12 @@ enum Object: Decodable {
 			return object
 		}
 
-		fatalError("Failed to unwrap the underlying PBXObject, this should only happen if someone adds a case to `Object` and didn't handle it.")
+		fatalError(
+			"""
+			Failed to unwrap the underlying PBXObject, this should only happen if someone adds a case to `Object` and \
+			didn't handle it.
+			"""
+		)
 	}
 }
 
