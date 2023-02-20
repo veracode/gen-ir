@@ -58,6 +58,13 @@ struct OutputPostprocessor {
 			pathsToRemove.append(contentsOf: try moveDependencies(for: target, to: path))
 		}
 
+		// TODO: HACK: Currently, we need IR folders to not have extensions, this will change in the future. Remove extensions
+		try FileManager.default.directories(at: output)
+			.forEach { path in
+				let newPath = path.deletingPathExtension()
+				try FileManager.default.moveItem(at: path, to: newPath)
+			}
+
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
 	}
 
@@ -70,12 +77,12 @@ struct OutputPostprocessor {
 		let dependencies = project.dependencies(for: target)
 
 		return try dependencies
-			.map { $0.fileURL.deletingPathExtension().lastPathComponent } // get the name of the dependency
-			.filter { dynamicFrameworksToPaths[$0] != nil } // if this dependency is dynamic, we can ignore it - we want IR as a separate item
+			.map { $0.fileURL.lastPathComponent } // get the name of the dependency
+			.filter { dynamicFrameworksToPaths[$0] == nil } // if this dependency is dynamic, we can ignore it - we want IR as a separate item
 			.compactMap { name in
 				// Copy the contents to the target directory
 				if let dependencyPath = productsToPaths[name] {
-					try FileManager.default.copyItemMerging(at: dependencyPath, to: path)
+					try FileManager.default.copyItemMerging(at: dependencyPath, to: path, replacing: true)
 					return dependencyPath
 				}
 

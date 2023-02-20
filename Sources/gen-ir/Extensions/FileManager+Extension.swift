@@ -113,7 +113,7 @@ extension FileManager {
 		for sourceFile in sourceFiles {
 			let path = destination.appendingPathComponent(sourceFile.lastPathComponent)
 
-			if replacing && fileExists(atPath: sourceFile.filePath) {
+			if replacing && fileExists(atPath: path.filePath) {
 				try removeItem(at: path)
 			}
 
@@ -136,7 +136,7 @@ extension FileManager {
 			let splitName = filename.split(separator: ".")
 
 			if splitName.count == 2 {
-				path = directory.appendingPathComponent("\(splitName[0]) \(index)\(splitName[1])")
+				path = directory.appendingPathComponent("\(splitName[0]) \(index).\(splitName[1])")
 			} else {
 				path = directory.appendingPathComponent("\(filename) \(index)")
 			}
