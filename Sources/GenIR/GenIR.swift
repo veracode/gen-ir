@@ -46,7 +46,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
-	var projectPath: URL?
+	var projectPath: URL!
 
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
@@ -60,13 +60,25 @@ struct IREmitterCommand: ParsableCommand {
 		xcarchivePath.appendingPathComponent("IR")
 	}
 
-	func validate() throws {
+	mutating func validate() throws {
 		// Validate runs before run() so bootstrap logging here
 		LoggingSystem.bootstrap(StdOutLogHandler.init)
 		logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
 
 		if debug {
 			logger.logLevel = .debug
+		}
+
+		// Version 0.2.x and below didn't require a project. Attempt to default this value if we can
+		if projectPath == nil {
+			projectPath = try findProjectPath()
+		}
+
+		// Version 0.2.x and below allowed the output folder to be any artibrary folder.
+		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
+		// folder, remove the IR portion
+		if xcarchivePath.filePath.hasSuffix("IR") {
+			xcarchivePath.deleteLastPathComponent()
 		}
 
 		guard xcarchivePath.lastPathComponent.hasSuffix("xcarchive") else {
@@ -80,12 +92,6 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	func run() throws {
-		var projectPath: URL! = projectPath
-
-		if projectPath == nil {
-			projectPath = try findProjectPath()
-		}
-
 		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
 			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
 		}
