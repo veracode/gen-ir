@@ -46,7 +46,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
-	var projectPath: URL
+	var projectPath: URL?
 
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
@@ -77,13 +77,19 @@ struct IREmitterCommand: ParsableCommand {
 			logger.debug("Output path doesn't exist, creating \(outputPath)")
 			try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
 		}
-
-		guard FileManager.default.directoryExists(at: projectPath) else {
-			throw ValidationError("Project not found at path: \(projectPath)")
-		}
 	}
 
 	func run() throws {
+		var projectPath: URL! = projectPath
+
+		if projectPath == nil {
+			projectPath = try findProjectPath()
+		}
+
+		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
+			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
+		}
+
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
 		let parser = try logParser(for: logPath)
 
@@ -135,6 +141,32 @@ struct IREmitterCommand: ParsableCommand {
 		logger.info("Finished reading from pipe")
 
 		return results
+	}
+}
+
+extension IREmitterCommand {
+	private func findProjectPath() throws -> URL {
+		let cwd = FileManager.default.currentDirectoryPath.fileURL
+		// First, xcworkspace, then xcodeproj
+		let xcworkspace = try FileManager.default.directories(at: cwd, recursive: false)
+			.filter { $0.pathExtension == "xcworkspace" }
+
+		if xcworkspace.count == 1 {
+			return xcworkspace[0]
+		}
+
+		let xcodeproj = try FileManager.default.directories(at: cwd, recursive: false)
+			.filter { $0.pathExtension == "xcodeproj" }
+
+		if xcodeproj.count == 1 {
+			return xcodeproj[0]
+		}
+
+		throw ValidationError(
+			"""
+			Couldn't automatically determine path to xcodeproj or xcworkspace. Please use --project-path to provide it.
+			"""
+		)
 	}
 }
 
