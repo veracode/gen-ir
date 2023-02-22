@@ -25,9 +25,7 @@ public struct ProjectParser {
 		self.path = path
 		logger.logLevel = level
 
-		let name = path.lastPathComponent
-
-		switch name.suffix(from: name.firstIndex(of: ".") ?? name.startIndex) {
+		switch path.pathExtension {
 		case "xcodeproj":
 			let project = try XcodeProject(path: path)
 			type = .project(project)
