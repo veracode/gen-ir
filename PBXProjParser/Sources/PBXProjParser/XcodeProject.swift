@@ -12,6 +12,7 @@ enum ParsingError: Error {
 	case validationError(String)
 }
 
+/// Represents an xcodeproj bundle
 public struct XcodeProject {
 	/// Path to the Workspace
 	public let path: URL
@@ -23,8 +24,6 @@ public struct XcodeProject {
 	private(set) var targets: [String: PBXNativeTarget] = [:]
 	/// A mapping of package names to their package dependency objects
 	private(set) var packages: [String: XCSwiftPackageProductDependency] = [:]
-	/// An array of frameworks found in the `Embed Frameworks` build phase
-	private(set) var embeddedFrameworks: [String] = []
 
 	enum Error: Swift.Error {
 		case invalidPBXProj(String)
@@ -32,17 +31,15 @@ public struct XcodeProject {
 
 	public init(path: URL) throws {
 		self.path = path
-		let pbxprojPath = path.appendingPathComponent("project.pbxproj")
-		model = try PBXProj.contentsOf(pbxprojPath)
-
+		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
-		let nativeTargets: [PBXNativeTarget] = model.objects(for: project.targets)
-		targets = nativeTargets.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
-			if let path = self.path(for: target) {
-				partialResult[path] = target
-			}
-		})
+		targets = model.objects(for: project.targets)
+			.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
+				if let path = self.path(for: target) {
+					partialResult[path] = target
+				}
+			})
 
 		// First pass - get all the direct dependencies
 		targets.values.forEach { determineDirectDependencies($0) }
@@ -58,16 +55,10 @@ public struct XcodeProject {
 			.reduce(into: [String: XCSwiftPackageProductDependency](), { partialResult, package in
 				partialResult[package.productName] = package
 			})
-
-		embeddedFrameworks = model.objects(of: .copyFilesBuildPhase, as: PBXCopyFilesBuildPhase.self)
-			.flatMap { $0.files }
-			.compactMap { model.object(forKey: $0, as: PBXBuildFile.self) }
-			.compactMap { $0.fileRef }
-			.compactMap { model.object(forKey: $0, as: PBXFileReference.self) }
-			.filter { $0.explicitFileType == "wrapper.framework" || $0.path.hasSuffix(".framework") }
-			.map { $0.path }
 	}
 
+	/// Determines the target & swift package dependencies for a target
+	/// - Parameter target: the target to get direct dependencies for
 	private func determineDirectDependencies(_ target: PBXNativeTarget) {
 		// Calculate the native target depenedencies
 		target.dependencies
@@ -77,10 +68,12 @@ public struct XcodeProject {
 
 		// Calculate the swift package dependencies
 		target.packageProductDependencies
-			.compactMap { model.object(forKey: $0, as: XCSwiftPackageProductDependency.self) } // productName contains the name of the product...
+			.compactMap { model.object(forKey: $0, as: XCSwiftPackageProductDependency.self) }
 			.forEach { target.add(dependency: .package($0)) }
 	}
 
+	/// Determines transitive dependencies by looping through direct dependencies and finding the items they depend on
+	/// - Parameter target: the target to find transitive dependencies for
 	private func determineTransitiveDependencies(_ target: PBXNativeTarget) {
 		logger.debug("Target: \(target.name). Deps: \(target.targetDependencies.map { $0.0 })")
 

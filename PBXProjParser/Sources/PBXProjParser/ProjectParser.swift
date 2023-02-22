@@ -31,7 +31,7 @@ public struct ProjectParser {
 		case "xcodeproj":
 			let project = try XcodeProject(path: path)
 			type = .project(project)
-			targetsToProducts = try project.targetsAndProducts()
+			targetsToProducts = project.targetsAndProducts()
 		case "xcworkspace":
 			let workspace = try XcodeWorkspace(path: path)
 			type = .workspace(workspace)

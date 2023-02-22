@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Represents an xcworkspace - which is a set of xcodeproj bundles
 struct XcodeWorkspace {
 	/// Path to the Workspace
 	let path: URL
