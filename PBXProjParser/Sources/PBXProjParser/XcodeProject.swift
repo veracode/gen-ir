@@ -17,7 +17,6 @@ public struct XcodeProject {
 	public let path: URL
 	/// The underlying pbxproj model
 	private let model: PBXProj
-
 	/// The 'project' object for the pbxproj
 	let project: PBXProject
 	/// A mapping of target names to their native targets objects
@@ -26,6 +25,10 @@ public struct XcodeProject {
 	private(set) var packages: [String: XCSwiftPackageProductDependency] = [:]
 	/// An array of frameworks found in the `Embed Frameworks` build phase
 	private(set) var embeddedFrameworks: [String] = []
+
+	enum Error: Swift.Error {
+		case invalidPBXProj(String)
+	}
 
 	public init(path: URL) throws {
 		self.path = path
@@ -36,7 +39,9 @@ public struct XcodeProject {
 
 		let nativeTargets: [PBXNativeTarget] = model.objects(for: project.targets)
 		targets = nativeTargets.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
-			partialResult[self.path(for: target)] = target
+			if let path = self.path(for: target) {
+				partialResult[path] = target
+			}
 		})
 
 		// First pass - get all the direct dependencies
@@ -115,16 +120,11 @@ public struct XcodeProject {
 		}
 	}
 
-	/// Forwards call to the underlying model
-	func object<T>(for reference: String, as type: T.Type) -> T? {
-		model.object(forKey: reference, as: T.self)
-	}
-
 	/// Gets the 'path' (normally the name of the target's product) for a given target
-	func path(for target: PBXNativeTarget) -> String {
-		guard let reference = object(for: target.productReference, as: PBXFileReference.self) else {
-			// TODO: Fix me
-			fatalError("Fix this later")
+	func path(for target: PBXNativeTarget) -> String? {
+		guard let reference = model.object(forKey: target.productReference, as: PBXFileReference.self) else {
+			logger.error("Failed to get object for target productReference: \(target.productReference)")
+			return nil
 		}
 
 		return reference.path

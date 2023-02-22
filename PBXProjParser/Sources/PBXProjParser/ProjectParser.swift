@@ -8,10 +8,10 @@ public struct ProjectParser {
 	let path: URL
 	/// The type of project
 	let type: ProjectType
-
 	/// Mapping of targets (the specification of a build) to products (the result of a build of a target)
 	public let targetsToProducts: [String: String]
 
+	/// Type of project this parser is working on
 	enum ProjectType {
 		case project(XcodeProject)
 		case workspace(XcodeWorkspace)
@@ -25,19 +25,19 @@ public struct ProjectParser {
 		self.path = path
 		logger.logLevel = level
 
-		if path.lastPathComponent.hasSuffix("xcodeproj") {
-			self.type = .project(try XcodeProject(path: path))
-		} else if path.lastPathComponent.hasSuffix("xcworkspace") {
-			self.type = .workspace(try XcodeWorkspace(path: path))
-		} else {
-			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")
-		}
+		let name = path.lastPathComponent
 
-		switch type {
-		case .project(let project):
-			targetsToProducts = project.targetsAndProducts()
-		case .workspace(let workspace):
+		switch name.suffix(from: name.firstIndex(of: ".") ?? name.startIndex) {
+		case "xcodeproj":
+			let project = try XcodeProject(path: path)
+			type = .project(project)
+			targetsToProducts = try project.targetsAndProducts()
+		case "xcworkspace":
+			let workspace = try XcodeWorkspace(path: path)
+			type = .workspace(workspace)
 			targetsToProducts = workspace.targetsAndProducts()
+		default:
+			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")
 		}
 	}
 
@@ -59,9 +59,10 @@ public struct ProjectParser {
 		}
 
 		return target.targetDependencies.values
-			.compactMap { dependency in
-				if case .native(let native) = dependency {
-					return project.path(for: native)
+			.map { dependency in
+				if case .native(let native) = dependency,
+						let path = project.path(for: native) {
+					return path
 				}
 
 				return dependency.name
@@ -73,8 +74,8 @@ public struct ProjectParser {
 	/// - Returns: a `XcodeProject` that holds the target, if one was found
 	private func project(for target: String) -> XcodeProject? {
 		switch type {
-		case .project(let project): return project
-		case .workspace(let workspace): return workspace.targetsToProject[target]
+		case .project(let project):			return project
+		case .workspace(let workspace):	return workspace.targetsToProject[target]
 		}
 	}
 }

@@ -10,7 +10,6 @@ import Foundation
 struct XcodeWorkspace {
 	/// Path to the Workspace
 	let path: URL
-
 	/// Path to the various underlying xcodeproj bundles
 	private(set) var projectPaths: [URL]
 	/// List of projects this workspace references
@@ -44,7 +43,7 @@ struct XcodeWorkspace {
 		})
 	}
 
-	/// Gets a map of targets to products
+	/// Processes each underlying project to return a dictionary of their targets and products
 	func targetsAndProducts() -> [String: String] {
 		projects
 			.map { $0.targetsAndProducts() }

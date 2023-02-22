@@ -56,9 +56,8 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
 
-	private var outputPath: URL {
-		xcarchivePath.appendingPathComponent("IR")
-	}
+	/// Path to write IR to
+	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
 
 	mutating func validate() throws {
 		// Validate runs before run() so bootstrap logging here
@@ -74,6 +73,10 @@ struct IREmitterCommand: ParsableCommand {
 			projectPath = try findProjectPath()
 		}
 
+		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
+			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
+		}
+
 		// Version 0.2.x and below allowed the output folder to be any artibrary folder.
 		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
 		// folder, remove the IR portion
@@ -87,15 +90,15 @@ struct IREmitterCommand: ParsableCommand {
 
 		if !FileManager.default.directoryExists(at: outputPath) {
 			logger.debug("Output path doesn't exist, creating \(outputPath)")
-			try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
+			do {
+				try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
+			} catch {
+				throw ValidationError("Failed to create output directory with error: \(error)")
+			}
 		}
 	}
 
-	func run() throws {
-		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
-			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
-		}
-
+	mutating func run() throws {
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
 		let parser = try logParser(for: logPath)
 
