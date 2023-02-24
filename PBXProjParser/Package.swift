@@ -26,6 +26,13 @@ let package = Package(
 			]),
 		.testTarget(
 			name: "PBXProjParserTests",
-			dependencies: ["PBXProjParser"])
+			dependencies: ["PBXProjParser"]),
+		.executableTarget(
+			name: "projparser",
+			dependencies: [
+				.product(name: "Logging", package: "swift-log"),
+				"PBXProjParser"
+			]
+		)
 	]
 )
