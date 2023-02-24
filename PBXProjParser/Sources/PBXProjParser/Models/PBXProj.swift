@@ -41,9 +41,16 @@ class PBXProj: Decodable {
 	static func contentsOf(_ path: URL) throws -> PBXProj {
 		let data = try Data(contentsOf: path)
 		let decoder = PropertyListDecoder()
-		let project = try decoder.decode(Self.self, from: data)
-		project.fixup()
-		return project
+		do {
+			let project = try decoder.decode(Self.self, from: data)
+			project.fixup()
+			return project
+		} catch {
+			logger.error(
+				"Failed to decode the pbxproj for path: \(path). Please report this as an error with the pbxproj!"
+			)
+			throw error
+		}
 	}
 
 	/// Fixes `Object`s by unwrapping them and assigning the key that represents them to the reference field
