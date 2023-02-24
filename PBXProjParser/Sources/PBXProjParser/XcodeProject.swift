@@ -63,7 +63,18 @@ public struct XcodeProject {
 		// Calculate the native target depenedencies
 		target.dependencies
 			.compactMap { model.object(forKey: $0, as: PBXTargetDependency.self) }
-			.compactMap { model.object(forKey: $0.target, as: PBXNativeTarget.self) }
+			.compactMap { dependency in
+				if let target = dependency.target {
+					return target
+				}
+
+				if let proxy = model.object(forKey: dependency.targetProxy, as: PBXContainerItemProxy.self) {
+					return proxy.remoteGlobalIDString
+				}
+
+				return nil
+			}
+			.compactMap { model.object(forKey: $0, as: PBXNativeTarget.self) }
 			.forEach { target.add(dependency: .native($0)) }
 
 		// Calculate the swift package dependencies
