@@ -8,6 +8,7 @@
 import Foundation
 
 class PBXProject: PBXObject {
+#if DEBUG
 	let attributes: [String: Any]
 	let buildConfigurationList: String
 	let compatibilityVersion: String
@@ -20,6 +21,7 @@ class PBXProject: PBXObject {
 	let projectReferences: [[String: String]]?
 	let packageReferences: [String]
 	let projectRoot: String
+#endif
 	let targets: [String] /// Hold references to targets via their identifiers
 
 	private enum CodingKeys: String, CodingKey {
@@ -40,7 +42,7 @@ class PBXProject: PBXObject {
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
-
+#if DEBUG
 		// We currently don't decode this as it's painful and we don't need it
 		attributes = [:]
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
@@ -54,6 +56,7 @@ class PBXProject: PBXObject {
 		projectReferences = try container.decodeIfPresent([[String: String]].self, forKey: .projectReferences)
 		packageReferences = try container.decodeIfPresent([String].self, forKey: .packageReferences) ?? []
 		projectRoot = try container.decode(String.self, forKey: .projectRoot)
+#endif
 		targets = try container.decode([String].self, forKey: .targets)
 
 		try super.init(from: decoder)

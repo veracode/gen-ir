@@ -8,6 +8,7 @@
 import Foundation
 
 class PBXGroup: PBXObject {
+#if DEBUG
 	let children: [String]
 	let name: String?
 	let sourceTree: String
@@ -27,4 +28,5 @@ class PBXGroup: PBXObject {
 
 		try super.init(from: decoder)
 	}
+#endif
 }

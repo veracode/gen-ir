@@ -126,8 +126,13 @@ public struct XcodeProject {
 
 	/// Gets the 'path' (normally the name of the target's product) for a given target
 	func path(for target: PBXNativeTarget) -> String? {
-		guard let reference = model.object(forKey: target.productReference, as: PBXFileReference.self) else {
-			logger.error("Failed to get object for target productReference: \(target.productReference)")
+		guard let productReference = target.productReference else {
+			logger.debug("Failed to get product reference for target: \(target). Possibly a SPM Package description?")
+			return nil
+		}
+
+		guard let reference = model.object(forKey: productReference, as: PBXFileReference.self) else {
+			logger.error("Failed to get object for target productReference: \(productReference)")
 			return nil
 		}
 

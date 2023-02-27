@@ -8,6 +8,7 @@
 import Foundation
 
 class PBXBuildFile: PBXObject {
+#if DEBUG
 	let fileRef: String?
 	let platformFilter: String?
 	let platformFilters: [String]?
@@ -33,6 +34,7 @@ class PBXBuildFile: PBXObject {
 
 		try super.init(from: decoder)
 	}
+#endif
 }
 
 class PBXBuildRule: PBXObject {}

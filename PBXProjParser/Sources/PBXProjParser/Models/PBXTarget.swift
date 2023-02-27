@@ -8,27 +8,35 @@
 import Foundation
 
 class PBXTarget: PBXObject {
+	#if DEBUG
 	let buildConfigurationList: String
 	let comments: String?
-	let name: String
 	let productName: String?
+	#endif
+	let name: String
 	let dependencies: [String]
 
+
 	private enum CodingKeys: String, CodingKey {
+		#if DEBUG
 		case buildConfigurationList
 		case comments
-		case name
 		case productName
+		#endif
+		case name
 		case dependencies
+
 	}
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
+		#if DEBUG
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
 		comments = try container.decodeIfPresent(String.self, forKey: .comments)
-		name = try container.decode(String.self, forKey: .name)
 		productName = try container.decodeIfPresent(String.self, forKey: .productName)
+		#endif
+		name = try container.decode(String.self, forKey: .name)
 		dependencies = try container.decode([String].self, forKey: .dependencies)
 
 		try super.init(from: decoder)
@@ -54,10 +62,12 @@ class PBXAggregateTarget: PBXTarget {
 class PBXLegacyTarget: PBXTarget {}
 
 class PBXNativeTarget: PBXTarget {
+	#if DEBUG
 	let buildPhases: [String]
 	let productInstallPath: String?
-	let productReference: String
 	let productType: String
+	#endif
+	let productReference: String?
 	let packageProductDependencies: [String]
 
 	private(set) var targetDependencies: [String: TargetDependency] = [:]
@@ -77,20 +87,24 @@ class PBXNativeTarget: PBXTarget {
 	}
 
 	private enum CodingKeys: String, CodingKey {
+		#if DEBUG
 		case buildPhases
 		case productInstallPath
-		case productReference
 		case productType
+		#endif
+		case productReference
 		case packageProductDependencies
 	}
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
+		#if DEBUG
 		buildPhases = try container.decode([String].self, forKey: .buildPhases)
 		productInstallPath = try container.decodeIfPresent(String.self, forKey: .productInstallPath)
-		productReference = try container.decode(String.self, forKey: .productReference)
 		productType = try container.decode(String.self, forKey: .productType)
+		#endif
+		productReference = try container.decodeIfPresent(String.self, forKey: .productReference)
 		packageProductDependencies = try container.decodeIfPresent([String].self, forKey: .packageProductDependencies) ?? []
 
 		try super.init(from: decoder)
@@ -101,6 +115,7 @@ class PBXNativeTarget: PBXTarget {
 	}
 }
 
+#if DEBUG
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
 		"""
@@ -110,6 +125,7 @@ extension PBXNativeTarget: CustomStringConvertible {
 		"""
 	}
 }
+#endif
 
 class PBXTargetDependency: PBXObject {
 	let target: String?

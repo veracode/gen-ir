@@ -8,6 +8,7 @@
 import Foundation
 
 class PBXBuildPhase: PBXObject {
+#if DEBUG
 	let alwaysOutOfDate: String?
 	let buildActionMask: UInt32
 	let files: [String]
@@ -35,6 +36,7 @@ class PBXBuildPhase: PBXObject {
 
 		try super.init(from: decoder)
 	}
+#endif
 }
 
 class PBXCopyFilesBuildPhase: PBXBuildPhase {
