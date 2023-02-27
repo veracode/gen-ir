@@ -17,7 +17,7 @@ class PBXProject: PBXObject {
 	let mainGroup: String
 	let productRefGroup: String
 	let projectDirPath: String
-	let projectReferences: [[String: [String: String]]]?
+	let projectReferences: [[String: String]]?
 	let packageReferences: [String]
 	let projectRoot: String
 	let targets: [String] /// Hold references to targets via their identifiers
@@ -51,7 +51,7 @@ class PBXProject: PBXObject {
 		mainGroup = try container.decode(String.self, forKey: .mainGroup)
 		productRefGroup = try container.decode(String.self, forKey: .productRefGroup)
 		projectDirPath = try container.decode(String.self, forKey: .projectDirPath)
-		projectReferences = try container.decodeIfPresent([[String: [String: String]]].self, forKey: .projectReferences)
+		projectReferences = try container.decodeIfPresent([[String: String]].self, forKey: .projectReferences)
 		packageReferences = try container.decodeIfPresent([String].self, forKey: .packageReferences) ?? []
 		projectRoot = try container.decode(String.self, forKey: .projectRoot)
 		targets = try container.decode([String].self, forKey: .targets)

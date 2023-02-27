@@ -34,3 +34,5 @@ class PBXBuildFile: PBXObject {
 		try super.init(from: decoder)
 	}
 }
+
+class PBXBuildRule: PBXObject {}

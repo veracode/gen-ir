@@ -1,5 +1,5 @@
 import XCTest
-@testable import GenIR
+@testable import gen_ir
 
 final class GenIRTests: XCTestCase {
 //	func testExample() throws {

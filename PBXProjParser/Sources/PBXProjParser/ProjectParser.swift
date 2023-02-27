@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 
-var logger: Logger = .init(label: "com.veracode.PBCProjParser")
+var logger: Logger = .init(label: "com.veracode.PBXProjParser")
 
 public struct ProjectParser {
 	/// Path to the xcodeproj or xcworkspace bundle
