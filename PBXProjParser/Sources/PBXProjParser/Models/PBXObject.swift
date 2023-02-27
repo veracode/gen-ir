@@ -70,6 +70,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 	case referenceProxy = "PBXReferenceProxy"
 	case versionGroup = "XCVersionGroup"
 	case buildRule = "PBXBuildRule"
+	case rezBuildPhase = "PBXRezBuildPhase"
 
 	// swiftlint:disable cyclomatic_complexity
 	func getType() -> PBXObject.Type {
@@ -98,6 +99,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 		case .referenceProxy:								return PBXReferenceProxy.self
 		case .versionGroup:									return XCVersionGroup.self
 		case .buildRule:										return PBXBuildRule.self
+		case .rezBuildPhase:								return PBXRezBuildPhase.self
 		}
 	}
 }
