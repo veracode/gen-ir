@@ -4,7 +4,7 @@ import Logging
 import PBXProjParser
 
 /// Global logger object
-var logger: Logger!
+var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
 
 let programName = CommandLine.arguments.first!
 
@@ -60,10 +60,6 @@ struct IREmitterCommand: ParsableCommand {
 	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
 
 	mutating func validate() throws {
-		// Validate runs before run() so bootstrap logging here
-		LoggingSystem.bootstrap(StdOutLogHandler.init)
-		logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir")
-
 		if debug {
 			logger.logLevel = .debug
 		}
@@ -100,17 +96,18 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
-		let parser = try logParser(for: logPath)
+		let log = try logParser(for: logPath)
+
+		let targets = generateTargets(project: project, log: log)
 
 		let runner = CompilerCommandRunner(
-			targetToCommands: parser.targetToCommands,
-			targetToProduct: project.targetsToProducts,
+			targets: targets,
 			output: outputPath
 		)
 
 		try runner.run()
 
-		let postprocessor = try OutputPostprocessor(project: project, xcarchive: xcarchivePath, output: outputPath)
+		let postprocessor = try OutputPostprocessor(targets: targets, xcarchive: xcarchivePath, output: outputPath)
 		try postprocessor.process()
 	}
 
@@ -118,11 +115,15 @@ struct IREmitterCommand: ParsableCommand {
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
 	/// - Returns: An `XcodeLogParser` for the given path
 	private func logParser(for path: String) throws -> XcodeLogParser {
+		var input: [String] = []
+
 		if path == "-" {
-			return try XcodeLogParser(log: readStdin())
+			input = try readStdin()
 		} else {
-			return try XcodeLogParser(path: path.fileURL)
+			input = try String(contentsOf: path.fileURL).components(separatedBy: .newlines)
 		}
+
+		return try XcodeLogParser(log: input)
 	}
 
 	/// Reads stdin until an EOF is found
@@ -176,6 +177,29 @@ extension IREmitterCommand {
 			Couldn't automatically determine path to xcodeproj or xcworkspace. Please use --project-path to provide it.
 			"""
 		)
+	}
+
+	private func generateTargets(project: ProjectParser, log: XcodeLogParser) -> [String: Target] {
+		log.targetToCommands
+			.filter { (target, _) in
+				if project.targetsToProducts[target] == nil {
+					logger.error("Failed to find \(target) from build log in project's targets: \(project.targetsToProducts.keys)")
+					return false
+				}
+
+				return true
+			}
+			.map { (target, commands) in
+				Target(
+					name: target,
+					commands: commands,
+					product: project.targetsToProducts[target]!,
+					dependencies: project.dependencies(for: target)
+				)
+			}
+			.reduce(into: [String: Target]()) { partialResult, target in
+				partialResult[target.name] = target
+			}
 	}
 }
 

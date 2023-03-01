@@ -18,7 +18,7 @@ import PBXProjParser
 /// 	* Embed Frameworks Phase (PBXCopyFilesBuildPhase using a file ref that relates to the framework being copied)
 /// 		* If this is set to not embed, then the result will be statically linked into the dependent
 struct OutputPostprocessor {
-	let project: ProjectParser
+	let targets: [String: Target]
 	let xcarchive: URL
 	let output: URL
 
@@ -27,8 +27,8 @@ struct OutputPostprocessor {
 	/// Mapping of products (inside the IR folder) to their paths on disk
 	private let productsToPaths: [String: URL]
 
-	init(project: ProjectParser, xcarchive: URL, output: URL) throws {
-		self.project = project
+	init(targets: [String: Target], xcarchive: URL, output: URL) throws {
+		self.targets = targets
 		self.xcarchive = xcarchive
 		self.output = output
 
@@ -45,20 +45,36 @@ struct OutputPostprocessor {
 			partialResult[name] = url
 		})
 
+		// Build a map of product names to the target names they represent.
+		// Here we have the product name via the on-disk representation
+		let productsToTargets = targets.reduce(into: [String: String](), { partialResult, item in
+			partialResult[item.1.product] = item.1.name
+		})
+
+		// TODO: need to look up product names to get the target names :/
 		productsToPaths = try FileManager.default.directories(at: output)
 			.reduce(into: [String: URL](), { partialResult, path in
-				partialResult[path.lastPathComponent] = path
+				let product = path.lastPathComponent
+
+				guard let target = productsToTargets[product] else {
+					logger.error("Failed to look up target for product: \(product)")
+					return
+				}
+
+				partialResult[target] = path
 			})
 	}
 
 	func process() throws {
 		var pathsToRemove = [URL]()
 
-		for (target, path) in productsToPaths {
-			pathsToRemove.append(contentsOf: try moveDependencies(for: target, to: path))
+		try productsToPaths.forEach { (target, path) in
+			pathsToRemove.append(contentsOf: try moveDependencies(
+				for: target,
+				to: path
+			))
 		}
 
-		// TODO: HACK: Currently, we need IR folders to not have extensions, this will change in the future. Remove extensions
 		try FileManager.default.directories(at: output)
 			.forEach { path in
 				let newPath = path.deletingPathExtension()
@@ -74,10 +90,19 @@ struct OutputPostprocessor {
 	///   - path: the path to move to
 	/// - Returns: an array of moved items
 	private func moveDependencies(for target: String, to path: URL) throws -> [URL] {
-		let dependencies = project.dependencies(for: target)
+		var dependencies = targets[target]?.dependencies
+
+		if dependencies ==  nil {
+			// TODO: HACK: Currently, we need IR folders to not have extensions, this will change in the future. Remove extensions
+			dependencies = targets[target.deletingPathExtension()]?.dependencies
+		}
+
+		guard let dependencies else {
+			logger.error("Failed to find target named \(target) in \(targets.keys)")
+			return []
+		}
 
 		return try dependencies
-			.map { $0.fileURL.lastPathComponent } // get the name of the dependency
 			.filter { dynamicFrameworksToPaths[$0] == nil } // if this dependency is dynamic, we can ignore it - we want IR as a separate item
 			.compactMap { name in
 				// Copy the contents to the target directory

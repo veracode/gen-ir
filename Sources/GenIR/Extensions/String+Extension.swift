@@ -60,6 +60,16 @@ extension String {
 
 		return results
 	}
+
+	func deletingPathExtension() -> String {
+		if let index = self.firstIndexWithEscapes(of: ".") {
+			var newSelf = self
+			newSelf.removeSubrange(index..<self.endIndex)
+			return newSelf
+		}
+
+		return self
+	}
 }
 
 extension Substring {
