@@ -17,6 +17,6 @@ struct ProjParser {
 		}
 
 		let projectPath = URL(fileURLWithPath: CommandLine.arguments[1])
-		let _ = try ProjectParser(path: projectPath, logLevel: .debug)
+		_ = try ProjectParser(path: projectPath, logLevel: .debug)
 	}
 }

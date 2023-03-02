@@ -30,18 +30,19 @@ struct OutputPostprocessor {
 		self.targets = targets
 		self.output = output
 
-		dynamicFrameworksToPaths = try FileManager.default.filteredContents(of: xcarchive.appendingPathComponent("Products")) { path in
-			let attributes = try path.resourceValues(forKeys: [.isDirectoryKey])
-			return attributes.isDirectory ?? false && path.lastPathComponent == "Frameworks"
-		}
-		.flatMap {
-			try FileManager.default.contentsOfDirectory(at: $0, includingPropertiesForKeys: nil)
-				.filter { $0.lastPathComponent.hasSuffix(".framework") }
-		}
-		.reduce(into: [String: URL](), { partialResult, url in
-			let name = url.deletingPathExtension().lastPathComponent
-			partialResult[name] = url
-		})
+		dynamicFrameworksToPaths = try FileManager.default
+			.filteredContents(of: xcarchive.appendingPathComponent("Products")) { path in
+				let attributes = try path.resourceValues(forKeys: [.isDirectoryKey])
+				return attributes.isDirectory ?? false && path.lastPathComponent == "Frameworks"
+			}
+			.flatMap {
+				try FileManager.default.contentsOfDirectory(at: $0, includingPropertiesForKeys: nil)
+					.filter { $0.lastPathComponent.hasSuffix(".framework") }
+			}
+			.reduce(into: [String: URL](), { partialResult, url in
+				let name = url.deletingPathExtension().lastPathComponent
+				partialResult[name] = url
+			})
 
 		// Build a map of product names to the target names they represent.
 		// Here we have the product name via the on-disk representation
@@ -49,7 +50,6 @@ struct OutputPostprocessor {
 			partialResult[item.1.product] = item.1.name
 		})
 
-		// TODO: need to look up product names to get the target names :/
 		productsToPaths = try FileManager.default.directories(at: output)
 			.reduce(into: [String: URL](), { partialResult, path in
 				let product = path.lastPathComponent

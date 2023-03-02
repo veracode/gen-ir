@@ -16,7 +16,6 @@ class PBXTarget: PBXObject {
 	let name: String
 	let dependencies: [String]
 
-
 	private enum CodingKeys: String, CodingKey {
 		#if DEBUG
 		case buildConfigurationList
@@ -120,7 +119,7 @@ extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
 		"""
 		<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
-		productReference: \(productReference), productType: \(productType), \
+		productReference: \(productReference ?? "nil"), productType: \(productType), \
 		packageProductDependencies: \(packageProductDependencies)>
 		"""
 	}
