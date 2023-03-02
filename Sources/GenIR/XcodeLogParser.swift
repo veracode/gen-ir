@@ -17,24 +17,8 @@ class XcodeLogParser {
 	private let log: [String]
 
 	enum Error: Swift.Error {
-		case inputError(String)
 		case noCommandsFound(String)
 		case noTargetsFound(String)
-	}
-
-	/// Inits a XcodeLogParser from an Xcode build log file
-	/// - Parameter path: the path to the Xcode build log file
-	init(path: URL) throws {
-		logger.info("Reading from log file")
-		do {
-			log = try String(contentsOf: path).components(separatedBy: .newlines)
-		} catch {
-			throw Error.inputError("Failed to read contents of \(path) with error: \(error)")
-		}
-
-		parseBuildLog(log)
-
-		try checkTargetAndCommandValidity()
 	}
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log

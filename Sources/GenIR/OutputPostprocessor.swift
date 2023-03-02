@@ -19,7 +19,6 @@ import PBXProjParser
 /// 		* If this is set to not embed, then the result will be statically linked into the dependent
 struct OutputPostprocessor {
 	let targets: [String: Target]
-	let xcarchive: URL
 	let output: URL
 
 	/// Mapping of dynamic frameworks (inside the xcarchive) to their paths on disk
@@ -29,7 +28,6 @@ struct OutputPostprocessor {
 
 	init(targets: [String: Target], xcarchive: URL, output: URL) throws {
 		self.targets = targets
-		self.xcarchive = xcarchive
 		self.output = output
 
 		dynamicFrameworksToPaths = try FileManager.default.filteredContents(of: xcarchive.appendingPathComponent("Products")) { path in

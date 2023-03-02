@@ -12,10 +12,6 @@ struct Target {
 	private(set) var commands: [CompilerCommand] = []
 	var product: String
 	private(set) var dependencies: [String]
-
-	mutating func append(command: CompilerCommand) {
-		commands.append(command)
-	}
 }
 
 extension Target: Equatable {
