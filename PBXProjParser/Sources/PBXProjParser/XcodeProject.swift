@@ -68,11 +68,14 @@ public struct XcodeProject {
 					return target
 				}
 
-				if let proxy = model.object(forKey: dependency.targetProxy, as: PBXContainerItemProxy.self) {
-					return proxy.remoteGlobalIDString
+				guard
+					let targetProxy = dependency.targetProxy,
+					let proxy = model.object(forKey: targetProxy, as: PBXContainerItemProxy.self)
+				else {
+					return nil
 				}
 
-				return nil
+				return proxy.remoteGlobalIDString
 			}
 			.compactMap { model.object(forKey: $0, as: PBXNativeTarget.self) }
 			.forEach { target.add(dependency: .native($0)) }

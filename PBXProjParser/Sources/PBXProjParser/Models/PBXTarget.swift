@@ -128,7 +128,7 @@ extension PBXNativeTarget: CustomStringConvertible {
 
 class PBXTargetDependency: PBXObject {
 	let target: String?
-	let targetProxy: String
+	let targetProxy: String?
 
 	private enum CodingKeys: String, CodingKey {
 		case target
@@ -139,7 +139,7 @@ class PBXTargetDependency: PBXObject {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		target = try container.decodeIfPresent(String.self, forKey: .target)
-		targetProxy = try container.decode(String.self, forKey: .targetProxy)
+		targetProxy = try container.decodeIfPresent(String.self, forKey: .targetProxy)
 
 		try super.init(from: decoder)
 	}
