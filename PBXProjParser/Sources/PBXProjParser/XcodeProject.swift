@@ -34,9 +34,10 @@ public struct XcodeProject {
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
+		// TODO: Targets needs to include swift packacges
 		targets = model.objects(for: project.targets)
 			.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
-				if let path = self.path(for: target) {
+				if let path = self.path(for: target, removeExtension: true) {
 					partialResult[path] = target
 				}
 			})
@@ -122,13 +123,23 @@ public struct XcodeProject {
 
 	/// A mapping of targets to the product path on disk
 	func targetsAndProducts() -> [String: String] {
-		targets.values.reduce(into: [String: String]()) { partialResult, target in
+		var targetsAndProducts = targets.values.reduce(into: [String: String]()) { partialResult, target in
 			partialResult[target.name] = path(for: target)
 		}
+
+		let packagesAndProducts = packages.values.reduce(into: [String: String]()) { partialResult, dependency in
+			partialResult[dependency.productName] = dependency.productName
+		}
+
+		targetsAndProducts.merge(packagesAndProducts) { current, _ in
+			current
+		}
+
+		return targetsAndProducts
 	}
 
 	/// Gets the 'path' (normally the name of the target's product) for a given target
-	func path(for target: PBXNativeTarget) -> String? {
+	func path(for target: PBXNativeTarget, removeExtension: Bool = false) -> String? {
 		guard let productReference = target.productReference else {
 			logger.debug("Failed to get product reference for target: \(target). Possibly a SPM Package description?")
 			return nil
@@ -139,6 +150,12 @@ public struct XcodeProject {
 			return nil
 		}
 
-		return reference.path
+		var path = ((reference.path as NSString).lastPathComponent as String)
+
+		if removeExtension, let index = path.firstIndex(of: ".") {
+			path = String(path[path.startIndex..<index])
+		}
+		
+		return path
 	}
 }

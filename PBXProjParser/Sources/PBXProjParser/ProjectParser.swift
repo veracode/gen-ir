@@ -43,16 +43,17 @@ public struct ProjectParser {
 	/// - Parameter target: the target to get dependencies for
 	/// - Returns: an array of dependencies
 	public func dependencies(for target: String) -> [String] {
-		// HACK: Swift packages in pbxproj don't have a way to look up dependencies, so ignore them... for now
-		if !target.contains(".") { return [] }
-
 		guard let project = project(for: target) else {
 			logger.error("Failed to find project for target: \(target)")
 			return []
 		}
 
 		guard let target = project.targets[target] else {
-			logger.error("Failed to find a target: \(target) in project: \(project.path)")
+			// SPMs don't list their dependencies in the pbxproj, skip warning about them
+			if project.packages[target] == nil {
+				logger.error("Failed to find a target: \(target) in project: \(project.path)")
+			}
+
 			return []
 		}
 
