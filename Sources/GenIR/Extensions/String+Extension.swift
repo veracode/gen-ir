@@ -14,7 +14,7 @@ extension String {
 		self.replacingOccurrences(of: "\\\\", with: "\\")
 	}
 
-	/// Returns a file URL
+	/// FileURL of a String path
 	var fileURL: URL {
 		// We have to replace \ in strings otherwise they'll end up encoded into the URL and break resolution for paths with spaces
 		return .init(fileURLWithPath: self.replacingOccurrences(of: "\\", with: ""))
@@ -55,13 +55,22 @@ extension String {
 
 		for index in indices {
 			results.append(self[startIndex..<index])
-			startIndex = index
+			startIndex = substring.index(after: index)
 		}
 
 		return results
 	}
-}
 
+	func deletingPathExtension() -> String {
+		if let index = self.firstIndexWithEscapes(of: ".") {
+			var newSelf = self
+			newSelf.removeSubrange(index..<self.endIndex)
+			return newSelf
+		}
+
+		return self
+	}
+}
 
 extension Substring {
 	/// Returns the first index of a character that hasn't been escaped

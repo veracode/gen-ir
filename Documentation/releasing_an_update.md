@@ -26,12 +26,11 @@ Now, navigate to the release and note the tag name & revision for the next part
 
 The formula for the tap lives in the [veracode/homebrew-taps](https://github.com/veracode/homebrew-tap) repo. This needs to be updated in order to propagate a new version to users.
 
-- Go to the Actions tab of the homebrew-tap repo
-- Choose the `Make Pull Request` workflow
-- Run the workflow inputting the tag and revision hash
-	- A PR will be created with the change
-  - The PR should kick off the `brew test-bot` workflow
-- Once `brew test-bot` has completed and you're happy, add the `pr-pull` label
-  - Automation will be kicked off to merge, tag, and release the change.
+- Create a new branch
+- Update the gen-ir forumlae's url.tag & url.revision keys to match the release the previous step made
+- Open a PR with these changes _and these changes only!_.
+	- If any other changes are detected, or more than one commit is made, homebrew's automation will fail
+- When checks pass, add the `pr-pull` label to the PR
+- Automation will make a new release
 
 Users can now run `brew update && brew upgrade` to update `gen-ir`

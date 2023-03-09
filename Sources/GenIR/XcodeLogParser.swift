@@ -9,11 +9,9 @@ import Foundation
 import Logging
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
-struct XcodeLogParser {
+class XcodeLogParser {
 	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
 	private(set) var targetToCommands: TargetToCommands = [:]
-	/// Mapping of target names to product names
-	private(set) var targetToProduct: TargetToProduct = [:]
 
 	/// The Xcode build log contents
 	private let log: [String]
@@ -23,26 +21,12 @@ struct XcodeLogParser {
 		case noTargetsFound(String)
 	}
 
-	/// Inits a XcodeLogParser from an Xcode build log file
-	/// - Parameter path: the path to the Xcode build log file
-	init(path: URL) throws {
-		self.log = try String(contentsOf: path).components(separatedBy: .newlines)
-
-		let (targetToCommands, targetToProduct) = parseBuildLog(log)
-		self.targetToCommands = targetToCommands
-		self.targetToProduct = targetToProduct
-
-		try checkTargetAndCommandValidity()
-	}
-
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
 	init(log: [String]) throws {
 		self.log = log
 
-		let (targetToCommands, targetToProduct) = parseBuildLog(log)
-		self.targetToCommands = targetToCommands
-		self.targetToProduct = targetToProduct
+		parseBuildLog(log)
 
 		try checkTargetAndCommandValidity()
 	}
@@ -80,10 +64,9 @@ struct XcodeLogParser {
 	/// Parses  an array representing the contents of an Xcode build log
 	/// - Parameter lines: contents of the Xcode build log lines
 	/// - Returns: A tuple of the targets and their commands, and the targets and their product names
-	private func parseBuildLog(_ lines: [String]) -> (TargetToCommands, TargetToProduct) {
+	private func parseBuildLog(_ lines: [String]) {
 		var currentTarget: String?
 		var targetToCommands: TargetToCommands = [:]
-		var targetToProduct: TargetToProduct = [:]
 
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -98,15 +81,10 @@ struct XcodeLogParser {
 				continue
 			}
 
-			if let productName = product(from: line) {
-				targetToProduct[currentTarget] = productName
-			}
-
-			guard let compilerCommand = compilerCommand(from: line) else {
-				continue
-			}
-
-			guard isPartOfCompilerCommand(lines, index) else {
+			guard
+				let compilerCommand = compilerCommand(from: line),
+				isPartOfCompilerCommand(lines, index)
+			else {
 				continue
 			}
 
@@ -119,7 +97,7 @@ struct XcodeLogParser {
 			targetToCommands[currentTarget]!.append(compilerCommand)
 		}
 
-		return (targetToCommands, targetToProduct)
+		self.targetToCommands = targetToCommands
 	}
 
 	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
@@ -187,35 +165,6 @@ struct XcodeLogParser {
 			return .init(command: stripped, compiler: .swiftc)
 		} else if stripped.contains("/clang") {
 			return .init(command: stripped, compiler: .clang)
-		}
-
-		return nil
-	}
-
-	/// Gets a 'product' (app, framework, etc) name from a GenerateDSYM command
-	/// This is done in order to correctly line up products with targets of a different name
-	private func product(from line: String) -> String? {
-		// example line:
-		// GenerateDSYMFile /path/to/something.app.dSYM /path/to/something.app (in target 'target' from project 'project')
-		guard line.starts(with: "GenerateDSYMFile") else {
-			return nil
-		}
-
-		let split = line.splitIgnoringEscapes(separator: " ")
-
-		// Second item in the line should be the dSYM path, grab the file name from it
-		let suffix = ".dSYM"
-		if let dsymPath = split.first(where: { $0.hasSuffix(suffix)}) {
-			var productName = String(dsymPath).fileURL.lastPathComponent.dropLast(suffix.count)
-
-			if let dotIndex = productName.lastIndex(of: ".") {
-				productName = productName[productName.startIndex..<dotIndex]
-			}
-
-			return String(productName)
-		} else {
-			logger.error("Failed to parse a dSYM path from a GenerateDSYMFile command...")
-			assert(true, "Failed to parse a dSYM path from a GenerateDSYMFile command...")
 		}
 
 		return nil

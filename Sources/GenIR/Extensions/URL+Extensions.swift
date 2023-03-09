@@ -8,7 +8,6 @@
 import Foundation
 
 extension URL {
-
 	/// Returns the path component of a URL
 	var filePath: String {
 		return self.path

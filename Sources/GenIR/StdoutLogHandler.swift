@@ -24,7 +24,16 @@ struct StdOutLogHandler: LogHandler {
 
 	init(label: String) { }
 
-	func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, source: String, file: String, function: String, line: UInt) {
+	// swiftlint:disable function_parameter_count
+	func log(
+		level: Logger.Level,
+		message: Logger.Message,
+		metadata: Logger.Metadata?,
+		source: String,
+		file: String,
+		function: String,
+		line: UInt
+	) {
 		let levelPrefix = prefix(for: level)
 		let timestamp = timestamp(for: level)
 		let lineInfo = lineInfo(for: level, source: source, file: file, function: function, line: line)

@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import PBXProjParser
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -17,10 +18,8 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	/// Map of targets and the compiler commands that were part of the target build
-	private let targetToCommands: TargetToCommands
-	/// Map of target to product names
-	private let targetToProduct: TargetToProduct
+	/// Map of targets and the
+	private let targets: [String: Target]
 
 	/// The directory to place the LLVM BC output
 	private let output: URL
@@ -34,45 +33,45 @@ struct CompilerCommandRunner {
 
 	/// Initializes a runner
 	/// - Parameters:
-	///   - targetToCommands: Mapping of targets to the commands used to generate them
-	///   - targetToProduct: Mapping of target names to product names
+	///   - targets: a mapping of names of targets to Target
 	///   - output: The location to place the resulting LLVM IR
-	init(targetToCommands: TargetToCommands, targetToProduct: TargetToProduct, output: URL) {
-		self.targetToCommands = targetToCommands
-		self.targetToProduct = targetToProduct
+	init(targets: [String: Target], output: URL) {
+		self.targets = targets
 		self.output = output
 	}
 
 	/// Starts the runner
 	func run() throws {
-		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir\(UUID().uuidString)")
+		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targetToCommands.reduce(0, { $0 + $1.value.count })
+		let totalCommands = targets.reduce(0, { $0 + $1.value.commands.count })
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for (target, commands) in targetToCommands {
-			logger.info("Operating on target: \(target). Total modules processed: \(totalModulesRun)")
+		for (name, target) in targets {
+			logger.info("Operating on target: \(name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: commands, for: target, at: tempDirectory)
+			totalModulesRun += try run(commands: target.commands, for: target.product, at: tempDirectory)
 		}
 
 		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
 		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
+
+		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
 	}
 
 	/// Runs all commands for a given target
 	/// - Parameters:
 	///   - commands: The commands to run
-	///   - target: The target these commands relate to
+	///   - target: The product this command relates to
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
-	private func run(commands: [CompilerCommand], for target: String, at directory: URL) throws -> Int {
-		let directoryName = targetToProduct[target] ?? target
-		let targetDirectory = output.appendingPathComponent(directoryName)
+	private func run(commands: [CompilerCommand], for product: String, at directory: URL) throws -> Int {
+		let directoryName = product
+		let targetDirectory = directory.appendingPathComponent(directoryName)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
 		logger.debug("Created target directory: \(targetDirectory)")
@@ -80,19 +79,26 @@ struct CompilerCommandRunner {
 		var targetModulesRun = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info("Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). Target modules processed: \(targetModulesRun)")
+			logger.info(
+				"""
+				Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
+				Target modules processed: \(targetModulesRun)
+				"""
+			)
 
 			let (executable, arguments) = try parse(command: command)
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
 
-			logger.debug(
+			if result.code != 0 {
+				logger.debug(
 				"""
 				Command finished:
 					- code: \(result.code)
 					- has stdout: \(String(describing: result.stdout?.isEmpty))
 					- has stderr: \(String(describing: result.stderr?.isEmpty))
 				"""
-			)
+				)
+			}
 
 			var clangAdditionalModules = 0
 			var swiftAdditionalModules = 0
@@ -100,7 +106,7 @@ struct CompilerCommandRunner {
 			switch command.compiler {
 			case .swiftc:
 				guard let outputFileMap = try getOutputFileMap(from: arguments) else {
-					logger.error("Failed to find OutputFileMap for command, ")
+					logger.error("Failed to find OutputFileMap for command \(command.command) ")
 					break
 				}
 
@@ -247,7 +253,7 @@ extension CompilerCommandRunner {
 		let path = arguments[index + 1].fileURL
 
 		guard fileManager.fileExists(atPath: path.filePath) else {
-			logger.error("Found an OuputFileMap, but it doesn't exist on disk? Please report this issue.")
+			logger.error("Found an OutputFileMap, but it doesn't exist on disk? Please report this issue.")
 			logger.debug("OutputFileMap path: \(path)")
 			return nil
 		}
