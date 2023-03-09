@@ -52,7 +52,7 @@ public struct XcodeProject {
 			logger.debug("target: \(name). Dependencies: \(target.targetDependencies.map { $0.1.name })")
 		}
 
-		packages = model.objects(of: .swiftPackageProductDependecy, as: XCSwiftPackageProductDependency.self)
+		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 			.reduce(into: [String: XCSwiftPackageProductDependency](), { partialResult, package in
 				partialResult[package.productName] = package
 			})
