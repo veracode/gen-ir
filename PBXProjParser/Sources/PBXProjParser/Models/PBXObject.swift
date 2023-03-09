@@ -65,7 +65,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 	case targetDependency = "PBXTargetDependency"
 	case buildConfiguration = "XCBuildConfiguration"
 	case configurationList = "XCConfigurationList"
-	case swiftPackageProductDependecy = "XCSwiftPackageProductDependency"
+	case swiftPackageProductDependency = "XCSwiftPackageProductDependency"
 	case remoteSwiftPackageReference = "XCRemoteSwiftPackageReference"
 	case referenceProxy = "PBXReferenceProxy"
 	case versionGroup = "XCVersionGroup"
@@ -94,7 +94,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 		case .targetDependency:							return PBXTargetDependency.self
 		case .buildConfiguration:						return XCBuildConfiguration.self
 		case .configurationList:						return XCConfigurationList.self
-		case .swiftPackageProductDependecy:	return XCSwiftPackageProductDependency.self
+		case .swiftPackageProductDependency:	return XCSwiftPackageProductDependency.self
 		case .remoteSwiftPackageReference:	return XCRemoteSwiftPackageReference.self
 		case .referenceProxy:								return PBXReferenceProxy.self
 		case .versionGroup:									return XCVersionGroup.self

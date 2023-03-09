@@ -124,10 +124,12 @@ public struct XcodeProject {
 	/// A mapping of targets to the product path on disk
 	func targetsAndProducts() -> [String: String] {
 		var targetsAndProducts = targets.values.reduce(into: [String: String]()) { partialResult, target in
+			logger.debug("target: \(target.name)")
 			partialResult[target.name] = path(for: target)
 		}
 
 		let packagesAndProducts = packages.values.reduce(into: [String: String]()) { partialResult, dependency in
+			logger.debug("package: \(dependency.productName)")
 			partialResult[dependency.productName] = dependency.productName
 		}
 
