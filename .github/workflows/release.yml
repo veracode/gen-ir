@@ -88,9 +88,9 @@ jobs:
       - name: 👊 Bump Version
         if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
         run: |
-          sed -i 's/.*static let version.*/\tstatic let version = "'"${{ env.next_tag }}"'"/g' Sources/gen-ir/Versions.swift
+          sed -i 's/.*static let version.*/\tstatic let version = "'"${{ env.next_tag }}"'"/g' Sources/GenIR/Versions.swift
           # Confirm the tag is in place
-          if ! grep -Fq '${{ env.next_tag }}' Sources/gen-ir/Versions.swift ; then
+          if ! grep -Fq '${{ env.next_tag }}' Sources/GenIR/Versions.swift ; then
             echo "Failed to find tag in Versions.swift: ${{ env.next_tag }}. Bailing out."
             exit 1
           fi
@@ -102,7 +102,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@github.com'
 
-          git add Sources/gen-ir/Versions.swift
+          git add Sources/GenIR/Versions.swift
           git commit -m "Gen IR version: ${{ env.next_tag }}"
           git push
 
