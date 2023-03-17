@@ -40,6 +40,7 @@ class PBXBuildPhase: PBXObject {
 }
 
 class PBXCopyFilesBuildPhase: PBXBuildPhase {
+#if DEBUG
 	let dstPath: String
 	let dstSubfolderSpec: String
 
@@ -56,9 +57,11 @@ class PBXCopyFilesBuildPhase: PBXBuildPhase {
 
 		try super.init(from: decoder)
 	}
+#endif
 }
 
 class PBXShellScriptBuildPhase: PBXBuildPhase {
+#if DEBUG
 	let inputPaths: [String]?
 	let outputPaths: [String]?
 	let shellPath: String
@@ -81,6 +84,7 @@ class PBXShellScriptBuildPhase: PBXBuildPhase {
 
 		try super.init(from: decoder)
 	}
+#endif
 }
 
 class PBXFrameworksBuildPhase: PBXBuildPhase {}
