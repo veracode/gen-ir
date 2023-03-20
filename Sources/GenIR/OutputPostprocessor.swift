@@ -69,6 +69,9 @@ struct OutputPostprocessor {
 		}
 	}
 
+	/// Returns the base URL to start searching inside an xcarchive
+	/// - Parameter path: the original path, should be an xcarchive
+	/// - Returns: the path to start a dependency search from
 	static func baseSearchPath(startingAt path: URL) -> URL {
 		let productsPath = path.appendingPathComponent("Products")
 		let applicationsPath = productsPath.appendingPathComponent("Applications")
