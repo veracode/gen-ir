@@ -39,8 +39,17 @@ class PBXProj: Decodable {
 	/// - Parameter path: path to `project.pbxproj` to parse
 	/// - Returns: a deserialized pbxproj structure
 	static func contentsOf(_ path: URL) throws -> PBXProj {
-		let data = try Data(contentsOf: path)
+		let data: Data
+
+		do {
+			data = try Data(contentsOf: path)
+		} catch {
+			logger.error("Failed to get contents of path: \(path), please check that this path exists and is readable.")
+			throw error
+		}
+
 		let decoder = PropertyListDecoder()
+
 		do {
 			let project = try decoder.decode(Self.self, from: data)
 			project.fixup()
