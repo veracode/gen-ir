@@ -34,11 +34,18 @@ public struct XcodeProject {
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
-		// TODO: Targets needs to include swift packacges
-		targets = model.objects(for: project.targets)
+		targets = (model.objects(for: project.targets) as [PBXNativeTarget])
 			.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
-				if let path = self.path(for: target, removeExtension: true) {
-					partialResult[path] = target
+				// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
+				// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
+				if let type = target.productType, type == "com.apple.product-type.bundle" {
+					logger.debug("Skipping bundle target: \(target.name)")
+				} else if let path = self.path(for: target, removeExtension: true) {
+					if partialResult[path] != nil {
+						logger.error("Clash in path name (\(path)) for target: \(target.name). Please report this issue.")
+					} else {
+						partialResult[path] = target
+					}
 				}
 			})
 

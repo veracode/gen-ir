@@ -64,8 +64,8 @@ class PBXNativeTarget: PBXTarget {
 	#if DEBUG
 	let buildPhases: [String]
 	let productInstallPath: String?
-	let productType: String
 	#endif
+	let productType: String?
 	let productReference: String?
 	let packageProductDependencies: [String]
 
@@ -89,8 +89,8 @@ class PBXNativeTarget: PBXTarget {
 		#if DEBUG
 		case buildPhases
 		case productInstallPath
-		case productType
 		#endif
+		case productType
 		case productReference
 		case packageProductDependencies
 	}
@@ -101,8 +101,8 @@ class PBXNativeTarget: PBXTarget {
 		#if DEBUG
 		buildPhases = try container.decode([String].self, forKey: .buildPhases)
 		productInstallPath = try container.decodeIfPresent(String.self, forKey: .productInstallPath)
-		productType = try container.decode(String.self, forKey: .productType)
 		#endif
+		productType = try container.decodeIfPresent(String.self, forKey: .productType)
 		productReference = try container.decodeIfPresent(String.self, forKey: .productReference)
 		packageProductDependencies = try container.decodeIfPresent([String].self, forKey: .packageProductDependencies) ?? []
 
@@ -119,7 +119,7 @@ extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
 		"""
 		<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
-		productReference: \(productReference ?? "nil"), productType: \(productType), \
+		productReference: \(productReference ?? "nil"), productType: \(productType ?? "nil"), \
 		packageProductDependencies: \(packageProductDependencies)>
 		"""
 	}

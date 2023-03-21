@@ -77,7 +77,6 @@ class XcodeLogParser {
 			}
 
 			guard let currentTarget else {
-				logger.debug("No target was found for this command - \(line)")
 				continue
 			}
 
@@ -108,8 +107,6 @@ class XcodeLogParser {
 		while lines.indices.contains(offset) {
 			let previousLine = lines[offset].trimmingCharacters(in: .whitespacesAndNewlines)
 			offset -= 1
-
-			logger.debug("Looking at previous line: \(previousLine)")
 
 			if previousLine.isEmpty {
 				// hit the top of the block, exit loop
