@@ -2,6 +2,7 @@ import Foundation
 import ArgumentParser
 import Logging
 import PBXProjParser
+import GenIRLogging
 
 /// Global logger object
 var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)

@@ -26,7 +26,7 @@ struct OutputPostprocessor {
 		self.output = output
 		self.archive = archive
 
-		dynamicDependencyToPath = dynamicDependencies(in: archive)
+		dynamicDependencyToPath = OutputPostprocessor.dynamicDependencies(in: archive)
 	}
 
 	/// Starts the OutputPostprocessor
@@ -42,17 +42,70 @@ struct OutputPostprocessor {
 				}
 
 				partialResult[target] = path
+
 			}
 
-		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		let _ = try targets.flatMap { target in
-			guard let path = targetsToPaths[target] else {
-				logger.error("Couldn't find path for target: \(target)")
-				return Set<URL>()
-			}
+			// TODO: remove 'static' deps so we don't duplicate them in the submission?
+			_ = try targets.flatMap { target in
+				guard let path = targetsToPaths[target] else {
+					logger.error("Couldn't find path for target: \(target)")
+					return Set<URL>()
+				}
 
-			return try process(target: target, in: targets, at: path, with: targetsToPaths)
+				return try process(target: target, in: targets, at: path, with: targetsToPaths)
+			}
+	}
+
+	/// Returns a mapping of dynamic dependencies (i.e. .frameworks, .appex, AppClips, etc)
+	/// - Returns: A mapping of names to file path
+	static func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
+		let searchPath = baseSearchPath(startingAt: xcarchive)
+		logger.debug("Using search path for dynamic dependencies: \(searchPath)")
+
+		let dynamicDependencyExtensions = ["framework", "appex", "app"]
+
+		return FileManager.default.filteredContents(of: searchPath, filter: { path in
+			return dynamicDependencyExtensions.contains(path.pathExtension)
+		})
+		.reduce(into: [String: URL]()) { partialResult, path in
+			// HACK: For now, insert both with an without extension to avoid any potential issues
+			partialResult[path.deletingPathExtension().lastPathComponent] = path
+			partialResult[path.lastPathComponent] = path
 		}
+	}
+
+	/// Returns the base URL to start searching inside an xcarchive
+	/// - Parameter path: the original path, should be an xcarchive
+	/// - Returns: the path to start a dependency search from
+	static func baseSearchPath(startingAt path: URL) -> URL {
+		let productsPath = path.appendingPathComponent("Products")
+		let applicationsPath = productsPath.appendingPathComponent("Applications")
+		let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
+
+		func firstDirectory(at path: URL) -> URL? {
+			guard
+				FileManager.default.directoryExists(at: path),
+				let contents = try? FileManager.default.directories(at: path, recursive: false),
+				contents.count > 0
+			else {
+				return nil
+			}
+
+			if contents.count > 1 {
+				logger.error("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
+			}
+
+			return contents.first!
+		}
+
+		for path in [applicationsPath, frameworkPath] {
+			if let directory = firstDirectory(at: path) {
+				return directory
+			}
+		}
+
+		logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
+		return productsPath
 	}
 
 	/// Processes an individual target

@@ -18,6 +18,8 @@ class XcodeLogParser {
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 
+	private(set) var packages: [String: URL] = [:]
+
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
 		case noTargetsFound(String)
@@ -110,6 +112,30 @@ class XcodeLogParser {
 				}
 			}
 
+			if line.contains("Resolved source packages:") {
+				// This indicates SPM packages in the project.
+				// Since SPM transitive dependencies don't show in the pbxproj,
+				// discover them here so we can map them _if_ we don't find them in the project
+				let startIndex = lines.index(after: index)
+				let endIndex = lines[index..<lines.endIndex].firstIndex(where: { $0.isEmpty }) ?? lines.endIndex
+				let slice = lines[startIndex..<endIndex]
+
+				packages = packages(from: slice)
+			}
+
+			if let target = target(from: line), currentTarget?.name != target {
+				if seenTargets.insert(target).inserted {
+					logger.debug("Found target: \(target)")
+				}
+
+				if let targetObject = targets.target(for: target) {
+					currentTarget = targetObject
+				} else {
+					currentTarget = .init(name: target)
+					targets.insert(target: currentTarget!)
+				}
+			}
+
 			guard let currentTarget else {
 				continue
 			}
@@ -125,6 +151,35 @@ class XcodeLogParser {
 
 			currentTarget.commands.append(compilerCommand)
 		}
+	}
+
+	private func packages(from slice: Array<String>.SubSequence) -> [String: URL] {
+		// The format of packages is as such
+		// PackageName: URL @? Reference?
+		var packages = [String: URL]()
+
+		for line in slice {
+			// TODO: When/if we drop support for macOS 12, try those fancy new Swift Regex APIs because manual parsing is pain
+			// Sanity check: end of package block is an empty line, shouldn't happen but you never know :)
+			guard !line.isEmpty else { break }
+
+			let components = line.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: " ")
+
+			guard components.count >= 2 else {
+				logger.debug("Splitting line resulted in < 2 components, should be at least 2. Components: \(components)")
+				continue
+			}
+
+			let packageName = components[0].replacingOccurrences(of: ":", with: "")
+			guard let url = URL(string: components[1]) else {
+				logger.debug("Casting for URL failed: \(components[1])")
+				continue
+			}
+
+			packages[packageName] = url
+		}
+
+		return packages
 	}
 
 	/// Is the index provided part of a compiler command block

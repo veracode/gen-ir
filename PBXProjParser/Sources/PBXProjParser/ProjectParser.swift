@@ -1,7 +1,8 @@
 import Foundation
 import Logging
+import GenIRLogging
 
-var logger: Logger = .init(label: "com.veracode.PBXProjParser")
+var logger: Logger = .init(label: "com.veracode.PBXProjParser", factory: StdOutLogHandler.init)
 
 /// An Xcode project parser (note: not an Xcode Project parser!)
 public struct ProjectParser {
