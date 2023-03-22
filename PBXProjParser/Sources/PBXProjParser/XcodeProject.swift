@@ -40,7 +40,16 @@ public struct XcodeProject {
 				// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
 				if let type = target.productType, type == "com.apple.product-type.bundle" {
 					logger.debug("Skipping bundle target: \(target.name)")
-				} else if let path = self.path(for: target, removeExtension: true) {
+				} else {
+					// TODO: For now, this is fine - but really we should centralize all this target naming stuff into `Target`
+					partialResult[target.name] = target
+
+					if let productName = target.productName {
+						partialResult[productName] = target
+					}
+				}
+
+				if let path = self.path(for: target, removeExtension: true) {
 					if partialResult[path] != nil {
 						logger.error("Clash in path name (\(path)) for target: \(target.name). Please report this issue.")
 					} else {
