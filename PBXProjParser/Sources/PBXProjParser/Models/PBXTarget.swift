@@ -1,6 +1,6 @@
 //
 //  PBXTarget.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -11,8 +11,8 @@ class PBXTarget: PBXObject {
 	#if DEBUG
 	let buildConfigurationList: String
 	let comments: String?
-	let productName: String?
 	#endif
+	let productName: String?
 	let name: String
 	let dependencies: [String]
 
@@ -20,8 +20,8 @@ class PBXTarget: PBXObject {
 		#if DEBUG
 		case buildConfigurationList
 		case comments
-		case productName
 		#endif
+		case productName
 		case name
 		case dependencies
 
@@ -33,8 +33,8 @@ class PBXTarget: PBXObject {
 		#if DEBUG
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
 		comments = try container.decodeIfPresent(String.self, forKey: .comments)
-		productName = try container.decodeIfPresent(String.self, forKey: .productName)
 		#endif
+		productName = try container.decodeIfPresent(String.self, forKey: .productName)
 		name = try container.decode(String.self, forKey: .name)
 		dependencies = try container.decode([String].self, forKey: .dependencies)
 
