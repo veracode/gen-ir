@@ -7,15 +7,15 @@
 
 import Foundation
 
-extension Process {
+public extension Process {
 	/// Presents the result of a Process
 	struct ReturnValue {
 		/// The stdout output of the process, if there was any
-		let stdout: String?
+		public let stdout: String?
 		/// The stderr output of the process, if there was any
-		let stderr: String?
+		public let stderr: String?
 		/// The return code of the process
-		let code: Int32
+		public let code: Int32
 
 		init(stdout: String?, stderr: String?, code: Int32) {
 			if let stdout, stdout.isEmpty {

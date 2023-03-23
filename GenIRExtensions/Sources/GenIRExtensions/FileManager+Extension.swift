@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension FileManager {
+public extension FileManager {
 	/// Returns a Boolean value that indicates whether a directory exists at the specified url
 	/// - Parameter url: The url of the directory. This is tilde expanded
 	/// - Returns: true if a directory exists at the specified path exists, or false if it doesn't exist or it does exist, but is not a directory
@@ -60,7 +60,7 @@ extension FileManager {
 	///   - path: The path of the directory to search in
 	///   - suffix: The suffix to match against file names
 	///   - recursive: A Boolean value to indicate whether a recursive search should be performed
-	/// - Returns: An array of URL file paths matching the suffix found in the specifed path
+	/// - Returns: An array of URL file paths matching the suffix found in the specified path
 	func files(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
 		try filteredContents(of: path, recursive: recursive) { url in
 			let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
@@ -111,7 +111,7 @@ extension FileManager {
 		let sourceFiles = try contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
 		for sourceFile in sourceFiles {
-			let path = destination.appendingPathComponent(sourceFile.lastPathComponent)
+			let path = destination.appendingPath(component: sourceFile.lastPathComponent)
 
 			if replacing && fileExists(atPath: path.filePath) {
 				try removeItem(at: path)
@@ -129,16 +129,16 @@ extension FileManager {
 	///   - filename: the name of the file
 	/// - Returns: a URL to a unique file in the given directory
 	func uniqueFilename(directory: URL, filename: String) -> URL {
-		var path = directory.appendingPathComponent(filename)
+		var path = directory.appendingPath(component: filename)
 		var index = 2
 
 		while fileExists(atPath: path.filePath) {
 			let splitName = filename.split(separator: ".")
 
 			if splitName.count == 2 {
-				path = directory.appendingPathComponent("\(splitName[0]) \(index).\(splitName[1])")
+				path = directory.appendingPath(component: "\(splitName[0]) \(index).\(splitName[1])")
 			} else {
-				path = directory.appendingPathComponent("\(filename) \(index)")
+				path = directory.appendingPath(component: "\(filename) \(index)")
 			}
 
 			index += 1

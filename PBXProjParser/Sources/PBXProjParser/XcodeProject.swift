@@ -9,7 +9,7 @@ import Foundation
 
 /// Represents an xcodeproj bundle
 public struct XcodeProject {
-	/// Path to the Workspace
+	/// Path to the Xcode Project
 	public let path: URL
 
 	/// The underlying pbxproj model
@@ -30,7 +30,7 @@ public struct XcodeProject {
 
 	public init(path: URL) throws {
 		self.path = path
-		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
+		model = try PBXProj.contentsOf(path.appendingPath(component: "project.pbxproj"))
 		project = try model.project()
 
 		targets = model.objects(for: project.targets)
@@ -39,6 +39,21 @@ public struct XcodeProject {
 				// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
 				$0.productType != "com.apple.product-type.bundle"
 			}
+
+		// TODO: Implement the following
+		/* Packages come in two variants: remote & local.
+		 *
+		 * - Remotes are checked-out into DerivedData where we can find their Package.swift.
+		 *   - In addition, there's a Package.resolved for _the project_ in the xcodeproj or xcworkspace folders
+		 *     - `*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`
+		 *     - `*.xcworkspace/xcshareddata/swiftpm/Package.resolved`
+		 *   - Determining how we can accurately find the derived data path will need to be investigated.
+		 * - Locals are referenced _only_ by the pbxproj (as far as I can see), and there's no direct link between the XCSwiftPackageProductDependency & the filepath
+		 *   - However, we could use the product name to look up a PBXFileReference and get the path from there... This is relative to the project file path.
+		 */
+
+		 let packageParser = try PackageParser(projectPath: path, model: model)
+		 try packageParser.parse()
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 

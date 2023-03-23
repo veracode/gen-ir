@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension String {
+public extension String {
 	/// Replacing double escapes with singles
 	/// - Returns: the unescaped string
 	func unescaped() -> String {
@@ -105,7 +105,7 @@ extension Substring {
 	}
 }
 
-extension [String] {
+public extension [String] {
 	/// Finds the next index of a given item after a given index
 	/// - Parameters:
 	///   - item: the element to search for

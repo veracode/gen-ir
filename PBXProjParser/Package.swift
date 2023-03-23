@@ -16,7 +16,9 @@ let package = Package(
 		// Dependencies declare other packages that this package depends on.
 		// .package(url: /* package url */, from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-		.package(path: "../GenIRLogging")
+		.package(url: "https://github.com/apple/swift-package-manager.git", branch: "release/5.7"),
+		.package(path: "../GenIRLogging"),
+		.package(path: "../GenIRExtensions")
 	],
 	targets: [
 		// Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -25,7 +27,9 @@ let package = Package(
 			name: "PBXProjParser",
 			dependencies: [
 				.product(name: "Logging", package: "swift-log"),
-				.product(name: "GenIRLogging", package: "GenIRLogging")
+				.product(name: "SwiftPMDataModel-auto", package: "swift-package-manager"),
+				.product(name: "GenIRLogging", package: "GenIRLogging"),
+				.product(name: "GenIRExtensions", package: "GenIRExtensions")
 			]),
 		.testTarget(
 			name: "PBXProjParserTests",

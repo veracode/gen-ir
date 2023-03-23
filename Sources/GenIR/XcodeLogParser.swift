@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import GenIRExtensions
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {
@@ -121,6 +122,7 @@ class XcodeLogParser {
 				let slice = lines[startIndex..<endIndex]
 
 				packages = packages(from: slice)
+				continue
 			}
 
 			if let target = target(from: line), currentTarget?.name != target {

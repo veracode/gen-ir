@@ -24,7 +24,7 @@ struct PlistCodingKeys: CodingKey {
 	}
 }
 
-extension KeyedDecodingContainer {
+public extension KeyedDecodingContainer {
 	func decode(_ type: [String: Any].Type, forKey key: K) throws -> [String: Any] {
 		let container = try self.nestedContainer(keyedBy: PlistCodingKeys.self, forKey: key)
 		return try container.decode(type)
@@ -69,7 +69,7 @@ extension KeyedDecodingContainer {
 	}
 }
 
-extension UnkeyedDecodingContainer {
+public extension UnkeyedDecodingContainer {
 	mutating func decode(_ type: [Any].Type) throws -> [Any] {
 		var array: [Any] = []
 

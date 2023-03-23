@@ -12,10 +12,10 @@ public class PBXFileReference: PBXObject {
 	public let fileEncoding: String?
 	public let explicitFileType: String?
 	public let includeInIndex: String?
-	public let lastKnownFileType: String?
-	public let name: String?
 	public let sourceTree: String
 	#endif
+	public let name: String?
+	public let lastKnownFileType: String?
 	public let path: String
 
 	private enum CodingKeys: String, CodingKey {
@@ -23,10 +23,10 @@ public class PBXFileReference: PBXObject {
 		case fileEncoding
 		case explicitFileType
 		case includeInIndex
-		case lastKnownFileType
-		case name
 		case sourceTree
 		#endif
+		case lastKnownFileType
+		case name
 		case path
 	}
 
@@ -36,10 +36,10 @@ public class PBXFileReference: PBXObject {
 		fileEncoding = try container.decodeIfPresent(String.self, forKey: .fileEncoding)
 		explicitFileType = try container.decodeIfPresent(String.self, forKey: .explicitFileType)
 		includeInIndex = try container.decodeIfPresent(String.self, forKey: .includeInIndex)
-		lastKnownFileType = try container.decodeIfPresent(String.self, forKey: .lastKnownFileType)
-		name = try container.decodeIfPresent(String.self, forKey: .name)
 		sourceTree = try container.decode(String.self, forKey: .sourceTree)
 		#endif
+		lastKnownFileType = try container.decodeIfPresent(String.self, forKey: .lastKnownFileType)
+		name = try container.decodeIfPresent(String.self, forKey: .name)
 		path = try container.decode(String.self, forKey: .path)
 
 		try super.init(from: decoder)

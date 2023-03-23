@@ -23,14 +23,14 @@ class XcodeWorkspace {
 		self.path = path
 
 		// Parse the `contents.xcworkspacedata` (XML) file and get the list of projects
-		let contentsPath = path.appendingPathComponent("contents.xcworkspacedata")
+		let contentsPath = path.appendingPath(component: "contents.xcworkspacedata")
 
 		let data = try Data(contentsOf: contentsPath)
 		let parser = XCWorkspaceDataParser(data: data)
 
 		let baseFolder = path.deletingLastPathComponent()
 		projectPaths = parser.projects
-			.map { baseFolder.appendingPathComponent($0, isDirectory: true) }
+			.map { baseFolder.appendingPath(component: $0, isDirectory: true) }
 
 		projects = try projectPaths.map(XcodeProject.init(path:))
 

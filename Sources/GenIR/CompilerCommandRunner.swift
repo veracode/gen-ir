@@ -8,6 +8,7 @@
 import Foundation
 import Logging
 import PBXProjParser
+import GenIRExtensions
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -73,8 +74,9 @@ struct CompilerCommandRunner {
 	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
-	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
-		let targetDirectory = directory.appendingPathComponent(name)
+	private func run(commands: [CompilerCommand], for product: String, at directory: URL) throws -> Int {
+		let directoryName = product
+		let targetDirectory = directory.appendingPath(component: directoryName)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
 		logger.debug("Created target directory: \(targetDirectory)")
@@ -252,7 +254,7 @@ extension CompilerCommandRunner {
 		let bitcodePaths = bitcodeFiles(from: outputMap)
 
 		for bitcodePath in bitcodePaths {
-			let destination = targetDirectory.appendingPathComponent(bitcodePath.lastPathComponent)
+			let destination = targetDirectory.appendingPath(component: bitcodePath.lastPathComponent)
 			try fileManager.moveItemReplacingExisting(from: bitcodePath, to: destination)
 		}
 
@@ -305,7 +307,7 @@ extension CompilerCommandRunner {
 		let files = try fileManager.files(at: source, withSuffix: ".s")
 
 		for file in files {
-			let destinationPath = destination.appendingPathComponent(
+			let destinationPath = destination.appendingPath(component:
 				file.lastPathComponent.replacingOccurrences(of: ".s", with: ".bc")
 			)
 

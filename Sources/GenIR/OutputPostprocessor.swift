@@ -7,6 +7,7 @@
 
 import Foundation
 import PBXProjParser
+import GenIRExtensions
 
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
@@ -78,9 +79,9 @@ struct OutputPostprocessor {
 	/// - Parameter path: the original path, should be an xcarchive
 	/// - Returns: the path to start a dependency search from
 	static func baseSearchPath(startingAt path: URL) -> URL {
-		let productsPath = path.appendingPathComponent("Products")
-		let applicationsPath = productsPath.appendingPathComponent("Applications")
-		let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
+		let productsPath = path.appendingPath(component: "Products")
+		let applicationsPath = productsPath.appendingPath(component: "Applications")
+		let frameworkPath = productsPath.appendingPath(component: "Library").appendingPath(component: "Framework")
 
 		func firstDirectory(at path: URL) -> URL? {
 			guard

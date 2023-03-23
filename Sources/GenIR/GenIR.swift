@@ -3,6 +3,7 @@ import ArgumentParser
 import Logging
 import PBXProjParser
 import GenIRLogging
+import GenIRExtensions
 
 /// Global logger object
 var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
@@ -61,7 +62,7 @@ struct IREmitterCommand: ParsableCommand {
 	var dryRun = false
 
 	/// Path to write IR to
-	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
+	private lazy var outputPath: URL = xcarchivePath.appendingPath(component: "IR")
 
 	mutating func validate() throws {
 		if debug {
