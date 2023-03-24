@@ -30,7 +30,7 @@ jobs:
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      
+
       # Generates the next major, minor, and patch version given the previous tag
       - name: ⏭ Get Next Versions
         id: next_versions
@@ -64,25 +64,11 @@ jobs:
             echo "next_tag=$NO_VERSION" >> $GITHUB_ENV
           fi
 
-      # Merges the underlying PR
-      - name: ㊗️ Merge PR
+      # Checkout the PR branch
+      - name: 🔍 Checkout PR Branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_REF: ${{ github.head_ref }}
-        run: gh pr merge --merge $HEAD_REF
-
-      # Delete the underlying PR branch
-      - name: ␡ Delete PR Branch
-        if: github.event.pull_request.head.repo.fork == false
-        env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: git push --delete origin $HEAD_REF
-
-      # Checkout main again, the PR has merged so we want to pull that update down before bumping the version
-      - uses: actions/checkout@v3
-        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
-        with:
-          ref: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr checkout ${{ github.event.pull_request.number }}
 
       # Apply the version bump by editing the Versions.swift file
       - name: 👊 Bump Version
@@ -95,7 +81,7 @@ jobs:
             exit 1
           fi
 
-      # Commit the change to main
+      # Commit the change to PR branch
       - name: 💍 Commit Version Change
         if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
         run: |
@@ -106,12 +92,33 @@ jobs:
           git commit -m "Gen IR version: ${{ env.next_tag }}"
           git push
 
-      # Create a new GitHub release with the new version
-      - name: 🚀 Release New Version
-        uses: softprops/action-gh-release@v1
-        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.next_tag }}
-          name: ${{ env.next_tag }}
+      # # Merges the underlying PR
+      # - name: ㊗️ Merge PR
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     HEAD_REF: ${{ github.head_ref }}
+      #   run: gh pr merge --merge $HEAD_REF
+
+      # # Delete the underlying PR branch
+      # - name: ␡ Delete PR Branch
+      #   if: github.event.pull_request.head.repo.fork == false
+      #   env:
+      #     HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      #   run: git push --delete origin $HEAD_REF
+
+      # # Checkout main again, the PR has merged so we want to pull that update down before bumping the version
+      # - uses: actions/checkout@v3
+      #   if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+      #   with:
+      #     ref: main
+
+      # # Create a new GitHub release with the new version
+      # - name: 🚀 Release New Version
+      #   uses: softprops/action-gh-release@v1
+      #   if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ env.next_tag }}
+      #     name: ${{ env.next_tag }}
+      #     generate_release_notes: true
