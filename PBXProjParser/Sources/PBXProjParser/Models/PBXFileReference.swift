@@ -1,6 +1,6 @@
 //
 //  PBXFileReference.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXFileReference: PBXObject {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	let fileEncoding: String?
 	let explicitFileType: String?
 	let includeInIndex: String?
@@ -19,7 +19,7 @@ class PBXFileReference: PBXObject {
 	let path: String
 
 	private enum CodingKeys: String, CodingKey {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		case fileEncoding
 		case explicitFileType
 		case includeInIndex
@@ -32,7 +32,7 @@ class PBXFileReference: PBXObject {
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		fileEncoding = try container.decodeIfPresent(String.self, forKey: .fileEncoding)
 		explicitFileType = try container.decodeIfPresent(String.self, forKey: .explicitFileType)
 		includeInIndex = try container.decodeIfPresent(String.self, forKey: .includeInIndex)

@@ -1,6 +1,6 @@
 //
 //  PBXBuildPhase.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXBuildPhase: PBXObject {
-#if DEBUG
+#if FULL_PBX_PARSING
 	let alwaysOutOfDate: String?
 	let buildActionMask: UInt32
 	let files: [String]
@@ -40,7 +40,7 @@ class PBXBuildPhase: PBXObject {
 }
 
 class PBXCopyFilesBuildPhase: PBXBuildPhase {
-#if DEBUG
+#if FULL_PBX_PARSING
 	let dstPath: String
 	let dstSubfolderSpec: String
 
@@ -61,7 +61,7 @@ class PBXCopyFilesBuildPhase: PBXBuildPhase {
 }
 
 class PBXShellScriptBuildPhase: PBXBuildPhase {
-#if DEBUG
+#if FULL_PBX_PARSING
 	let inputPaths: [String]?
 	let outputPaths: [String]?
 	let shellPath: String

@@ -1,6 +1,6 @@
 //
 //  PBXProject.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXProject: PBXObject {
-#if DEBUG
+#if FULL_PBX_PARSING
 	let attributes: [String: Any]
 	let buildConfigurationList: String
 	let compatibilityVersion: String
@@ -42,7 +42,7 @@ class PBXProject: PBXObject {
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
-#if DEBUG
+#if FULL_PBX_PARSING
 		// We currently don't decode this as it's painful and we don't need it
 		attributes = [:]
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)

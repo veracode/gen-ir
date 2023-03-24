@@ -1,6 +1,6 @@
 //
 //  XCConfigurationList.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class XCConfigurationList: PBXObject {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	let buildConfigurations: [String]
 	let defaultConfigurationIsVisible: String
 	let defaultConfigurationName: String
@@ -21,7 +21,7 @@ class XCConfigurationList: PBXObject {
 	#endif
 
 	required init(from decoder: Decoder) throws {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		buildConfigurations = try container.decode([String].self, forKey: .buildConfigurations)
