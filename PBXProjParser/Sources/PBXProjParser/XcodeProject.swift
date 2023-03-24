@@ -10,6 +10,7 @@ import Foundation
 enum ParsingError: Error {
 	case missingKey(String)
 	case validationError(String)
+	// test change
 }
 
 /// Represents an xcodeproj bundle
