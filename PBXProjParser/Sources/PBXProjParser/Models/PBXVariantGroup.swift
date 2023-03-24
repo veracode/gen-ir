@@ -1,6 +1,6 @@
 //
 //  PBXVariantGroup.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXVariantGroup: PBXObject {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	let children: [String]
 	let name: String
 	let sourceTree: String
@@ -21,7 +21,7 @@ class PBXVariantGroup: PBXObject {
 	#endif
 
 	required init(from decoder: Decoder) throws {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		children = try container.decode([String].self, forKey: .children)

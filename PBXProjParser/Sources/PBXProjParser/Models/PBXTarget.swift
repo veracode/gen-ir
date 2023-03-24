@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXTarget: PBXObject {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	let buildConfigurationList: String
 	let comments: String?
 	#endif
@@ -17,7 +17,7 @@ class PBXTarget: PBXObject {
 	let dependencies: [String]
 
 	private enum CodingKeys: String, CodingKey {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		case buildConfigurationList
 		case comments
 		#endif
@@ -30,7 +30,7 @@ class PBXTarget: PBXObject {
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
 		comments = try container.decodeIfPresent(String.self, forKey: .comments)
 		#endif
@@ -61,7 +61,7 @@ class PBXAggregateTarget: PBXTarget {
 class PBXLegacyTarget: PBXTarget {}
 
 class PBXNativeTarget: PBXTarget {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	let buildPhases: [String]
 	let productInstallPath: String?
 	#endif
@@ -86,7 +86,7 @@ class PBXNativeTarget: PBXTarget {
 	}
 
 	private enum CodingKeys: String, CodingKey {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		case buildPhases
 		case productInstallPath
 		#endif
@@ -98,7 +98,7 @@ class PBXNativeTarget: PBXTarget {
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		buildPhases = try container.decode([String].self, forKey: .buildPhases)
 		productInstallPath = try container.decodeIfPresent(String.self, forKey: .productInstallPath)
 		#endif
@@ -114,7 +114,7 @@ class PBXNativeTarget: PBXTarget {
 	}
 }
 
-#if DEBUG
+#if FULL_PBX_PARSING
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
 		"""

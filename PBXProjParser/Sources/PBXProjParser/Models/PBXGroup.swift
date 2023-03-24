@@ -1,6 +1,6 @@
 //
 //  PBXGroup.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class PBXGroup: PBXObject {
-#if DEBUG
+#if FULL_PBX_PARSING
 	let children: [String]
 	let name: String?
 	let sourceTree: String

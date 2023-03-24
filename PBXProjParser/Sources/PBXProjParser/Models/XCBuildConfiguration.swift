@@ -1,6 +1,6 @@
 //
 //  XCBuildConfiguration.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 class XCBuildConfiguration: PBXObject {
-	#if DEBUG
+	#if FULL_PBX_PARSING
 	var baseConfigurationReference: String?
 	var buildSettings: [String: Any]
 	var name: String
@@ -21,7 +21,7 @@ class XCBuildConfiguration: PBXObject {
 	#endif
 
 	required init(from decoder: Decoder) throws {
-		#if DEBUG
+		#if FULL_PBX_PARSING
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		baseConfigurationReference = try container.decodeIfPresent(String.self, forKey: .baseConfigurationReference)
