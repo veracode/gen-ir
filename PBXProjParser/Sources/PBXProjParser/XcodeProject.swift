@@ -1,6 +1,6 @@
 //
 //  XcodeProject.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 27/01/2023.
 //
@@ -34,13 +34,32 @@ public struct XcodeProject {
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
-		// TODO: Targets needs to include swift packacges
-		targets = model.objects(for: project.targets)
-			.reduce(into: [String: PBXNativeTarget](), { partialResult, target in
-				if let path = self.path(for: target, removeExtension: true) {
-					partialResult[path] = target
+		let projectTargets: [PBXNativeTarget] = model.objects(for: project.targets)
+		for target in projectTargets {
+			// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
+			// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
+			guard target.productType != "com.apple.product-type.bundle" else {
+				logger.debug("Skipping bundle target: \(target.name)")
+				continue
+			}
+
+			targets[target.name] = target
+
+			if let productName = target.productName {
+				targets[productName] = target
+			}
+
+		// TODO: For now, this is fine - but really we should centralize all this target naming stuff into `Target`
+			if let path = self.path(for: target, removeExtension: true) {
+					if targets[path] != nil {
+						if target.name != path || target.productName != path {
+							logger.debug("Clash in path name (\(path)) for target: \(target.name).")
+						}
+					} else {
+						targets[path] = target
+					}
 				}
-			})
+		}
 
 		// First pass - get all the direct dependencies
 		targets.values.forEach { determineDirectDependencies($0) }
@@ -157,7 +176,7 @@ public struct XcodeProject {
 		if removeExtension, let index = path.firstIndex(of: ".") {
 			path = String(path[path.startIndex..<index])
 		}
-		
+
 		return path
 	}
 }
