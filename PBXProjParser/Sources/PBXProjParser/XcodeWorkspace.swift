@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 27/01/2023.
 //
@@ -60,6 +60,12 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	let parser: XMLParser
 	var projects = [String]()
 
+	var isInGroup = false
+	var currentGroupPath: [String] = []
+
+	let groupTag = "Group"
+	let fileRefTag = "FileRef"
+
 	init(data: Data) {
 		parser = .init(data: data)
 
@@ -76,14 +82,61 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		qualifiedName qName: String?,
 		attributes attributeDict: [String: String] = [:]
 	) {
-		guard
-			elementName == "FileRef",
-			let location = attributeDict["location"]?.replacingOccurrences(of: "group:", with: ""),
-			location.hasSuffix(".xcodeproj")
-		else {
-			return
+		switch elementName {
+		case groupTag:
+			handleGroupTag(attributeDict)
+		case fileRefTag:
+			handleFileRefTag(attributeDict)
+		default:
+			break
 		}
+	}
 
-		projects.append(location)
+	private func extractLocation(_ attributeDict: [String: String]) -> String? {
+		guard
+			let location = attributeDict["location"],
+			location.starts(with: "group:")
+		else { return nil }
+
+		return location.replacingOccurrences(of: "group:", with: "")
+	}
+
+	private func handleGroupTag(_ attributeDict: [String: String]) {
+		// For groups, we want to track the 'sub' path as we go deeper into the tree,
+		// this will allow us to create 'full' paths as we see file refs
+		guard let location = extractLocation(attributeDict) else { return }
+		currentGroupPath.append(location)
+		isInGroup = true
+	}
+
+	private func handleFileRefTag(_ attributeDict: [String: String]) {
+		// For file refs, we have two options - if we're not in a group we can just use the path as-is.
+		// If we're in a group, we will need to construct the current path from the depth we're currently in
+		guard
+			let location = extractLocation(attributeDict),
+			location.hasSuffix(".xcodeproj")
+		else { return }
+
+		if isInGroup {
+			// Add a '/' in between group subpaths, then add the current location to the end
+			let fullLocation = currentGroupPath.reduce(into: "") { $0.append($1); $0.append("/") }.appending(location)
+			projects.append(fullLocation)
+		} else {
+			projects.append(location)
+		}
+	}
+
+	func parser(
+		_ parser: XMLParser,
+		didEndElement elementName: String,
+		namespaceURI: String?,
+		qualifiedName qName: String?
+	) {
+		// If we're ending a group tag, we can pop the matching group off of the stack as we're done with it
+		guard elementName == groupTag else { return }
+
+		_ = currentGroupPath.popLast()
+
+		isInGroup = !currentGroupPath.isEmpty
 	}
 }
