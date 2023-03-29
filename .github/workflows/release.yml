@@ -30,7 +30,7 @@ jobs:
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
+      
       # Generates the next major, minor, and patch version given the previous tag
       - name: ⏭ Get Next Versions
         id: next_versions
@@ -64,39 +64,12 @@ jobs:
             echo "next_tag=$NO_VERSION" >> $GITHUB_ENV
           fi
 
-      # Checkout the PR branch
-      - name: 🔍 Checkout PR Branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr checkout ${{ github.event.pull_request.number }}
-
-      # Apply the version bump by editing the Versions.swift file
-      - name: 👊 Bump Version
-        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
-        run: |
-          sed -i 's/.*static let version.*/\tstatic let version = "'"${{ env.next_tag }}"'"/g' Sources/GenIR/Versions.swift
-          # Confirm the tag is in place
-          if ! grep -Fq '${{ env.next_tag }}' Sources/GenIR/Versions.swift ; then
-            echo "Failed to find tag in Versions.swift: ${{ env.next_tag }}. Bailing out."
-            exit 1
-          fi
-
-      # Commit the change to PR branch
-      - name: 💍 Commit Version Change
-        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@github.com'
-
-          git add Sources/GenIR/Versions.swift
-          git commit -m "Gen IR version: ${{ env.next_tag }}"
-          git push
-
       # Merges the underlying PR
       - name: ㊗️ Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --merge ${{ github.event.pull_request.number }} --delete-branch
+          HEAD_REF: ${{ github.head_ref }}
+        run: gh pr merge --merge $HEAD_REF
 
       # Delete the underlying PR branch
       - name: ␡ Delete PR Branch
@@ -111,6 +84,28 @@ jobs:
         with:
           ref: main
 
+      # Apply the version bump by editing the Versions.swift file
+      - name: 👊 Bump Version
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+        run: |
+          sed -i 's/.*static let version.*/\tstatic let version = "'"${{ env.next_tag }}"'"/g' Sources/GenIR/Versions.swift
+          # Confirm the tag is in place
+          if ! grep -Fq '${{ env.next_tag }}' Sources/GenIR/Versions.swift ; then
+            echo "Failed to find tag in Versions.swift: ${{ env.next_tag }}. Bailing out."
+            exit 1
+          fi
+
+      # Commit the change to main
+      - name: 💍 Commit Version Change
+        if: contains(toJSON(github.event.pull_request.labels.*.name), 'merge-bump-')
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@github.com'
+
+          git add Sources/GenIR/Versions.swift
+          git commit -m "Gen IR version: ${{ env.next_tag }}"
+          git push
+
       # Create a new GitHub release with the new version
       - name: 🚀 Release New Version
         uses: softprops/action-gh-release@v1
@@ -120,4 +115,3 @@ jobs:
         with:
           tag_name: ${{ env.next_tag }}
           name: ${{ env.next_tag }}
-          generate_release_notes: true
