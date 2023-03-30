@@ -19,7 +19,7 @@ class XcodeWorkspace {
 	/// A mapping of targets to the projects that define them
 	let targetsToProject: [String: XcodeProject]
 
-	init(path: URL) throws {
+	init(path: URL) async throws {
 		self.path = path
 
 		// Parse the `contents.xcworkspacedata` (XML) file and get the list of projects
@@ -32,7 +32,7 @@ class XcodeWorkspace {
 		projectPaths = parser.projects
 			.map { baseFolder.appendingPath(component: $0, isDirectory: true) }
 
-		projects = try projectPaths.map(XcodeProject.init(path:))
+		projects = try await projectPaths.asyncMap(XcodeProject.init(path:))
 
 		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
 			project.targets.forEach { (target) in

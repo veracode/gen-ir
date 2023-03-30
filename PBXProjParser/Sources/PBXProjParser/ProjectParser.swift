@@ -44,16 +44,16 @@ public struct ProjectParser {
 		case invalidPath(String)
 	}
 
-	public init(path: URL, logLevel level: Logger.Level) throws {
+	public init(path: URL, logLevel level: Logger.Level) async throws {
 		self.path = path
 		logger.logLevel = level
 
 		switch path.pathExtension {
 		case "xcodeproj":
-			let project = try XcodeProject(path: path)
+			let project = try await XcodeProject(path: path)
 			type = .project(project)
 		case "xcworkspace":
-			let workspace = try XcodeWorkspace(path: path)
+			let workspace = try await XcodeWorkspace(path: path)
 			type = .workspace(workspace)
 		default:
 			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")

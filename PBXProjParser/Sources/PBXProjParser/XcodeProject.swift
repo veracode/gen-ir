@@ -28,7 +28,7 @@ public struct XcodeProject {
 		case invalidPBXProj(String)
 	}
 
-	public init(path: URL) throws {
+	public init(path: URL) async throws {
 		self.path = path
 		model = try PBXProj.contentsOf(path.appendingPath(component: "project.pbxproj"))
 		project = try model.project()
@@ -53,7 +53,7 @@ public struct XcodeProject {
 		 */
 
 		 let packageParser = try PackageParser(projectPath: path, model: model)
-		 try packageParser.parse()
+		 try await packageParser.parse()
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 

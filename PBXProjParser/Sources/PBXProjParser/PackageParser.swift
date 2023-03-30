@@ -12,6 +12,7 @@ import GenIRExtensions
 import Workspace
 import PackageGraph
 import TSCBasic
+import PackageModel
 import Basics
 
 /// Parses SPM packages for a given Xcode Project
@@ -23,9 +24,11 @@ struct PackageParser {
 
 	// private var packages = [XCSwiftPackageProductDependency]()
 	private let packageCheckoutPath: URL
+	private let localPackagePaths: [URL]
+	private let remotePackagePaths: [URL]
 
-	private let remotePackages: [String: URL]
-	private let packageFiles: [String: URL]
+	// private let remotePackages: [String: URL]
+	// private let packageFiles: [String: URL]
 
 	enum Error: Swift.Error {
 		case xcodebuildError(String)
@@ -38,17 +41,17 @@ struct PackageParser {
 		self.project = model
 
 		// Attempt to find a list of local packages - can't use the SPM dependency from pbxproj here as that includes the target name, not the package name
-		let localPackagePaths = project.objects(of: .fileReference, as: PBXFileReference.self)
+		localPackagePaths = model.objects(of: .fileReference, as: PBXFileReference.self)
 			.filter { $0.lastKnownFileType == "wrapper" }
 			.map { $0.path }
 			.filter { path in
-				let packagePath = projectPath.deletingLastPathComponent().appendingPath(component: path).appendingPath(component: "Package.swift")
+				let packagePath = projectPath
+					.deletingLastPathComponent()
+					.appendingPath(component: path)
+					.appendingPath(component: "Package.swift")
 				return FileManager.default.fileExists(atPath: packagePath.filePath)
 			}
 			.map { $0.fileURL }
-
-		// TODO: Test
-		try localPackagePaths.forEach { try PackageParser.parsePackageFile($0) }
 
 		// Attempt to find a list of the remote packages, this involves finding the checkout location in 'derived data'
 		// which is two folders up from the build root, and then `SourcePackages/checkout/`
@@ -58,9 +61,9 @@ struct PackageParser {
 			.appendingPath(component: "SourcePackages", isDirectory: true)
 			.appendingPath(component: "checkouts", isDirectory: true)
 
-		let remotePackagePaths = try FileManager.default.directories(at: packageCheckoutPath)
+		remotePackagePaths = try FileManager.default.directories(at: packageCheckoutPath)
 			.filter { path in
-				return FileManager.default.fileExists(atPath: path.appendingPath(component: "Package.swift").filePath)
+				FileManager.default.fileExists(atPath: path.appendingPath(component: "Package.swift").filePath)
 			}
 
 	/* TODO: Notes
@@ -69,37 +72,14 @@ struct PackageParser {
 	.... all checkouts in derived data to get all the product names for a given package...
 	 Essentially - parse all packages _first_ then determine what's local vs remote if that even matters at that point
 	*/
-
-
-
-
-
-
-
-
-		// Get a mapping of Package Name to URLs
-		remotePackages = try FileManager.default.directories(at: packageCheckoutPath, recursive: false)
-			.reduce(into: [String: URL]()) { partialResult, path in
-				partialResult[path.lastPathComponent] = path
-			}
-
-		// Look inside the folder for Package.swift files - they should be at the top-level of the directory
-		packageFiles = remotePackages.reduce(into: [String: URL]()) { partialResult, pair in
-			let path = pair.value.appendingPath(component: "Package.swift")
-			if FileManager.default.fileExists(atPath: path.filePath) {
-				partialResult[pair.key] = path
-			} else {
-				logger.debug("Attempted to parse \(pair.key) but didn't find a Package.swift file at: \(path).")
-			}
-		}
 	}
 
-	func parse() throws {
-		let packages = project.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
-			.compactMap { package(for: $0) }
+	func parse() async throws {
+		let locals = try await localPackagePaths.asyncMap { try await PackageParser.parsePackageFile($0) }
+		let remotes = try await remotePackagePaths.asyncMap { try await PackageParser.parsePackageFile($0) }
 	}
 
-	private static func parsePackageFile(_ path: URL) throws -> SwiftPackage? {
+	private static func parsePackageFile(_ path: URL) async throws -> SwiftPackage? {
 		// TODO: Use SPM to parse out the manifest.
 		// Needed:
 		//   * workspace      -- SwiftTool.getActiveWorkspace()
@@ -107,112 +87,100 @@ struct PackageParser {
 		//   * observability  -- SwiftTool.observabilityScope
 		// Then:
 		//   * workspace.loadRootManifests()
-		let rootPackage = path.deletingLastPathComponent()
-		let workspace = try Workspace(forRootPackage: try .init(validating: rootPackage.filePath))
-		let root = PackageGraphRootInput(packages: [try .init(validating: rootPackage.filePath)])
+		let manifests = try await manifests(for: path)
+		print(manifests)
+
+		manifests.forEach { (path, manifest) in
+			print(manifest.products)
+		}
+
+		return nil
+	}
+
+	private static func manifests(for path: URL) async throws -> [URL: Manifest] {
+		let workspace = try Workspace(forRootPackage: try .init(validating: path.filePath))
+		let root = PackageGraphRootInput(packages: [try .init(validating: path.filePath)])
 		let observabilityHandler = SPMObservabilityHandler(level: .info)
 		let observabilitySystem = ObservabilitySystem(observabilityHandler)
 		let observabilityScope = observabilitySystem.topScope
 
-		workspace.loadRootManifests(
-			packages: root.packages,
-			observabilityScope: observabilityScope, // TODO: Double check this....
-			//(Result<[AbsolutePath : Manifest], Error>) -> Void
-			completion: { result in
-				switch result {
-				case .success(let manifests):
-					print(manifests)
-					manifests.values.forEach { manifest in
-						print("manifest: \(manifest)")
+		return try await withCheckedThrowingContinuation { continuation in
+			workspace.loadRootManifests(
+				packages: root.packages,
+				observabilityScope: observabilityScope, // TODO: Double check this....
+				//(Result<[AbsolutePath : Manifest], Error>) -> Void
+				completion: { result in
+					switch result {
+					case .success(let manifests):
+						let returnValues = manifests.reduce(into: [URL: Manifest]()) { partialResult, pair in
+							partialResult[pair.key.pathString.fileURL] = pair.value
+						}
+
+						continuation.resume(returning: returnValues)
+					case .failure(let error):
+						continuation.resume(throwing: error)
 					}
-				case .failure(let error):
-					print(error)
 				}
-			}
-		)
-
-
-
-		return nil
-
-
-
-
-
-		// let result: Process.ReturnValue
-
-		// do {
-		// 	result = try Process.runShell("/usr/bin/swift", arguments: ["package", "dump-package"], runInDirectory: path.deletingLastPathComponent())
-		// } catch {
-		// 	throw Error.swiftPackageError("Failed to invoke swift package dump-package on package path: \(path)")
-		// }
-
-		// guard result.code == 0, let stdout = result.stdout?.data(using: .utf8) else {
-		// 	throw Error.xcodebuildError("Failed to run swift package dump-package for project: \(path). Error: \(result.stdout ?? "nil"), \(result.stderr ?? "nil")")
-		// }
-
-		// Decode JSON response
-		// let package = try JSONDecoder().decode(Manifest.self, from: stdout)
-		// return package
-		// return nil
-	}
-
-	private func package(for dependency: XCSwiftPackageProductDependency) -> Package? {
-		if
-			let reference = dependency.package,
-			let object = project.object(forKey: reference, as: PBXObject.self),
-			object.isa == .remoteSwiftPackageReference
-		{
-			return remotePackage(for: dependency)
-		} else {
-			return localPackage(for: dependency)
+			)
 		}
 	}
 
-	private func remotePackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
-		// Remote packages are a little tricky - we need to get the Package.swift location for them,
-		// This normally resides in DerivedData in the products build folder.
+	// private func package(for dependency: XCSwiftPackageProductDependency) -> Package? {
+	// 	if
+	// 		let reference = dependency.package,
+	// 		let object = project.object(forKey: reference, as: PBXObject.self),
+	// 		object.isa == .remoteSwiftPackageReference
+	// 	{
+	// 		return remotePackage(for: dependency)
+	// 	} else {
+	// 		return localPackage(for: dependency)
+	// 	}
+	// }
 
-		// If we have a dependency named the same as a remote package in the checkout folder, return it
-		if let url = remotePackages[dependency.productName] {
-			return .init(path: url, type: .remote, reference: dependency)
-		}
+	// private func remotePackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
+	// 	// Remote packages are a little tricky - we need to get the Package.swift location for them,
+	// 	// This normally resides in DerivedData in the products build folder.
 
-		// Now it's entirely possible we have a dependency who's name doesn't match a checkout - for example, a package may have one or more targets.
-		// In this case, we have to parse the Package.swift for each of these and determine the product names they contain.
-		return findPackage(for: dependency)
+	// 	// If we have a dependency named the same as a remote package in the checkout folder, return it
+	// 	if let url = remotePackages[dependency.productName] {
+	// 		return .init(path: url, type: .remote, reference: dependency)
+	// 	}
 
-		// NOTE: We can do this with `swift package dump-package`, capturing the JSON, parsing the following paths: `products[].name`
-		// We can then use `targets.name` to match these to targets, and use `targets.dependencies` to get a list of target dependencies
-	}
+	// 	// Now it's entirely possible we have a dependency who's name doesn't match a checkout - for example, a package may have one or more targets.
+	// 	// In this case, we have to parse the Package.swift for each of these and determine the product names they contain.
+	// 	return findPackage(for: dependency)
 
-	private func findPackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
-		if let packageFile = packageFiles[dependency.productName] {
-			print("packageFile: \(packageFile)")
-		}
+	// 	// NOTE: We can do this with `swift package dump-package`, capturing the JSON, parsing the following paths: `products[].name`
+	// 	// We can then use `targets.name` to match these to targets, and use `targets.dependencies` to get a list of target dependencies
+	// }
 
-		return nil
-	}
+	// private func findPackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
+	// 	if let packageFile = packageFiles[dependency.productName] {
+	// 		print("packageFile: \(packageFile)")
+	// 	}
 
-	private func localPackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
-		// For local packages, we want to use the `productName` to look up a File Reference with the same name,
-		// and get the path for it. This path will be relative to the xcode project we're operating on.
-		let paths = project.objects(of: .fileReference, as: PBXFileReference.self)
-			.filter { $0.name == dependency.productName }
-			.map { $0.path }
-			.reduce(into: Set<String>()) { $0.insert($1) }
+	// 	return nil
+	// }
 
-		if paths.count > 1 {
-			logger.warning("Expected 1 unique path for local package (\(dependency.productName)), got \(paths.count). Using \(paths.first!) from \(paths)")
-		}
+	// private func localPackage(for dependency: XCSwiftPackageProductDependency) -> Package? {
+	// 	// For local packages, we want to use the `productName` to look up a File Reference with the same name,
+	// 	// and get the path for it. This path will be relative to the xcode project we're operating on.
+	// 	let paths = project.objects(of: .fileReference, as: PBXFileReference.self)
+	// 		.filter { $0.name == dependency.productName }
+	// 		.map { $0.path }
+	// 		.reduce(into: Set<String>()) { $0.insert($1) }
 
-		guard let path = paths.first else {
-			logger.error("Didn't find any paths for local package \(dependency.productName). Please report this error.")
-			return nil
-		}
+	// 	if paths.count > 1 {
+	// 		logger.warning("Expected 1 unique path for local package (\(dependency.productName)), got \(paths.count). Using \(paths.first!) from \(paths)")
+	// 	}
 
-		return .init(path: projectPath.appendingPath(component: path).absoluteURL, type: .local, reference: dependency)
-	}
+	// 	guard let path = paths.first else {
+	// 		logger.error("Didn't find any paths for local package \(dependency.productName). Please report this error.")
+	// 		return nil
+	// 	}
+
+	// 	return .init(path: projectPath.appendingPath(component: path).absoluteURL, type: .local, reference: dependency)
+	// }
 
 	/// Determines the BUILD_ROOT of the project.
 	/// - Parameter projectPath: the project to determine the path for

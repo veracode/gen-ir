@@ -112,38 +112,76 @@ struct IREmitterCommand: ParsableCommand {
 
 	// swiftlint:disable function_parameter_count
 	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
-		let project = try ProjectParser(path: project, logLevel: level)
-		var targets = Targets(for: project)
+		// let project = try ProjectParser(path: project, logLevel: level)
+		// var targets = Targets(for: project)
 
-		let log = try logParser(for: log)
-		try log.parse(&targets)
+		// let log = try logParser(for: log)
+		// try log.parse(&targets)
 
-		let buildCacheManipulator = try BuildCacheManipulator(
-			buildCachePath: log.buildCachePath,
-			buildSettings: log.settings,
-			archive: archive
-		)
+		// let buildCacheManipulator = try BuildCacheManipulator(
+		// 	buildCachePath: log.buildCachePath,
+		// 	buildSettings: log.settings,
+		// 	archive: archive
+		// )
 
-		let runner = CompilerCommandRunner(
-			output: output,
-			buildCacheManipulator: buildCacheManipulator,
-			dryRun: dryRun
-		)
-		try runner.run(targets: targets)
+		// let runner = CompilerCommandRunner(
+		// 	output: output,
+		// 	buildCacheManipulator: buildCacheManipulator,
+		// 	dryRun: dryRun
+		// )
+		// try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
-		try postprocessor.process(targets: &targets)
+		// let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+		// try postprocessor.process(targets: &targets)
+		// TODO: We can't use async parsable commands here as SPM relies on swift-driver which, until Swift 5.9 uses Argument Parser 1.0.3.
+		// Remove these declarations etc when we can use Swift 5.9
+		guard let projectPath = projectPath else {
+			throw ValidationError("Failed to infer project path. Please rerun providing --project-path")
+		}
+		let logPath = logPath
+		let quieter = quieter
+		let outputPath = outputPath
+
+		let semaphore = DispatchSemaphore(value: 0)
+
+		Task {
+			let project = try await ProjectParser(path: projectPath, logLevel: logger.logLevel)
+			var targets = Targets(for: project)
+			let log = try IREmitterCommand.logParser(for: logPath, quieter)
+			try log.parse(&targets)
+
+			let buildCacheManipulator = try BuildCacheManipulator(
+				buildCachePath: log.buildCachePath,
+				buildSettings: log.settings,
+				archive: archive
+			)
+
+			let runner = CompilerCommandRunner(
+				output: outputPath,
+				buildCacheManipulator: buildCacheManipulator,
+				dryRun: dryRun
+			)
+
+			try runner.run(targets: targets)
+
+			let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+			try postprocessor.process(targets: &targets)
+
+			semaphore.signal()
+		}
+
+		semaphore.wait()
 	}
 	// swiftlint:enable function_parameter_count
 
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
 	/// - Returns: An `XcodeLogParser` for the given path
-	private func logParser(for path: String) throws -> XcodeLogParser {
+	private static func logParser(for path: String, _ shouldPrint: Bool) throws -> XcodeLogParser {
 		var input: [String] = []
 
 		if path == "-" {
-			input = try readStdin()
+			input = try readStdin(shouldPrint)
 		} else {
 			input = try String(contentsOf: path.fileURL).components(separatedBy: .newlines)
 		}
@@ -153,13 +191,13 @@ struct IREmitterCommand: ParsableCommand {
 
 	/// Reads stdin until an EOF is found
 	/// - Returns: An array of Strings representing stdin split by lines
-	private func readStdin() throws -> [String] {
+	private static func readStdin(_ shouldPrint: Bool) throws -> [String] {
 		logger.info("Collating input via pipe")
 
 		var results = [String]()
 
 		while let line = readLine() {
-			if !quieter {
+			if !shouldPrint {
 				print(line) // shows user that build is happening
 			}
 			results.append(line)
@@ -169,7 +207,7 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
-		if !quieter {
+		if !shouldPrint {
 			print("\n\n")
 		}
 

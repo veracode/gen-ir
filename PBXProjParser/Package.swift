@@ -16,7 +16,7 @@ let package = Package(
 		// Dependencies declare other packages that this package depends on.
 		// .package(url: /* package url */, from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-		.package(url: "https://github.com/apple/swift-package-manager.git", branch: "release/5.7"),
+		.package(url: "https://github.com/apple/swift-package-manager.git", branch: "release/5.8"),
 		.package(path: "../GenIRLogging"),
 		.package(path: "../GenIRExtensions")
 	],
