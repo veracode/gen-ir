@@ -16,6 +16,8 @@ on:
 
 jobs:
   release:
+    permissions: read-all|write-all
+
     # Limit job to requests with a merge-* label on them
     if: contains(${{ github.event.pull_request.labels.*.name }}, 'merge-')
     runs-on: ubuntu-latest
@@ -30,7 +32,7 @@ jobs:
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      
+
       # Generates the next major, minor, and patch version given the previous tag
       - name: ⏭ Get Next Versions
         id: next_versions
