@@ -1,6 +1,6 @@
 //
 //  CompilerCommandRunner.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 29/08/2022.
 //
@@ -57,10 +57,10 @@ struct CompilerCommandRunner {
 			totalModulesRun += try run(commands: target.commands, for: target.product, at: tempDirectory)
 		}
 
+		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
+
 		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
 		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
-
-		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
 	}
 
 	/// Runs all commands for a given target
