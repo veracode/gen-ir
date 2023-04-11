@@ -14,9 +14,13 @@ on:
     types:
       - labeled
 
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: read
+
 jobs:
   release:
-    permissions: read-all|write-all
 
     # Limit job to requests with a merge-* label on them
     if: contains(${{ github.event.pull_request.labels.*.name }}, 'merge-')
