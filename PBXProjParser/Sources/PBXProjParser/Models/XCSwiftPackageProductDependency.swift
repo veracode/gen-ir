@@ -8,8 +8,8 @@
 import Foundation
 
 public class XCSwiftPackageProductDependency: PBXObject {
-	let package: String?
-	let productName: String
+	public let package: String?
+	public let productName: String
 
 	private enum CodingKeys: CodingKey {
 		case package

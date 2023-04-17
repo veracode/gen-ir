@@ -6,10 +6,29 @@ var logger: Logger = .init(label: "com.veracode.PBXProjParser")
 public struct ProjectParser {
 	/// Path to the xcodeproj or xcworkspace bundle
 	let path: URL
+
 	/// The type of project
 	let type: ProjectType
+
 	/// Mapping of targets (the specification of a build) to products (the result of a build of a target)
-	public let targetsToProducts: [String: String]
+	public var targetsToProducts: [String: String] {
+		switch type {
+		case .project(let project):
+			return project.targetsAndProducts()
+		case .workspace(let workspace):
+			return workspace.targetsAndProducts()
+		}
+	}
+
+	//
+	public var allTargets: [PBXNativeTarget] {
+		switch type {
+		case .project(let project):
+			return project.allTargets
+		case .workspace(let workspace):
+			return workspace.allTargets
+		}
+	}
 
 	/// Type of project this parser is working on
 	enum ProjectType {
@@ -29,11 +48,9 @@ public struct ProjectParser {
 		case "xcodeproj":
 			let project = try XcodeProject(path: path)
 			type = .project(project)
-			targetsToProducts = project.targetsAndProducts()
 		case "xcworkspace":
 			let workspace = try XcodeWorkspace(path: path)
 			type = .workspace(workspace)
-			targetsToProducts = workspace.targetsAndProducts()
 		default:
 			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")
 		}
@@ -59,8 +76,7 @@ public struct ProjectParser {
 
 		return target.targetDependencies.values
 			.map { dependency in
-				if case .native(let native) = dependency,
-						let path = project.path(for: native) {
+				if case .native(let native) = dependency, let path = project.path(for: native) {
 					return path
 				}
 

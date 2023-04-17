@@ -96,19 +96,16 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
+		var targets = Targets(for: project)
+
 		let log = try logParser(for: logPath)
+		try log.parse(&targets)
 
-		let targets = generateTargets(project: project, log: log)
+		let runner = CompilerCommandRunner(output: outputPath)
+		try runner.run(targets: targets)
 
-		let runner = CompilerCommandRunner(
-			targets: targets,
-			output: outputPath
-		)
-
-		try runner.run()
-
-		let postprocessor = try OutputPostprocessor(targets: targets, xcarchive: xcarchivePath, output: outputPath)
-		try postprocessor.process()
+		let postprocessor = try OutputPostprocessor(archive: xcarchivePath, output: outputPath)
+		try postprocessor.process(targets: &targets)
 	}
 
 	/// Gets an `XcodeLogParser` for a path
@@ -123,7 +120,7 @@ struct IREmitterCommand: ParsableCommand {
 			input = try String(contentsOf: path.fileURL).components(separatedBy: .newlines)
 		}
 
-		return try XcodeLogParser(log: input)
+		return XcodeLogParser(log: input)
 	}
 
 	/// Reads stdin until an EOF is found
@@ -177,29 +174,6 @@ extension IREmitterCommand {
 			Couldn't automatically determine path to xcodeproj or xcworkspace. Please use --project-path to provide it.
 			"""
 		)
-	}
-
-	private func generateTargets(project: ProjectParser, log: XcodeLogParser) -> [String: Target] {
-		log.targetToCommands
-			.filter { (target, _) in
-				if project.targetsToProducts[target] == nil {
-					logger.error("Failed to find \(target) from build log in project's targets: \(project.targetsToProducts.keys)")
-					return false
-				}
-
-				return true
-			}
-			.map { (target, commands) in
-				Target(
-					name: target,
-					product: project.targetsToProducts[target],
-					commands: commands,
-					dependencies: project.dependencies(for: target)
-				)
-			}
-			.reduce(into: [String: Target]()) { partialResult, target in
-				partialResult[target.name] = target
-			}
 	}
 }
 

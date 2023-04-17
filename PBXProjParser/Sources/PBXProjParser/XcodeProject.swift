@@ -16,12 +16,19 @@ enum ParsingError: Error {
 public struct XcodeProject {
 	/// Path to the Workspace
 	public let path: URL
+
 	/// The underlying pbxproj model
 	private let model: PBXProj
+
 	/// The 'project' object for the pbxproj
 	let project: PBXProject
+
+	/// All the native targets in this project
+	let allTargets: [PBXNativeTarget]
+
 	/// A mapping of target names to their native targets objects
 	private(set) var targets: [String: PBXNativeTarget] = [:]
+
 	/// A mapping of package names to their package dependency objects
 	private(set) var packages: [String: XCSwiftPackageProductDependency] = [:]
 
@@ -34,8 +41,9 @@ public struct XcodeProject {
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
-		let projectTargets: [PBXNativeTarget] = model.objects(for: project.targets)
-		for target in projectTargets {
+		allTargets = model.objects(for: project.targets)
+
+		for target in allTargets {
 			// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
 			// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
 			guard target.productType != "com.apple.product-type.bundle" else {
@@ -62,13 +70,13 @@ public struct XcodeProject {
 		}
 
 		// First pass - get all the direct dependencies
-		targets.values.forEach { determineDirectDependencies($0) }
+		allTargets.forEach { determineDirectDependencies($0) }
 
 		// Second pass - get all the transitive dependencies
-		targets.values.forEach { determineTransitiveDependencies($0) }
+		allTargets.forEach { determineTransitiveDependencies($0) }
 
-		targets.forEach { (name, target) in
-			logger.debug("target: \(name). Dependencies: \(target.targetDependencies.map { $0.1.name })")
+		allTargets.forEach { target in
+			logger.debug("target: \(target). Dependencies: \(target.targetDependencies.map { $0.1.name })")
 		}
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)

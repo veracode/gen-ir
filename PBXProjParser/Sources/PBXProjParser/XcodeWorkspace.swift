@@ -53,6 +53,10 @@ struct XcodeWorkspace {
 				partialResult.merge(dict, uniquingKeysWith: { (current, _) in current })
 			}
 	}
+
+	var allTargets: [PBXNativeTarget] {
+		projects.flatMap { $0.allTargets }
+	}
 }
 
 // swiftlint:disable private_over_fileprivate

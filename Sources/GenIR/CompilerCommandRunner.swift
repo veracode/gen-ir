@@ -18,9 +18,6 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	/// Map of targets and the
-	private let targets: [String: Target]
-
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
@@ -33,26 +30,24 @@ struct CompilerCommandRunner {
 
 	/// Initializes a runner
 	/// - Parameters:
-	///   - targets: a mapping of names of targets to Target
 	///   - output: The location to place the resulting LLVM IR
-	init(targets: [String: Target], output: URL) {
-		self.targets = targets
+	init(output: URL) {
 		self.output = output
 	}
 
 	/// Starts the runner
-	func run() throws {
+	func run(targets: Targets) throws {
 		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targets.reduce(0, { $0 + $1.value.commands.count })
+		let totalCommands = targets.totalCommandCount
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for (name, target) in targets {
-			logger.info("Operating on target: \(name). Total modules processed: \(totalModulesRun)")
+		for target in targets {
+			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
 			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 		}
