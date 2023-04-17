@@ -26,6 +26,9 @@ public struct XcodeProject {
 	/// All the native targets in this project
 	let allTargets: [PBXNativeTarget]
 
+	/// All the swift packages in this project
+	let allPackages: [XCSwiftPackageProductDependency]
+
 	/// A mapping of target names to their native targets objects
 	private(set) var targets: [String: PBXNativeTarget] = [:]
 
@@ -42,6 +45,7 @@ public struct XcodeProject {
 		project = try model.project()
 
 		allTargets = model.objects(for: project.targets)
+		allPackages = model.objects(for: project.packageReferences)
 
 		for target in allTargets {
 			// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
@@ -79,7 +83,7 @@ public struct XcodeProject {
 			logger.debug("target: \(target). Dependencies: \(target.targetDependencies.map { $0.1.name })")
 		}
 
-		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
+		packages = allPackages
 			.reduce(into: [String: XCSwiftPackageProductDependency](), { partialResult, package in
 				partialResult[package.productName] = package
 			})

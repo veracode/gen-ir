@@ -13,14 +13,23 @@ class Target {
 	let name: String
 
 	/// The product name of the target, if one exists
-	var productName: String?
+	var productName: String? {
+		switch backingTarget {
+		case .native(let target):
+			return target.productName
+		case .packageDependency(let spm):
+			return spm.productName
+		default:
+			return nil
+		}
+	}
 
 	enum BackingTarget: Hashable {
 		/// The Native Target this Target represents
 		case native(PBXNativeTarget)
 
 		/// The Swift Dependency this Target represents
-		case spmProductDependency(XCSwiftPackageProductDependency)
+		case packageDependency(XCSwiftPackageProductDependency)
 	}
 
 	/// The backing object this Target represents
@@ -40,13 +49,11 @@ class Target {
 
 	init(
 		name: String,
-		productName: String? = nil,
 		backingTarget: BackingTarget? = nil,
 		commands: [CompilerCommand] = [],
 		dependencies: [String] = []
 	) {
 		self.name = name
-		self.productName = productName
 		self.backingTarget = backingTarget
 		self.commands = commands
 		self.dependencies = dependencies

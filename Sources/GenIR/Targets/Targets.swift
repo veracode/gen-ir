@@ -19,6 +19,7 @@ struct Targets {
 		self.project = project
 
 		project.allTargets.forEach { insert(native: $0) }
+		project.allPackages.forEach { insert(package: $0) }
 	}
 
 	/// The sum of all commands for all stored targets
@@ -35,8 +36,21 @@ struct Targets {
 	mutating func insert(native target: PBXNativeTarget) -> (inserted: Bool, memberAfterInsert: Element) {
 		let newTarget = Target(
 				name: target.name,
-				productName: target.productName,
 				backingTarget: .native(target)
+			)
+
+		return targets.insert(newTarget)
+	}
+
+	/// Inserts the given package into the container if it's not already present
+	/// - Parameter package: the element to insert
+	/// - Returns: `(true, target)` if `target` wasn't in the container. `(false, existingElement)` if `target` is in the container.
+	@discardableResult
+	mutating func insert(package target: XCSwiftPackageProductDependency) -> (inserted: Bool, memberAfterInsert: Element) {
+		// TODO: when we can handle SPM transitive deps, should we look up the name here? Can we even do that?
+		let newTarget = Target(
+				name: target.productName,
+				backingTarget: .packageDependency(target)
 			)
 
 		return targets.insert(newTarget)

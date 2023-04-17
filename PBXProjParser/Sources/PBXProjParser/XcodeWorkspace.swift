@@ -57,6 +57,10 @@ struct XcodeWorkspace {
 	var allTargets: [PBXNativeTarget] {
 		projects.flatMap { $0.allTargets }
 	}
+
+	var allPackages: [XCSwiftPackageProductDependency] {
+		projects.flatMap { $0.allPackages}
+	}
 }
 
 // swiftlint:disable private_over_fileprivate
@@ -144,3 +148,4 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		isInGroup = !currentGroupPath.isEmpty
 	}
 }
+// swiftlint:enable private_over_fileprivate

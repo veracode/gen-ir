@@ -20,13 +20,23 @@ public struct ProjectParser {
 		}
 	}
 
-	//
+	/// Gets all the native targets for the given project
 	public var allTargets: [PBXNativeTarget] {
 		switch type {
 		case .project(let project):
 			return project.allTargets
 		case .workspace(let workspace):
 			return workspace.allTargets
+		}
+	}
+
+	/// Gets all the packages for the given project
+	public var allPackages: [XCSwiftPackageProductDependency] {
+		switch type {
+		case .project(let project):
+			return project.allPackages
+		case .workspace(let workspace):
+			return workspace.allPackages
 		}
 	}
 
