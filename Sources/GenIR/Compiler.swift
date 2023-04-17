@@ -1,6 +1,6 @@
 //
 //  Compiler.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 06/09/2022.
 //
@@ -12,7 +12,7 @@ enum Compiler: String {
 }
 
 /// A CompilerCommand represents a union of the command itself and the compiler used in the command
-struct CompilerCommand {
+struct CompilerCommand: Hashable {
 	/// The full command as seen in the build log
 	let command: String
 	/// The compiler used in this command

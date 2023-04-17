@@ -192,8 +192,8 @@ extension IREmitterCommand {
 			.map { (target, commands) in
 				Target(
 					name: target,
+					product: project.targetsToProducts[target],
 					commands: commands,
-					product: project.targetsToProducts[target]!,
 					dependencies: project.dependencies(for: target)
 				)
 			}

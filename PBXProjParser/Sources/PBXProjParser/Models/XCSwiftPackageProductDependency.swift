@@ -1,13 +1,13 @@
 //
 //  XCSwiftPackageProductDependency.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 15/02/2023.
 //
 
 import Foundation
 
-class XCSwiftPackageProductDependency: PBXObject {
+public class XCSwiftPackageProductDependency: PBXObject {
 	let package: String?
 	let productName: String
 
@@ -26,5 +26,5 @@ class XCSwiftPackageProductDependency: PBXObject {
 	}
 }
 
-class XCRemoteSwiftPackageReference: PBXObject {}
-class XCVersionGroup: PBXObject {}
+public class XCRemoteSwiftPackageReference: PBXObject {}
+public class XCVersionGroup: PBXObject {}

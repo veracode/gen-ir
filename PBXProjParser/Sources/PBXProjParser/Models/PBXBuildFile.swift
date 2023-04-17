@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXBuildFile: PBXObject {
+public class PBXBuildFile: PBXObject {
 #if FULL_PBX_PARSING
 	let fileRef: String?
 	let platformFilter: String?
@@ -37,4 +37,4 @@ class PBXBuildFile: PBXObject {
 #endif
 }
 
-class PBXBuildRule: PBXObject {}
+public class PBXBuildRule: PBXObject {}

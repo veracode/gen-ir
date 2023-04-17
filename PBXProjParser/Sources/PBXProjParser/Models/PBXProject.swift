@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXProject: PBXObject {
+public class PBXProject: PBXObject {
 #if FULL_PBX_PARSING
 	let attributes: [String: Any]
 	let buildConfigurationList: String

@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXFileReference: PBXObject {
+public class PBXFileReference: PBXObject {
 	#if FULL_PBX_PARSING
 	let fileEncoding: String?
 	let explicitFileType: String?
@@ -46,4 +46,4 @@ class PBXFileReference: PBXObject {
 	}
 }
 
-class PBXReferenceProxy: PBXObject {}
+public class PBXReferenceProxy: PBXObject {}

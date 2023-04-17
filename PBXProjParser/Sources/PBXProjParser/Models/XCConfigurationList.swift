@@ -7,7 +7,7 @@
 
 import Foundation
 
-class XCConfigurationList: PBXObject {
+public class XCConfigurationList: PBXObject {
 	#if FULL_PBX_PARSING
 	let buildConfigurations: [String]
 	let defaultConfigurationIsVisible: String

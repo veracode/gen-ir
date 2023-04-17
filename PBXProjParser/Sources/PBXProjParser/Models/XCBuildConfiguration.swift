@@ -7,7 +7,7 @@
 
 import Foundation
 
-class XCBuildConfiguration: PBXObject {
+public class XCBuildConfiguration: PBXObject {
 	#if FULL_PBX_PARSING
 	var baseConfigurationReference: String?
 	var buildSettings: [String: Any]

@@ -54,7 +54,7 @@ struct CompilerCommandRunner {
 		for (name, target) in targets {
 			logger.info("Operating on target: \(name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: target.commands, for: target.product, at: tempDirectory)
+			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 		}
 
 		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
@@ -66,12 +66,11 @@ struct CompilerCommandRunner {
 	/// Runs all commands for a given target
 	/// - Parameters:
 	///   - commands: The commands to run
-	///   - target: The product this command relates to
+	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
-	private func run(commands: [CompilerCommand], for product: String, at directory: URL) throws -> Int {
-		let directoryName = product
-		let targetDirectory = directory.appendingPathComponent(directoryName)
+	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
+		let targetDirectory = directory.appendingPathComponent(name)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
 		logger.debug("Created target directory: \(targetDirectory)")

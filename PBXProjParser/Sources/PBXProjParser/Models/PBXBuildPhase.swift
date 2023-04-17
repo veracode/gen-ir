@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXBuildPhase: PBXObject {
+public class PBXBuildPhase: PBXObject {
 #if FULL_PBX_PARSING
 	let alwaysOutOfDate: String?
 	let buildActionMask: UInt32
@@ -39,7 +39,7 @@ class PBXBuildPhase: PBXObject {
 #endif
 }
 
-class PBXCopyFilesBuildPhase: PBXBuildPhase {
+public class PBXCopyFilesBuildPhase: PBXBuildPhase {
 #if FULL_PBX_PARSING
 	let dstPath: String
 	let dstSubfolderSpec: String
@@ -60,7 +60,7 @@ class PBXCopyFilesBuildPhase: PBXBuildPhase {
 #endif
 }
 
-class PBXShellScriptBuildPhase: PBXBuildPhase {
+public class PBXShellScriptBuildPhase: PBXBuildPhase {
 #if FULL_PBX_PARSING
 	let inputPaths: [String]?
 	let outputPaths: [String]?
@@ -87,9 +87,9 @@ class PBXShellScriptBuildPhase: PBXBuildPhase {
 #endif
 }
 
-class PBXFrameworksBuildPhase: PBXBuildPhase {}
-class PBXHeadersBuildPhase: PBXBuildPhase {}
-class PBXResourcesBuildPhase: PBXBuildPhase {}
-class PBXSourcesBuildPhase: PBXBuildPhase {}
-class PBXAppleScriptBuildPhase: PBXBuildPhase {}
-class PBXRezBuildPhase: PBXBuildPhase {}
+public class PBXFrameworksBuildPhase: PBXBuildPhase {}
+public class PBXHeadersBuildPhase: PBXBuildPhase {}
+public class PBXResourcesBuildPhase: PBXBuildPhase {}
+public class PBXSourcesBuildPhase: PBXBuildPhase {}
+public class PBXAppleScriptBuildPhase: PBXBuildPhase {}
+public class PBXRezBuildPhase: PBXBuildPhase {}

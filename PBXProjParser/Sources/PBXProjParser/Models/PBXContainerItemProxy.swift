@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXContainerItemProxy: PBXObject {
+public class PBXContainerItemProxy: PBXObject {
 	#if FULL_PBX_PARSING
 	let containerPortal: String
 	let proxyType: String
