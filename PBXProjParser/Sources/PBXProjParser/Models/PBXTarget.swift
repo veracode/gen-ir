@@ -120,7 +120,6 @@ extension PBXNativeTarget: Hashable {
 		hasher.combine(reference)
 		hasher.combine(productName)
 		hasher.combine(name)
-		hasher.combine(dependencies)
 	}
 }
 
