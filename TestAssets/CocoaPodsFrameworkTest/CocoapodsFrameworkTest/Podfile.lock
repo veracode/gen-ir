@@ -1,0 +1,16 @@
+PODS:
+  - UnderlyingFramework (0.0.1)
+
+DEPENDENCIES:
+  - UnderlyingFramework (from `UnderlyingFramework`)
+
+EXTERNAL SOURCES:
+  UnderlyingFramework:
+    :path: UnderlyingFramework
+
+SPEC CHECKSUMS:
+  UnderlyingFramework: d5845533f6bc6be55f64ddce0cf432c8b8c39edf
+
+PODFILE CHECKSUM: 5447adea9a24f680a78a5c613f7180fdf297da80
+
+COCOAPODS: 1.11.3
