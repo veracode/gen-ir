@@ -84,6 +84,12 @@ struct CompilerCommandRunner {
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
 
 			if result.code != 0 {
+				if let stderr = result.stderr {
+					if stderr.contains("since no object file is being generated") {
+						// Ignore failures where the underlying compiler command wouldn't have generated bitcode anyway
+						continue
+					}
+				}
 				logger.debug(
 				"""
 				Command finished:
@@ -92,6 +98,8 @@ struct CompilerCommandRunner {
 					- has stderr: \(String(describing: result.stderr?.isEmpty))
 				"""
 				)
+
+				continue
 			}
 
 			var clangAdditionalModules = 0
@@ -151,6 +159,8 @@ struct CompilerCommandRunner {
 			// Clang, if given -fembed-bitcode & -emit-bc will emit.... Textual ASM????
 			// swiftc behaves correctly and ignores the embed flag
 			.replacingOccurrences(of: "-fembed-bitcode", with: "")
+			// Swiftc might not actually behave correctly... remove the flag to be sure
+			.replacingOccurrences(of: "-embed-bitcode", with: "")
 	}
 
 	/// Corrects the compiler arguments by removing options block BC generation and adding options to emit BC

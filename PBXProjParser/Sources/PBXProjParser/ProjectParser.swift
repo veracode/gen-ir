@@ -10,33 +10,23 @@ public struct ProjectParser {
 	/// The type of project
 	let type: ProjectType
 
-	/// Mapping of targets (the specification of a build) to products (the result of a build of a target)
-	public var targetsToProducts: [String: String] {
-		switch type {
-		case .project(let project):
-			return project.targetsAndProducts()
-		case .workspace(let workspace):
-			return workspace.targetsAndProducts()
-		}
-	}
-
 	/// Gets all the native targets for the given project
-	public var allTargets: [PBXNativeTarget] {
+	public var targets: [PBXNativeTarget] {
 		switch type {
 		case .project(let project):
-			return project.allTargets
+			return project.targets
 		case .workspace(let workspace):
-			return workspace.allTargets
+			return workspace.targets
 		}
 	}
 
 	/// Gets all the packages for the given project
-	public var allPackages: [XCSwiftPackageProductDependency] {
+	public var packages: [XCSwiftPackageProductDependency] {
 		switch type {
 		case .project(let project):
-			return project.allPackages
+			return project.packages
 		case .workspace(let workspace):
-			return workspace.allPackages
+			return workspace.packages
 		}
 	}
 
@@ -75,16 +65,23 @@ public struct ProjectParser {
 			return []
 		}
 
-		guard let target = project.targets[target] else {
+		guard let target = project.target(for: target) else {
 			// SPMs don't list their dependencies in the pbxproj, skip warning about them
-			if project.packages[target] == nil {
-				logger.error("Failed to find a target: \(target) in project: \(project.path)")
+			if project.package(for: target) == nil {
+				logger.error(
+					"""
+					Failed to find a target: \(target) in project: \(project.path). \
+					Possible targets: \(project.targets.map { ($0.name, $0.productName ?? "nil")}). \
+					Possible Packages: \(project.packages.map { $0.productName} )
+					"""
+				)
 			}
 
 			return []
 		}
 
-		return target.targetDependencies.values
+		return target.targetDependencies
+			.values
 			.map { dependency in
 				if case .native(let native) = dependency, let path = project.path(for: native) {
 					return path
@@ -99,7 +96,7 @@ public struct ProjectParser {
 	/// - Returns: a `XcodeProject` that holds the target, if one was found
 	private func project(for target: String) -> XcodeProject? {
 		switch type {
-		case .project(let project):			return project
+		case .project(let project):				return project
 		case .workspace(let workspace):	return workspace.targetsToProject[target]
 		}
 	}

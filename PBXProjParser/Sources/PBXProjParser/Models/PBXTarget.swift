@@ -114,6 +114,23 @@ public class PBXNativeTarget: PBXTarget {
 	}
 }
 
+extension PBXNativeTarget: Hashable {
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(isa)
+		hasher.combine(reference)
+		hasher.combine(productName)
+		hasher.combine(name)
+		hasher.combine(dependencies)
+	}
+}
+
+extension PBXNativeTarget: Equatable {
+	public static func == (lhs: PBXNativeTarget, rhs: PBXNativeTarget) -> Bool {
+		// This should be enough as references _should_ be unique to the object
+		lhs.reference == rhs.reference
+	}
+}
+
 #if FULL_PBX_PARSING
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {

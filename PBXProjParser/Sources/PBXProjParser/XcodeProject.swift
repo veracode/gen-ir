@@ -24,16 +24,10 @@ public struct XcodeProject {
 	let project: PBXProject
 
 	/// All the native targets in this project
-	let allTargets: [PBXNativeTarget]
+	let targets: [PBXNativeTarget]
 
 	/// All the swift packages in this project
-	let allPackages: [XCSwiftPackageProductDependency]
-
-	/// A mapping of target names to their native targets objects
-	private(set) var targets: [String: PBXNativeTarget] = [:]
-
-	/// A mapping of package names to their package dependency objects
-	private(set) var packages: [String: XCSwiftPackageProductDependency] = [:]
+	let packages: [XCSwiftPackageProductDependency]
 
 	enum Error: Swift.Error {
 		case invalidPBXProj(String)
@@ -44,55 +38,48 @@ public struct XcodeProject {
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
-		allTargets = model.objects(for: project.targets)
-		allPackages = model.objects(for: project.packageReferences)
-
-		for target in allTargets {
-			// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
-			// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
-			guard target.productType != "com.apple.product-type.bundle" else {
-				logger.debug("Skipping bundle target: \(target.name)")
-				continue
+		targets = model.objects(for: project.targets)
+			.filter {
+				// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
+				// cannot contain executables, therefore we should ignore them - IR will never be generated for them.
+				$0.productType != "com.apple.product-type.bundle"
 			}
 
-			targets[target.name] = target
-
-			if let productName = target.productName {
-				targets[productName] = target
-			}
-
-		// TODO: For now, this is fine - but really we should centralize all this target naming stuff into `Target`
-			if let path = self.path(for: target, removeExtension: true) {
-					if targets[path] != nil {
-						if target.name != path || target.productName != path {
-							logger.debug("Clash in path name (\(path)) for target: \(target.name).")
-						}
-					} else {
-						targets[path] = target
-					}
-				}
-		}
+		packages = model.objects(for: project.packageReferences)
 
 		// First pass - get all the direct dependencies
-		allTargets.forEach { determineDirectDependencies($0) }
+		targets.forEach { determineDirectDependencies($0) }
 
 		// Second pass - get all the transitive dependencies
-		allTargets.forEach { determineTransitiveDependencies($0) }
+		targets.forEach { determineTransitiveDependencies($0) }
 
-		allTargets.forEach { target in
-			logger.debug("target: \(target). Dependencies: \(target.targetDependencies.map { $0.1.name })")
+		targets.forEach { target in
+			logger.debug("target: \(target.name). Dependencies: \(target.targetDependencies.map { $0.1.name })")
 		}
 
-		packages = allPackages
-			.reduce(into: [String: XCSwiftPackageProductDependency](), { partialResult, package in
-				partialResult[package.productName] = package
-			})
+		packages.forEach { package in
+			logger.debug("package: \(package.productName)")
+		}
+	}
+
+	func target(for key: String) -> PBXNativeTarget? {
+		if let target = targets.filter({ $0.name == key }).first {
+			return target
+		} else if let target = targets.filter({ $0.productName == key }).first {
+			return target
+		}
+
+		return nil
+	}
+
+	func package(for key: String) -> XCSwiftPackageProductDependency? {
+		packages.filter({ $0.productName == key }).first
 	}
 
 	/// Determines the target & swift package dependencies for a target
 	/// - Parameter target: the target to get direct dependencies for
 	private func determineDirectDependencies(_ target: PBXNativeTarget) {
-		// Calculate the native target depenedencies
+		// Calculate the native target dependencies
 		target.dependencies
 			.compactMap { model.object(forKey: $0, as: PBXTargetDependency.self) }
 			.compactMap { dependency in
@@ -150,25 +137,6 @@ public struct XcodeProject {
 
 		logger.debug("--- FINAL ---")
 		logger.debug("Target: \(target.name), deps: \(target.targetDependencies.map { $0.0 })")
-	}
-
-	/// A mapping of targets to the product path on disk
-	func targetsAndProducts() -> [String: String] {
-		var targetsAndProducts = targets.values.reduce(into: [String: String]()) { partialResult, target in
-			logger.debug("target: \(target.name)")
-			partialResult[target.name] = path(for: target)
-		}
-
-		let packagesAndProducts = packages.values.reduce(into: [String: String]()) { partialResult, dependency in
-			logger.debug("package: \(dependency.productName)")
-			partialResult[dependency.productName] = dependency.productName
-		}
-
-		targetsAndProducts.merge(packagesAndProducts) { current, _ in
-			current
-		}
-
-		return targetsAndProducts
 	}
 
 	/// Gets the 'path' (normally the name of the target's product) for a given target

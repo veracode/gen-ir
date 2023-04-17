@@ -26,5 +26,22 @@ public class XCSwiftPackageProductDependency: PBXObject {
 	}
 }
 
+extension XCSwiftPackageProductDependency: Hashable {
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(isa)
+		hasher.combine(reference)
+		hasher.combine(package)
+		hasher.combine(productName)
+	}
+}
+
+extension XCSwiftPackageProductDependency: Equatable {
+	public static func == (lhs: XCSwiftPackageProductDependency, rhs: XCSwiftPackageProductDependency) -> Bool {
+		lhs.reference == rhs.reference &&
+		lhs.package == rhs.package &&
+		lhs.productName == rhs.productName
+	}
+}
+
 public class XCRemoteSwiftPackageReference: PBXObject {}
 public class XCVersionGroup: PBXObject {}

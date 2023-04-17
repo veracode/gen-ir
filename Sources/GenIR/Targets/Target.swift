@@ -78,37 +78,3 @@ extension Target: Hashable {
 		hasher.combine(backingTarget)
 	}
 }
-
-extension PBXNativeTarget: Hashable {
-	public func hash(into hasher: inout Hasher) {
-		hasher.combine(isa)
-		hasher.combine(reference)
-		hasher.combine(productName)
-		hasher.combine(name)
-		hasher.combine(dependencies)
-	}
-}
-
-extension PBXNativeTarget: Equatable {
-	public static func == (lhs: PBXNativeTarget, rhs: PBXNativeTarget) -> Bool {
-		// This should be enough as references _should_ be unique to the object
-		lhs.reference == rhs.reference
-	}
-}
-
-extension XCSwiftPackageProductDependency: Hashable {
-	public func hash(into hasher: inout Hasher) {
-		hasher.combine(isa)
-		hasher.combine(reference)
-		hasher.combine(package)
-		hasher.combine(productName)
-	}
-}
-
-extension XCSwiftPackageProductDependency: Equatable {
-	public static func == (lhs: XCSwiftPackageProductDependency, rhs: XCSwiftPackageProductDependency) -> Bool {
-		lhs.reference == rhs.reference &&
-		lhs.package == rhs.package &&
-		lhs.productName == rhs.productName
-	}
-}

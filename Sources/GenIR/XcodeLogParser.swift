@@ -57,12 +57,15 @@ class XcodeLogParser {
 	///   - targets: the container to add found targets to
 	private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
 		var currentTarget: Target?
+		var seenTargets = Set<String>()
 
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
 
 			if let target = target(from: line), currentTarget?.name != target {
-				logger.debug("Found target: \(target)")
+				if seenTargets.insert(target).inserted {
+					logger.debug("Found target: \(target)")
+				}
 
 				if let targetObject = targets.target(for: target) {
 					currentTarget = targetObject
