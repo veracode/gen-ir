@@ -15,6 +15,7 @@ struct XcodeWorkspace {
 	private(set) var projectPaths: [URL]
 	/// List of projects this workspace references
 	let projects: [XcodeProject]
+
 	/// A mapping of targets to the projects that define them
 	let targetsToProject: [String: XcodeProject]
 
@@ -34,24 +35,22 @@ struct XcodeWorkspace {
 		projects = try projectPaths.map(XcodeProject.init(path:))
 
 		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
-			project.targets.forEach { (name, _) in
-				partialResult[name] = project
+			project.targets.forEach { (target) in
+				partialResult[target.name] = project
 			}
 
-			project.packages.forEach { (name, _) in
-				partialResult[name] = project
+			project.packages.forEach { (target) in
+				partialResult[target.productName] = project
 			}
 		})
 	}
 
-	/// Processes each underlying project to return a dictionary of their targets and products
-	func targetsAndProducts() -> [String: String] {
-		projects
-			.map { $0.targetsAndProducts() }
-			.reduce(into: [String: String]()) { partialResult, dict in
-				// Keep existing keys and values in place
-				partialResult.merge(dict, uniquingKeysWith: { (current, _) in current })
-			}
+	var targets: [PBXNativeTarget] {
+		projects.flatMap { $0.targets }
+	}
+
+	var packages: [XCSwiftPackageProductDependency] {
+		projects.flatMap { $0.packages }
 	}
 }
 
@@ -140,3 +139,4 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		isInGroup = !currentGroupPath.isEmpty
 	}
 }
+// swiftlint:enable private_over_fileprivate

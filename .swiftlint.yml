@@ -3,6 +3,7 @@ excluded:
   - .swiftpm/
   - .vscode/
   - PBXProjParser/.build/ # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
+  - GenIRLogging/.build/
 
 line_length:
   warning: 120

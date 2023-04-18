@@ -1,6 +1,6 @@
 //
 //  pbxproj.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 27/01/2023.
 //
@@ -19,7 +19,7 @@ import Foundation
 // NOTE! Big thanks to http://www.monobjc.net/xcode-project-file-format.html for the file format reference - a lot of the layout here is based on that work
 
 /// Represents a pbxproj file
-class PBXProj: Decodable {
+public class PBXProj: Decodable {
 	/// Version of the pbxproj
 	let archiveVersion: String
 	/// ???

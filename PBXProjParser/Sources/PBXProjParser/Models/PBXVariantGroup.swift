@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXVariantGroup: PBXObject {
+public class PBXVariantGroup: PBXObject {
 	#if FULL_PBX_PARSING
 	let children: [String]
 	let name: String

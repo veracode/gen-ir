@@ -1,15 +1,15 @@
 //
 //  XCSwiftPackageProductDependency.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 15/02/2023.
 //
 
 import Foundation
 
-class XCSwiftPackageProductDependency: PBXObject {
-	let package: String?
-	let productName: String
+public class XCSwiftPackageProductDependency: PBXObject {
+	public let package: String?
+	public let productName: String
 
 	private enum CodingKeys: CodingKey {
 		case package
@@ -26,5 +26,22 @@ class XCSwiftPackageProductDependency: PBXObject {
 	}
 }
 
-class XCRemoteSwiftPackageReference: PBXObject {}
-class XCVersionGroup: PBXObject {}
+extension XCSwiftPackageProductDependency: Hashable {
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(isa)
+		hasher.combine(reference)
+		hasher.combine(package)
+		hasher.combine(productName)
+	}
+}
+
+extension XCSwiftPackageProductDependency: Equatable {
+	public static func == (lhs: XCSwiftPackageProductDependency, rhs: XCSwiftPackageProductDependency) -> Bool {
+		lhs.reference == rhs.reference &&
+		lhs.package == rhs.package &&
+		lhs.productName == rhs.productName
+	}
+}
+
+public class XCRemoteSwiftPackageReference: PBXObject {}
+public class XCVersionGroup: PBXObject {}

@@ -18,9 +18,6 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	/// Map of targets and the
-	private let targets: [String: Target]
-
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
@@ -33,28 +30,26 @@ struct CompilerCommandRunner {
 
 	/// Initializes a runner
 	/// - Parameters:
-	///   - targets: a mapping of names of targets to Target
 	///   - output: The location to place the resulting LLVM IR
-	init(targets: [String: Target], output: URL) {
-		self.targets = targets
+	init(output: URL) {
 		self.output = output
 	}
 
 	/// Starts the runner
-	func run() throws {
+	func run(targets: Targets) throws {
 		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targets.reduce(0, { $0 + $1.value.commands.count })
+		let totalCommands = targets.totalCommandCount
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for (name, target) in targets {
-			logger.info("Operating on target: \(name). Total modules processed: \(totalModulesRun)")
+		for target in targets {
+			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: target.commands, for: target.product, at: tempDirectory)
+			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 		}
 
 		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
@@ -66,12 +61,11 @@ struct CompilerCommandRunner {
 	/// Runs all commands for a given target
 	/// - Parameters:
 	///   - commands: The commands to run
-	///   - target: The product this command relates to
+	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
-	private func run(commands: [CompilerCommand], for product: String, at directory: URL) throws -> Int {
-		let directoryName = product
-		let targetDirectory = directory.appendingPathComponent(directoryName)
+	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
+		let targetDirectory = directory.appendingPathComponent(name)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
 		logger.debug("Created target directory: \(targetDirectory)")
@@ -90,6 +84,12 @@ struct CompilerCommandRunner {
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
 
 			if result.code != 0 {
+				if let stderr = result.stderr {
+					if stderr.contains("since no object file is being generated") {
+						// Ignore failures where the underlying compiler command wouldn't have generated bitcode anyway
+						continue
+					}
+				}
 				logger.debug(
 				"""
 				Command finished:
@@ -98,6 +98,8 @@ struct CompilerCommandRunner {
 					- has stderr: \(String(describing: result.stderr?.isEmpty))
 				"""
 				)
+
+				continue
 			}
 
 			var clangAdditionalModules = 0
@@ -157,6 +159,8 @@ struct CompilerCommandRunner {
 			// Clang, if given -fembed-bitcode & -emit-bc will emit.... Textual ASM????
 			// swiftc behaves correctly and ignores the embed flag
 			.replacingOccurrences(of: "-fembed-bitcode", with: "")
+			// Swiftc might not actually behave correctly... remove the flag to be sure
+			.replacingOccurrences(of: "-embed-bitcode", with: "")
 	}
 
 	/// Corrects the compiler arguments by removing options block BC generation and adding options to emit BC

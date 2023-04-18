@@ -7,7 +7,7 @@
 
 import Foundation
 
-class PBXProject: PBXObject {
+public class PBXProject: PBXObject {
 #if FULL_PBX_PARSING
 	let attributes: [String: Any]
 	let buildConfigurationList: String
@@ -19,9 +19,9 @@ class PBXProject: PBXObject {
 	let productRefGroup: String
 	let projectDirPath: String
 	let projectReferences: [[String: String]]?
-	let packageReferences: [String]
 	let projectRoot: String
 #endif
+	let packageReferences: [String]
 	let targets: [String] /// Hold references to targets via their identifiers
 
 	private enum CodingKeys: String, CodingKey {
@@ -54,9 +54,9 @@ class PBXProject: PBXObject {
 		productRefGroup = try container.decode(String.self, forKey: .productRefGroup)
 		projectDirPath = try container.decode(String.self, forKey: .projectDirPath)
 		projectReferences = try container.decodeIfPresent([[String: String]].self, forKey: .projectReferences)
-		packageReferences = try container.decodeIfPresent([String].self, forKey: .packageReferences) ?? []
 		projectRoot = try container.decode(String.self, forKey: .projectRoot)
 #endif
+		packageReferences = try container.decodeIfPresent([String].self, forKey: .packageReferences) ?? []
 		targets = try container.decode([String].self, forKey: .targets)
 
 		try super.init(from: decoder)

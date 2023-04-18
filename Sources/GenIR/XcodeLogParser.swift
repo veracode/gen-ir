@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 22/08/2022.
 //
@@ -10,8 +10,6 @@ import Logging
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {
-	/// Map of targets and the compiler commands that were part of the target build found in the Xcode build log
-	private(set) var targetToCommands: TargetToCommands = [:]
 
 	/// The Xcode build log contents
 	private let log: [String]
@@ -23,16 +21,16 @@ class XcodeLogParser {
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
-	init(log: [String]) throws {
+	init(log: [String]) {
 		self.log = log
-
-		parseBuildLog(log)
-
-		try checkTargetAndCommandValidity()
 	}
 
-	private func checkTargetAndCommandValidity() throws {
-		if targetToCommands.keys.isEmpty {
+	/// Start parsing the build log
+	/// - Parameter targets: The global list of targets
+	func parse(_ targets: inout Targets) throws {
+		parseBuildLog(log, &targets)
+
+		if targets.isEmpty {
 			logger.debug("Found no targets in log: \(log)")
 
 			throw Error.noTargetsFound(
@@ -42,15 +40,7 @@ class XcodeLogParser {
 			)
 		}
 
-		let totalCommands = targetToCommands.map { (target, commands) in
-			if commands.isEmpty {
-				logger.warning("Found no commands for target: \(target)")
-			}
-
-			return commands.count
-		}.reduce(0, +)
-
-		if totalCommands == 0 {
+		if targets.totalCommandCount == 0 {
 			logger.debug("Found no commands in log: \(log)")
 
 			throw Error.noCommandsFound(
@@ -62,18 +52,27 @@ class XcodeLogParser {
 	}
 
 	/// Parses  an array representing the contents of an Xcode build log
-	/// - Parameter lines: contents of the Xcode build log lines
-	/// - Returns: A tuple of the targets and their commands, and the targets and their product names
-	private func parseBuildLog(_ lines: [String]) {
-		var currentTarget: String?
-		var targetToCommands: TargetToCommands = [:]
+	/// - Parameters:
+	///   - lines: contents of the Xcode build log lines
+	///   - targets: the container to add found targets to
+	private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
+		var currentTarget: Target?
+		var seenTargets = Set<String>()
 
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
 
-			if let target = target(from: line), currentTarget != target {
-				logger.debug("Found target: \(target)")
-				currentTarget = target
+			if let target = target(from: line), currentTarget?.name != target {
+				if seenTargets.insert(target).inserted {
+					logger.debug("Found target: \(target)")
+				}
+
+				if let targetObject = targets.target(for: target) {
+					currentTarget = targetObject
+				} else {
+					currentTarget = .init(name: target)
+					targets.insert(target: currentTarget!)
+				}
 			}
 
 			guard let currentTarget else {
@@ -87,16 +86,10 @@ class XcodeLogParser {
 				continue
 			}
 
-			if targetToCommands[currentTarget] == nil {
-				targetToCommands[currentTarget] = []
-			}
-
 			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command")
 
-			targetToCommands[currentTarget]!.append(compilerCommand)
+			currentTarget.commands.append(compilerCommand)
 		}
-
-		self.targetToCommands = targetToCommands
 	}
 
 	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
@@ -157,6 +150,9 @@ class XcodeLogParser {
 		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
 			stripped = String(stripped[index..<stripped.endIndex])
 		}
+
+		// Ignore preprocessing of assembly files
+		if stripped.contains("-x assembler-with-cpp") { return nil }
 
 		if stripped.contains("/swiftc") {
 			return .init(command: stripped, compiler: .swiftc)

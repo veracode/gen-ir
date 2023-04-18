@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 31/01/2023.
 //
@@ -8,10 +8,10 @@
 import Foundation
 
 /// Base class for all objects
-class PBXObject: Decodable {
+public class PBXObject: Decodable {
 	/// Objects class name
-	let isa: PBXObjectType
-	var reference: String!
+	public let isa: PBXObjectType
+	public var reference: String!
 }
 
 /// Single case enum that decodes and holds a reference to an underlying `PBXObject` subclass
@@ -45,7 +45,7 @@ enum Object: Decodable {
 	}
 }
 
-enum PBXObjectType: String, Decodable, CaseIterable {
+public enum PBXObjectType: String, Decodable, CaseIterable {
 	case buildFile = "PBXBuildFile"
 	case appleScriptBuildPhase = "PBXAppleScriptBuildPhase"
 	case copyFilesBuildPhase = "PBXCopyFilesBuildPhase"
@@ -73,7 +73,7 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 	case rezBuildPhase = "PBXRezBuildPhase"
 
 	// swiftlint:disable cyclomatic_complexity
-	func getType() -> PBXObject.Type {
+	public func getType() -> PBXObject.Type {
 		switch self {
 		case .buildFile:						return PBXBuildFile.self
 		case .appleScriptBuildPhase:				return PBXAppleScriptBuildPhase.self
@@ -101,5 +101,6 @@ enum PBXObjectType: String, Decodable, CaseIterable {
 		case .buildRule:										return PBXBuildRule.self
 		case .rezBuildPhase:								return PBXRezBuildPhase.self
 		}
+		// swiftlint:enable cyclomatic_complexity
 	}
 }

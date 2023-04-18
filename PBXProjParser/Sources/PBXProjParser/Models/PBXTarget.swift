@@ -7,14 +7,14 @@
 
 import Foundation
 
-class PBXTarget: PBXObject {
+public class PBXTarget: PBXObject {
 	#if FULL_PBX_PARSING
-	let buildConfigurationList: String
-	let comments: String?
+	public let buildConfigurationList: String
+	public let comments: String?
 	#endif
-	let productName: String?
-	let name: String
-	let dependencies: [String]
+	public let productName: String?
+	public let name: String
+	public let dependencies: [String]
 
 	private enum CodingKeys: String, CodingKey {
 		#if FULL_PBX_PARSING
@@ -42,7 +42,7 @@ class PBXTarget: PBXObject {
 	}
 }
 
-class PBXAggregateTarget: PBXTarget {
+public class PBXAggregateTarget: PBXTarget {
 	let buildPhases: [String]
 
 	private enum CodingKeys: String, CodingKey {
@@ -58,9 +58,9 @@ class PBXAggregateTarget: PBXTarget {
 	}
 }
 
-class PBXLegacyTarget: PBXTarget {}
+public class PBXLegacyTarget: PBXTarget {}
 
-class PBXNativeTarget: PBXTarget {
+public class PBXNativeTarget: PBXTarget {
 	#if FULL_PBX_PARSING
 	let buildPhases: [String]
 	let productInstallPath: String?
@@ -114,6 +114,22 @@ class PBXNativeTarget: PBXTarget {
 	}
 }
 
+extension PBXNativeTarget: Hashable {
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(isa)
+		hasher.combine(reference)
+		hasher.combine(productName)
+		hasher.combine(name)
+	}
+}
+
+extension PBXNativeTarget: Equatable {
+	public static func == (lhs: PBXNativeTarget, rhs: PBXNativeTarget) -> Bool {
+		// This should be enough as references _should_ be unique to the object
+		lhs.reference == rhs.reference
+	}
+}
+
 #if FULL_PBX_PARSING
 extension PBXNativeTarget: CustomStringConvertible {
 	var description: String {
@@ -126,7 +142,7 @@ extension PBXNativeTarget: CustomStringConvertible {
 }
 #endif
 
-class PBXTargetDependency: PBXObject {
+public class PBXTargetDependency: PBXObject {
 	let target: String?
 	let targetProxy: String?
 

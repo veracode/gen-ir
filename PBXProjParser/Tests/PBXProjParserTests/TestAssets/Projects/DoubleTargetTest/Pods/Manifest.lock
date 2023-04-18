@@ -1,0 +1,16 @@
+PODS:
+  - MyBundle (0.1.0)
+
+DEPENDENCIES:
+  - MyBundle (from `/Users/thedderwick/dev/ios_tests/double_target_test/DoubleTargetTest/MyBundle`)
+
+EXTERNAL SOURCES:
+  MyBundle:
+    :path: "/Users/thedderwick/dev/ios_tests/double_target_test/DoubleTargetTest/MyBundle"
+
+SPEC CHECKSUMS:
+  MyBundle: e1f22e3445c35cc16854bc29f5159058eb370c1a
+
+PODFILE CHECKSUM: c56d07086d026876301d9d46d35896e3a7be8a1b
+
+COCOAPODS: 1.11.3
