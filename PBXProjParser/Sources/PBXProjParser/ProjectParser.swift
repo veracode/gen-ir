@@ -68,7 +68,8 @@ public struct ProjectParser {
 		guard let target = project.target(for: target) else {
 			// SPMs don't list their dependencies in the pbxproj, skip warning about them
 			if project.package(for: target) == nil {
-				logger.error(
+				// TODO: once SPM dependencies work better, move this back to error level warning
+				logger.debug(
 					"""
 					Failed to find a target: \(target) in project: \(project.path). \
 					Possible targets: \(project.targets.map { ($0.name, $0.productName ?? "nil")}). \

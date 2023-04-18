@@ -78,3 +78,12 @@ extension Target: Hashable {
 		hasher.combine(backingTarget)
 	}
 }
+
+extension Target: CustomStringConvertible {
+	var description: String {
+		"""
+		Target(name: \(name), product: \(productName ?? "nil"), \
+		commands: \(commands.count), backing target: \(String(describing: backingTarget)))
+		"""
+	}
+}
