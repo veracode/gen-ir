@@ -9,31 +9,30 @@ import Foundation
 
 public class PBXTarget: PBXObject {
 	#if FULL_PBX_PARSING
-	public let buildConfigurationList: String
 	public let comments: String?
 	#endif
+	public let buildConfigurationList: String?
 	public let productName: String?
 	public let name: String
 	public let dependencies: [String]
 
 	private enum CodingKeys: String, CodingKey {
 		#if FULL_PBX_PARSING
-		case buildConfigurationList
 		case comments
 		#endif
+		case buildConfigurationList
 		case productName
 		case name
 		case dependencies
-
 	}
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		#if FULL_PBX_PARSING
-		buildConfigurationList = try container.decode(String.self, forKey: .buildConfigurationList)
 		comments = try container.decodeIfPresent(String.self, forKey: .comments)
 		#endif
+		buildConfigurationList = try container.decodeIfPresent(String.self, forKey: .buildConfigurationList)
 		productName = try container.decodeIfPresent(String.self, forKey: .productName)
 		name = try container.decode(String.self, forKey: .name)
 		dependencies = try container.decode([String].self, forKey: .dependencies)

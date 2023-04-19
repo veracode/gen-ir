@@ -37,6 +37,7 @@ struct Targets {
 		let newTarget = Target(
 				name: target.name,
 				backingTarget: .native(target),
+				buildConfiguration: project.targetBuildConfigurations[target],
 				project: project
 			)
 

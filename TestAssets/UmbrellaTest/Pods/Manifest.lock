@@ -1,0 +1,21 @@
+PODS:
+  - Models (0.0.1)
+  - Networking (0.0.1)
+
+DEPENDENCIES:
+  - Models (from `Models`)
+  - Networking (from `Networking`)
+
+EXTERNAL SOURCES:
+  Models:
+    :path: Models
+  Networking:
+    :path: Networking
+
+SPEC CHECKSUMS:
+  Models: e0a5d96a3c9a8a7fd3e668e7d5f63a9a9eb36df4
+  Networking: 6bf3f64c5ec62b68a98da8fba699f7c9d1b6b52e
+
+PODFILE CHECKSUM: b21a294482633756aa5decbb6b8fdf195f850286
+
+COCOAPODS: 1.11.3

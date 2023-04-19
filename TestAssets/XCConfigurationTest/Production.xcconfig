@@ -1,0 +1,13 @@
+//
+//  Production.xcconfig
+//  XCConfigurationTest
+//
+//  Created by Thomas Hedderwick on 18/04/2023.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+#include "Base.xcconfig"
+
+TARGET_NAME = $(BASE_TARGET_NAME) Prod

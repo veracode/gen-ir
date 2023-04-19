@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents an xcworkspace - which is a set of xcodeproj bundles
-struct XcodeWorkspace {
+class XcodeWorkspace {
 	/// Path to the Workspace
 	let path: URL
 	/// Path to the various underlying xcodeproj bundles
@@ -18,6 +18,10 @@ struct XcodeWorkspace {
 
 	/// A mapping of targets to the projects that define them
 	let targetsToProject: [String: XcodeProject]
+
+	/// Mapping of targets to their build configurations.
+	/// Used to determine any configurations changes around target/product names
+	public let targetBuildConfigurations: [PBXNativeTarget: URL]
 
 	init(path: URL) throws {
 		self.path = path
@@ -43,6 +47,13 @@ struct XcodeWorkspace {
 				partialResult[target.productName] = project
 			}
 		})
+
+		targetBuildConfigurations = projects.reduce(into: [PBXNativeTarget: URL]()) { partialResult, project in
+			partialResult.merge(project.targetBuildConfigurations) { current, _ in
+				fatalError("Shouldn't have conflicts between targets from different projects")
+				return current
+			}
+		}
 	}
 
 	var targets: [PBXNativeTarget] {

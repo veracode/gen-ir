@@ -8,23 +8,27 @@
 import Foundation
 
 public class XCBuildConfiguration: PBXObject {
+	public let baseConfigurationReference: String?
+
 	#if FULL_PBX_PARSING
-	public var baseConfigurationReference: String?
 	public var buildSettings: [String: Any]
 	public var name: String
+	#endif
 
 	private enum CodingKeys: String, CodingKey {
 		case baseConfigurationReference
+
+		#if FULL_PBX_PARSING
 		case buildSettings
 		case name
+		#endif
 	}
-	#endif
 
 	required init(from decoder: Decoder) throws {
-		#if FULL_PBX_PARSING
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		baseConfigurationReference = try container.decodeIfPresent(String.self, forKey: .baseConfigurationReference)
+		#if FULL_PBX_PARSING
 		buildSettings = try container.decode([String: Any].self, forKey: .buildSettings)
 		name = try container.decode(String.self, forKey: .name)
 		#endif

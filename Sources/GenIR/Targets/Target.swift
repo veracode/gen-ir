@@ -16,7 +16,7 @@ class Target {
 	var productName: String? {
 		switch backingTarget {
 		case .native(let target):
-			return target.productName
+			return productName(for: target)
 		case .packageDependency(let spm):
 			return spm.productName
 		default:
@@ -34,6 +34,8 @@ class Target {
 
 	/// The backing object this Target represents
 	var backingTarget: BackingTarget?
+
+	let buildConfiguration: URL?
 
 	/// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
@@ -67,12 +69,14 @@ class Target {
 	init(
 		name: String,
 		backingTarget: BackingTarget? = nil,
+		buildConfiguration: URL? = nil,
 		commands: [CompilerCommand] = [],
 		dependencies: [String] = [],
 		project: ProjectParser? = nil
 	) {
 		self.name = name
 		self.backingTarget = backingTarget
+		self.buildConfiguration = buildConfiguration
 		self.commands = commands
 		self.dependencies = dependencies
 		self.project = project
@@ -96,6 +100,30 @@ class Target {
 		}
 
 		return (reference.path as NSString).lastPathComponent as String
+	}
+
+	private func productName(for target: PBXNativeTarget) -> String? {
+		// xcconfigs can potentially alter the target/product names - check any associated xcconfigs for name changes
+		guard let buildConfiguration else {
+			return target.productName
+		}
+
+		// Parse the xcconfig, looking for things like PRODUCT_NAME, TARGET_NAME, or similar
+		let xcconfig = try? XCConfigParser(path: buildConfiguration)
+
+		return nil
+	}
+
+	private func parseXCConfig(at path: URL) -> [String: String] {
+		guard let contents = try? String(contentsOf: path) else {
+			logger.error("Failed to read contents of xcconfig at: \(path)")
+			return [:]
+		}
+
+		contents.components(separatedBy: .newlines)
+			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+		return [:]
 	}
 }
 

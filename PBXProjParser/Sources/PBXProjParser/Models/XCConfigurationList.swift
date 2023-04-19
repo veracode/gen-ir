@@ -8,23 +8,25 @@
 import Foundation
 
 public class XCConfigurationList: PBXObject {
-	#if FULL_PBX_PARSING
 	public let buildConfigurations: [String]
+	#if FULL_PBX_PARSING
 	public let defaultConfigurationIsVisible: String
 	public let defaultConfigurationName: String
+	#endif
 
 	private enum CodingKeys: String, CodingKey {
 		case buildConfigurations
+		#if FULL_PBX_PARSING
 		case defaultConfigurationIsVisible
 		case defaultConfigurationName
+		#endif
 	}
-	#endif
 
 	required init(from decoder: Decoder) throws {
-		#if FULL_PBX_PARSING
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
-		buildConfigurations = try container.decode([String].self, forKey: .buildConfigurations)
+		buildConfigurations = try container.decodeIfPresent([String].self, forKey: .buildConfigurations) ?? []
+		#if FULL_PBX_PARSING
 		defaultConfigurationIsVisible = try container.decode(String.self, forKey: .defaultConfigurationIsVisible)
 		defaultConfigurationName = try container.decode(String.self, forKey: .defaultConfigurationName)
 		#endif

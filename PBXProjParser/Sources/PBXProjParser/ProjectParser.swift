@@ -30,6 +30,15 @@ public struct ProjectParser {
 		}
 	}
 
+	public var targetBuildConfigurations: [PBXNativeTarget: URL] {
+		switch type {
+		case .project(let project):
+			return project.targetBuildConfigurations
+		case .workspace(let workspace):
+			return workspace.targetBuildConfigurations
+		}
+	}
+
 	/// Type of project this parser is working on
 	enum ProjectType {
 		case project(XcodeProject)

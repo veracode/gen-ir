@@ -4,7 +4,7 @@ import XCTest
 final class PBXProjParserTests: XCTestCase {
 	func testDoubleTargetsHaveValidTargets() throws {
 		let path = URL(fileURLWithPath:
-			"Tests/PBXProjParserTests/TestAssets/Projects/DoubleTargetTest/DoubleTargetTest.xcworkspace"
+			"TestAssets/DoubleTargetTest/DoubleTargetTest.xcworkspace"
 		)
 
 		let parser = try ProjectParser(path: path, logLevel: .debug)
@@ -23,7 +23,7 @@ final class PBXProjParserTests: XCTestCase {
 
 	func testDoubleTargetsHaveValidDependencies() throws {
 		let path = URL(fileURLWithPath:
-			"Tests/PBXProjParserTests/TestAssets/Projects/DoubleTargetTest/DoubleTargetTest.xcworkspace"
+			"TestAssets/DoubleTargetTest/DoubleTargetTest.xcworkspace"
 		)
 
 		let parser = try ProjectParser(path: path, logLevel: .debug)

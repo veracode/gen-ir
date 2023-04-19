@@ -26,6 +26,10 @@ public struct XcodeProject {
 	/// All the native targets in this project
 	let targets: [PBXNativeTarget]
 
+	/// Mapping of targets to their build configurations.
+	/// Used to determine any configurations changes around target/product names
+	public private(set) var targetBuildConfigurations: [PBXNativeTarget: URL] = [:]
+
 	/// All the swift packages in this project
 	let packages: [XCSwiftPackageProductDependency]
 
@@ -46,6 +50,25 @@ public struct XcodeProject {
 			}
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
+
+		/// Map any XCConfigs to targets
+		for target in targets {
+			guard
+				let configurationKey = target.buildConfigurationList,
+				let configurationList = model.object(forKey: configurationKey, as: XCConfigurationList.self)
+			else { continue }
+
+			for configurationKey in configurationList.buildConfigurations {
+				guard
+					let configuration = model.object(forKey: configurationKey, as: XCBuildConfiguration.self),
+					let baseReference = configuration.baseConfigurationReference,
+					let fileReference = model.object(forKey: baseReference, as: PBXFileReference.self)
+				else { continue }
+
+				let basePath = path.deletingLastPathComponent()
+				targetBuildConfigurations[target] = basePath.appendingPathComponent(fileReference.path).absoluteURL
+			}
+		}
 
 		// First pass - get all the direct dependencies
 		targets.forEach { determineDirectDependencies($0) }
