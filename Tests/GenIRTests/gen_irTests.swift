@@ -4,7 +4,12 @@ import PBXProjParser
 
 final class GenIRTests: XCTestCase {
 	func testManyTargetTestTargets() throws {
-		let projectPath = "TestAssets/ManyTargetTest/ManyTargetTest.xcodeproj".fileURL
+		// HACK: use the #file magic to get a path to the test case... Maybe there's a better way to do this?
+		let packageRoot = URL(fileURLWithPath: #file.replacingOccurrences(of: "Tests/GenIRTests/gen_irTests.swift", with: ""))
+		let projectPath = packageRoot
+			.appendingPathComponent("TestAssets")
+			.appendingPathComponent("ManyTargetTest")
+			.appendingPathComponent("ManyTargetTest.xcodeproj")
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
 		var targets = Targets(for: project)
 

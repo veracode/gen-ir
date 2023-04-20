@@ -73,7 +73,7 @@ public struct ProjectParser {
 					"""
 					Failed to find a target: \(target) in project: \(project.path). \
 					Possible targets: \(project.targets.map { ($0.name, $0.productName ?? "nil")}). \
-					Possible Packages: \(project.packages.map { $0.productName} )
+					Possible Packages: \(project.packages.map { $0.productName})
 					"""
 				)
 			}
@@ -100,5 +100,12 @@ public struct ProjectParser {
 		case .project(let project):				return project
 		case .workspace(let workspace):	return workspace.targetsToProject[target]
 		}
+	}
+
+	/// Gets the project model for a given target
+	/// - Parameter target: the target to search for
+	/// - Returns: a `PBXProj` that represents the pbxproj this target is a part of, if one was found
+	public func model(for target: String) -> PBXProj? {
+		project(for: target)?.model
 	}
 }

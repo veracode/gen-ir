@@ -18,7 +18,7 @@ public struct XcodeProject {
 	public let path: URL
 
 	/// The underlying pbxproj model
-	private let model: PBXProj
+	public let model: PBXProj
 
 	/// The 'project' object for the pbxproj
 	let project: PBXProject
@@ -45,7 +45,7 @@ public struct XcodeProject {
 				$0.productType != "com.apple.product-type.bundle"
 			}
 
-		packages = model.objects(for: project.packageReferences)
+		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
 		// First pass - get all the direct dependencies
 		targets.forEach { determineDirectDependencies($0) }

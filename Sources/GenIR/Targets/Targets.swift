@@ -36,7 +36,8 @@ struct Targets {
 	mutating func insert(native target: PBXNativeTarget) -> (inserted: Bool, memberAfterInsert: Element) {
 		let newTarget = Target(
 				name: target.name,
-				backingTarget: .native(target)
+				backingTarget: .native(target),
+				project: project
 			)
 
 		return targets.insert(newTarget)
@@ -50,7 +51,8 @@ struct Targets {
 		// TODO: when we can handle SPM transitive deps, should we look up the name here? Can we even do that?
 		let newTarget = Target(
 				name: target.productName,
-				backingTarget: .packageDependency(target)
+				backingTarget: .packageDependency(target),
+				project: project
 			)
 
 		return targets.insert(newTarget)
@@ -71,6 +73,8 @@ struct Targets {
 			if target.name == key {
 				return target
 			} else if target.productName == key {
+				return target
+			} else if target.path == key {
 				return target
 			}
 		}
