@@ -43,7 +43,7 @@ public class PBXTarget: PBXObject {
 }
 
 public class PBXAggregateTarget: PBXTarget {
-	let buildPhases: [String]
+	public let buildPhases: [String]
 
 	private enum CodingKeys: String, CodingKey {
 		case buildPhases
@@ -62,20 +62,20 @@ public class PBXLegacyTarget: PBXTarget {}
 
 public class PBXNativeTarget: PBXTarget {
 	#if FULL_PBX_PARSING
-	let buildPhases: [String]
-	let productInstallPath: String?
+	public let buildPhases: [String]
+	public let productInstallPath: String?
 	#endif
-	let productType: String?
-	let productReference: String?
-	let packageProductDependencies: [String]
+	public let productType: String?
+	public let productReference: String?
+	public let packageProductDependencies: [String]
 
 	private(set) var targetDependencies: [String: TargetDependency] = [:]
 
-	enum TargetDependency {
+	public enum TargetDependency {
 		case native(PBXNativeTarget)
 		case package(XCSwiftPackageProductDependency)
 
-		var name: String {
+		public var name: String {
 			switch self {
 			case .native(let target):
 				return target.name
@@ -132,7 +132,7 @@ extension PBXNativeTarget: Equatable {
 
 #if FULL_PBX_PARSING
 extension PBXNativeTarget: CustomStringConvertible {
-	var description: String {
+	public var description: String {
 		"""
 		<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
 		productReference: \(productReference ?? "nil"), productType: \(productType ?? "nil"), \
@@ -143,8 +143,8 @@ extension PBXNativeTarget: CustomStringConvertible {
 #endif
 
 public class PBXTargetDependency: PBXObject {
-	let target: String?
-	let targetProxy: String?
+	public let target: String?
+	public let targetProxy: String?
 
 	private enum CodingKeys: String, CodingKey {
 		case target

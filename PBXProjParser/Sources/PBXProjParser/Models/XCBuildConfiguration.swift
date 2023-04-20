@@ -9,9 +9,9 @@ import Foundation
 
 public class XCBuildConfiguration: PBXObject {
 	#if FULL_PBX_PARSING
-	var baseConfigurationReference: String?
-	var buildSettings: [String: Any]
-	var name: String
+	public var baseConfigurationReference: String?
+	public var buildSettings: [String: Any]
+	public var name: String
 
 	private enum CodingKeys: String, CodingKey {
 		case baseConfigurationReference

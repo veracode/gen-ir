@@ -9,11 +9,11 @@ import Foundation
 
 public class PBXContainerItemProxy: PBXObject {
 	#if FULL_PBX_PARSING
-	let containerPortal: String
-	let proxyType: String
-	let remoteInfo: String
+	public let containerPortal: String
+	public let proxyType: String
+	public let remoteInfo: String
 	#endif
-	let remoteGlobalIDString: String
+	public let remoteGlobalIDString: String
 
 	private enum CodingKeys: String, CodingKey {
 		#if FULL_PBX_PARSING

@@ -8,21 +8,21 @@
 import Foundation
 
 public class PBXProject: PBXObject {
-#if FULL_PBX_PARSING
-	let attributes: [String: Any]
-	let buildConfigurationList: String
-	let compatibilityVersion: String
-	let developmentRegion: String
-	let hasScannedForEncodings: String
-	let knownRegions: [String]
-	let mainGroup: String
-	let productRefGroup: String
-	let projectDirPath: String
-	let projectReferences: [[String: String]]?
-	let projectRoot: String
-#endif
-	let packageReferences: [String]
-	let targets: [String] /// Hold references to targets via their identifiers
+	#if FULL_PBX_PARSING
+	public let attributes: [String: Any]
+	public let buildConfigurationList: String
+	public let compatibilityVersion: String
+	public let developmentRegion: String
+	public let hasScannedForEncodings: String
+	public let knownRegions: [String]
+	public let mainGroup: String
+	public let productRefGroup: String
+	public let projectDirPath: String
+	public let projectReferences: [[String: String]]?
+	public let projectRoot: String
+	#endif
+	public let packageReferences: [String]
+	public let targets: [String] /// Hold references to targets via their identifiers
 
 	private enum CodingKeys: String, CodingKey {
 		case attributes
