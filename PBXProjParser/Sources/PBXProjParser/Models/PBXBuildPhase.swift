@@ -9,10 +9,10 @@ import Foundation
 
 public class PBXBuildPhase: PBXObject {
 #if FULL_PBX_PARSING
-	let alwaysOutOfDate: String?
-	let buildActionMask: UInt32
-	let files: [String]
-	let runOnlyForDeploymentPostprocessing: Int
+	public let alwaysOutOfDate: String?
+	public let buildActionMask: UInt32
+	public let files: [String]
+	public let runOnlyForDeploymentPostprocessing: Int
 
 	private enum CodingKeys: String, CodingKey {
 		case alwaysOutOfDate

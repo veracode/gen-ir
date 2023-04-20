@@ -9,14 +9,14 @@ import Foundation
 
 public class PBXFileReference: PBXObject {
 	#if FULL_PBX_PARSING
-	let fileEncoding: String?
-	let explicitFileType: String?
-	let includeInIndex: String?
-	let lastKnownFileType: String?
-	let name: String?
-	let sourceTree: String
+	public let fileEncoding: String?
+	public let explicitFileType: String?
+	public let includeInIndex: String?
+	public let lastKnownFileType: String?
+	public let name: String?
+	public let sourceTree: String
 	#endif
-	let path: String
+	public let path: String
 
 	private enum CodingKeys: String, CodingKey {
 		#if FULL_PBX_PARSING

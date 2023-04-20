@@ -9,9 +9,9 @@ import Foundation
 
 public class PBXVariantGroup: PBXObject {
 	#if FULL_PBX_PARSING
-	let children: [String]
-	let name: String
-	let sourceTree: String
+	public let children: [String]
+	public let name: String
+	public let sourceTree: String
 
 	private enum CodingKeys: String, CodingKey {
 		case children

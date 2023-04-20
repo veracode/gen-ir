@@ -70,7 +70,7 @@ public class PBXProj: Decodable {
 	}
 }
 
-extension PBXProj {
+public extension PBXProj {
 	func object<T>(forKey key: String, as type: T.Type = T.self) -> T? {
 		objects[key]?.unwrap() as? T
 	}

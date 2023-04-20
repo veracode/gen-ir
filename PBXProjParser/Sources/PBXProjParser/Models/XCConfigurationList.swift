@@ -9,9 +9,9 @@ import Foundation
 
 public class XCConfigurationList: PBXObject {
 	#if FULL_PBX_PARSING
-	let buildConfigurations: [String]
-	let defaultConfigurationIsVisible: String
-	let defaultConfigurationName: String
+	public let buildConfigurations: [String]
+	public let defaultConfigurationIsVisible: String
+	public let defaultConfigurationName: String
 
 	private enum CodingKeys: String, CodingKey {
 		case buildConfigurations

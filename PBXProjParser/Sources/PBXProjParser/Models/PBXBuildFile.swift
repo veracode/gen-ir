@@ -9,11 +9,11 @@ import Foundation
 
 public class PBXBuildFile: PBXObject {
 #if FULL_PBX_PARSING
-	let fileRef: String?
-	let platformFilter: String?
-	let platformFilters: [String]?
-	let productRef: String?
-	let settings: [String: Any]?
+	public let fileRef: String?
+	public let platformFilter: String?
+	public let platformFilters: [String]?
+	public let productRef: String?
+	public let settings: [String: Any]?
 
 	private enum CodingKeys: String, CodingKey {
 		case fileRef

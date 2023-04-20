@@ -46,7 +46,7 @@ struct OutputPostprocessor {
 
 		let pathsToRemove = try targets.flatMap { target in
 			guard let path = targetsToPaths[target] else {
-				logger.error("Failed to get path for target: \(target)")
+				logger.error("Couldn't find path for target: \(target)")
 				return Set<URL>()
 			}
 
