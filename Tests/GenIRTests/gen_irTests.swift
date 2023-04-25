@@ -4,16 +4,13 @@ import PBXProjParser
 
 final class GenIRTests: XCTestCase {
 	func testManyTargetTestTargets() throws {
-		// HACK: use the #file magic to get a path to the test case... Maybe there's a better way to do this?
-		let packageRoot = URL(fileURLWithPath: #file.replacingOccurrences(of: "Tests/GenIRTests/gen_irTests.swift", with: ""))
-		let projectPath = packageRoot
+		let projectPath = baseTestingPath()
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("ManyTargetTest")
 			.appendingPathComponent("ManyTargetTest.xcodeproj")
 		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
-		var targets = Targets(for: project)
+		let targets = Targets(for: project)
 
-		print(targets)
 		XCTAssert(targets.count == 3, "Targets count expected to be 3, was \(targets.count)")
 
 		guard let app = targets.target(for: "ManyTargetTest") else {

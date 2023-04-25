@@ -56,6 +56,9 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
 
+	@Flag(help: "Runs the tool without outputting IR to disk (i.e. leaving out the compiler command runner stage)")
+	var dryRun = false
+
 	/// Path to write IR to
 	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
 
@@ -111,7 +114,7 @@ struct IREmitterCommand: ParsableCommand {
 		let log = try logParser(for: log)
 		try log.parse(&targets)
 
-		let runner = CompilerCommandRunner(output: output)
+		let runner = CompilerCommandRunner(output: outputPath, dryRun: dryRun)
 		try runner.run(targets: targets)
 
 		let postprocessor = try OutputPostprocessor(archive: archive, output: output)

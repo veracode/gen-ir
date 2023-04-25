@@ -28,11 +28,14 @@ struct CompilerCommandRunner {
 		case failedToParse(String)
 	}
 
+	private let dryRun: Bool
+
 	/// Initializes a runner
 	/// - Parameters:
 	///   - output: The location to place the resulting LLVM IR
-	init(output: URL) {
+	init(output: URL, dryRun: Bool) {
 		self.output = output
+		self.dryRun = dryRun
 	}
 
 	/// Starts the runner
@@ -75,10 +78,14 @@ struct CompilerCommandRunner {
 		for (index, command) in commands.enumerated() {
 			logger.info(
 				"""
-				Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
+				\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
 				Target modules processed: \(targetModulesRun)
 				"""
 			)
+
+			guard dryRun == false else {
+				continue
+			}
 
 			let (executable, arguments) = try parse(command: command)
 			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)

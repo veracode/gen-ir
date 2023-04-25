@@ -13,7 +13,7 @@ class Target {
 	let name: String
 
 	/// The product name of the target, if one exists
-	var productName: String? {
+	lazy var productName: String? = {
 		switch backingTarget {
 		case .native(let target):
 			return target.productName
@@ -22,7 +22,7 @@ class Target {
 		default:
 			return nil
 		}
-	}
+	}()
 
 	enum BackingTarget: Hashable {
 		/// The Native Target this Target represents
@@ -45,24 +45,24 @@ class Target {
 	let project: ProjectParser?
 
 	/// The name to use when writing IR to disk, prefer the product name if possible.
-	var nameForOutput: String {
+	lazy var nameForOutput: String = {
 		switch backingTarget {
 		case .native(let target):
 			return path(for: target) ?? productName ?? name
 		case .packageDependency, .none:
 			return productName ?? name
 		}
-	}
+	}()
 
 	/// Gets the path for native targets
-	var path: String? {
+	lazy var path: String? = {
 		switch backingTarget {
 		case .native(let target):
 			return path(for: target)
 		case .packageDependency, .none:
 			return nil
 		}
-	}
+	}()
 
 	init(
 		name: String,
