@@ -97,12 +97,13 @@ struct CompilerCommandRunner {
 						continue
 					}
 				}
-				logger.debug(
+				logger.error(
 				"""
 				Command finished:
 					- code: \(result.code)
-					- has stdout: \(String(describing: result.stdout?.isEmpty))
-					- has stderr: \(String(describing: result.stderr?.isEmpty))
+					- command: \(executable) \(arguments.joined(separator: " "))
+					- stdout: \(String(describing: result.stdout))
+					- stderr: \(String(describing: result.stderr))
 				"""
 				)
 
