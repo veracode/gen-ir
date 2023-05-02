@@ -8,6 +8,6 @@
 // Configuration settings file format documentation can be found at:
 // https://help.apple.com/xcode/#/dev745c5c974
 
-#include "Base.xcconfig"
+#include "Middle.xcconfig"
 
-TARGET_NAME[arch=arch*] = $(BASE_TARGET_NAME) Debug
+TARGET_NAME[arch=arch*] = $(MIDDLE_TARGET_NAME) Debug

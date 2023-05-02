@@ -5,7 +5,7 @@ struct XCConfigParser {
 
 	private var contents: [String]
 
-	private var configs: [String: [String]] = [:]
+	private var configs: [URL: [String]] = [:]
 
 	init(path: URL) throws {
 		self.path = path
@@ -14,38 +14,32 @@ struct XCConfigParser {
 			.components(separatedBy: .newlines)
 			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-		try resolveImports()
+		var imports = Set<String>()
+		try resolveImports(for: path, with: &imports)
+		print("imp: \(imports)")
 	}
 
-	private mutating func resolveImports() throws {
-		// get initial imports
-		var imports = includes(for: contents)
+	private mutating func resolveImports(for path: URL, with imports: inout Set<String>) throws {
+		let pathContents = try contents(of: path)
+		let pathIncludes = includes(for: pathContents)
+		configs[path] = pathContents
+		imports.formUnion(pathIncludes)
 
-		// for each import, visit it and build an idea of it's imports too
-		try imports
-			.filter { configs[$0] == nil }
+		let paths = pathIncludes
 			.map { path.deletingLastPathComponent().appendingPathComponent($0) }
-			.map { path in
-				let contents = try String(contentsOf: path)
-					.components(separatedBy: .newlines)
-					.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+			.filter { configs[$0] == nil }
 
-				configs[path.lastPathComponent] = contents
-				return contents
+		try paths
+			.map {
+				let includedContents = try contents(of: $0)
+				configs[$0] = includedContents
+
+				let foundIncludes = includes(for: includedContents)
+				imports.formUnion(foundIncludes)
+
+				return $0
 			}
-			.forEach { imports.formUnion(includes(for: $0)) }
-			// .map { path in
-			// 	let contents = try String(contentsOf: path)
-			// 		.components(separatedBy: .newlines)
-			// 		.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-			// 	configs[path.lastPathComponent()] = contents
-
-			// 	return contents
-			// }
-			// .forEach { imports.formUnion(includes(for: $0)) }
-
-		print(imports)
+			.forEach { try resolveImports(for: $0, with: &imports) }
 	}
 
 	private func includes(for lines: [String]) -> Set<String> {
@@ -58,4 +52,15 @@ struct XCConfigParser {
 			})
 			.reduce(into: Set<String>(), { $0.insert($1) })
 	}
+
+	private func contents(of path: URL) throws -> [String] {
+		try String(contentsOf: path)
+			.components(separatedBy: .newlines)
+			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+	}
+}
+
+struct XCConfig {
+	let attributes: [String: String]
+	let includes: [String]
 }

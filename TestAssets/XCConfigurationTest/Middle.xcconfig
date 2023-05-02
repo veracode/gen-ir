@@ -1,0 +1,14 @@
+//
+//  Middle.xcconfig
+//  XCConfigurationTest
+//
+//  Created by Thomas Hedderwick on 02/05/2023.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+#include "Base.xcconfig"
+
+MIDDLE_TARGET_NAME[sdk=iphoneos*] = $(BASE_TARGET_NAME) iOS
+MIDDLE_TARGET_NAME[sdk=iphoneossimulator*] = $(BASE_TARGET_NAME) iOS Sim

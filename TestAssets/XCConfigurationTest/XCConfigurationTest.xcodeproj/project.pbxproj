@@ -14,6 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		CE015E682A010BF700821785 /* Middle.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Middle.xcconfig; sourceTree = "<group>"; };
 		CE72D27229EE9AAF00135CB7 /* XCConfigurationTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XCConfigurationTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE72D27529EE9AAF00135CB7 /* XCConfigurationTestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCConfigurationTestApp.swift; sourceTree = "<group>"; };
 		CE72D27729EE9AAF00135CB7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -38,6 +39,7 @@
 		CE72D26929EE9AAF00135CB7 = {
 			isa = PBXGroup;
 			children = (
+				CE015E682A010BF700821785 /* Middle.xcconfig */,
 				CE72D28729EE9E1C00135CB7 /* Base.xcconfig */,
 				CE72D28529EE9C8B00135CB7 /* Debug.xcconfig */,
 				CE72D28629EE9C9600135CB7 /* Production.xcconfig */,

@@ -8,6 +8,6 @@
 // Configuration settings file format documentation can be found at:
 // https://help.apple.com/xcode/#/dev745c5c974
 
-#include "Base.xcconfig"
+#include "Middle.xcconfig"
 
-TARGET_NAME = $(BASE_TARGET_NAME) Prod
+TARGET_NAME = $(MIDDLE_TARGET_NAME) Prod
