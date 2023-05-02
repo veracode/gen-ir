@@ -4,7 +4,7 @@ import PBXProjParser
 
 final class GenIRTests: XCTestCase {
 	func testManyTargetTestTargets() throws {
-		let projectPath = baseTestingPath()
+		let projectPath = TestContext.baseTestingPath
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("ManyTargetTest")
 			.appendingPathComponent("ManyTargetTest.xcodeproj")

@@ -13,4 +13,6 @@ DerivedData/
 output/
 .docc-build/
 **/build.log
-**/*.xcarchive
+*.xcarchive/
+*.bc
+*.dia

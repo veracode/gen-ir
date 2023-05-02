@@ -3,16 +3,31 @@ import XCTest
 import PBXProjParser
 
 final class UmbrellaTests: XCTestCase {
-	func tesUmbrellaTargets() throws {
-		// TODO: Swift isn't picking this up - investigate why this stupid tool barely works...
-		let umbrellaPath = baseTestingPath()
+	static private var testPath: URL = {
+		TestContext.baseTestingPath
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("Umbrella")
 			.appendingPathComponent("Umbrella.xcworkspace")
+	}()
 
-		let projectParser = try ProjectParser(path: umbrellaPath, logLevel: .debug)
+	func testUmbrellaTargets() throws {
+		let (success, context) = try TestContext.buildTest(at: UmbrellaTests.testPath)
+		XCTAssertTrue(success, "Failed to build test case")
+
+		let projectParser = try ProjectParser(path: Self.testPath, logLevel: .info)
 		let targets = Targets(for: projectParser)
 
-		print("targets: \(targets)")
+		XCTAssert(targets.count == 4, "Expected 4 targets, got \(targets.count)")
+
+		let expectedTargetNames = ["Umbrella", "Common", "Networking", "Pods-Umbrella"].sorted()
+		let actualTargetNames = targets.map { $0.name }.sorted()
+
+		XCTAssert(
+			actualTargetNames == expectedTargetNames,
+			"Expected target names: \(expectedTargetNames), got: \(actualTargetNames)"
+		)
+
+
+
 	}
 }
