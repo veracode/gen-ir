@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CE72D27129EE9AAF00135CB7"
-               BuildableName = "Config Prod.app"
+               BuildableName = "Config iOS Prod.app"
                BlueprintName = "XCConfigurationTest"
                ReferencedContainer = "container:XCConfigurationTest.xcodeproj">
             </BuildableReference>
@@ -44,7 +44,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CE72D27129EE9AAF00135CB7"
-            BuildableName = "Config Prod.app"
+            BuildableName = "Config iOS Prod.app"
             BlueprintName = "XCConfigurationTest"
             ReferencedContainer = "container:XCConfigurationTest.xcodeproj">
          </BuildableReference>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CE72D27129EE9AAF00135CB7"
-            BuildableName = "Config Prod.app"
+            BuildableName = "Config iOS Prod.app"
             BlueprintName = "XCConfigurationTest"
             ReferencedContainer = "container:XCConfigurationTest.xcodeproj">
          </BuildableReference>

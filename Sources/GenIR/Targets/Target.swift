@@ -109,7 +109,8 @@ class Target {
 		}
 
 		// Parse the xcconfig, looking for things like PRODUCT_NAME, TARGET_NAME, or similar
-		let xcconfig = try? XCConfigParser(path: buildConfiguration)
+		let xcconfig = XCConfigParser(path: buildConfiguration)
+		try? xcconfig.parse()
 
 		return nil
 	}

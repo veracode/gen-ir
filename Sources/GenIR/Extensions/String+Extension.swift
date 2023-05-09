@@ -1,6 +1,6 @@
 //
 //  String+Extension.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 04/07/2022.
 //
@@ -70,8 +70,32 @@ extension String {
 
 		return self
 	}
-}
 
+	func firstIndex(
+		of element: Self.Element,
+		ignoringElementBetween ignoreOpening: Self.Element,
+		and ignoreClosing: Self.Element
+	) -> Self.Index? {
+		var index = self.startIndex
+		var isInIgnoreSequence = false
+
+		while index != self.endIndex {
+			if self[index] == ignoreOpening {
+				isInIgnoreSequence = true
+			} else if self[index] == ignoreClosing {
+				isInIgnoreSequence = false
+			}
+
+			if !isInIgnoreSequence && self[index] == element {
+				return index
+			}
+
+			self.formIndex(after: &index)
+		}
+
+		return nil
+	}
+}
 extension Substring {
 	/// Returns the first index of a character that hasn't been escaped
 	/// - Parameters:
@@ -99,6 +123,20 @@ extension Substring {
 			}
 
 			return index
+		}
+
+		return nil
+	}
+
+	func index(of element: Self.Element, after index: Self.Index) -> Index? {
+		var index = index
+
+		while index != self.endIndex {
+			if self[index] == element {
+				return index
+			}
+
+			self.formIndex(after: &index)
 		}
 
 		return nil

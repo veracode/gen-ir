@@ -65,8 +65,12 @@ public struct XcodeProject {
 					let fileReference = model.object(forKey: baseReference, as: PBXFileReference.self)
 				else { continue }
 
-				let basePath = path.deletingLastPathComponent()
-				targetBuildConfigurations[target] = basePath.appendingPathComponent(fileReference.path).absoluteURL
+				if configuration.name.lowercased() == "debug" || configuration.name.lowercased().contains("veracode") {
+					let basePath = path.deletingLastPathComponent()
+					targetBuildConfigurations[target] = basePath.appendingPathComponent(fileReference.path).absoluteURL
+				} else {
+					logger.debug("Ignored configuration name: \(configuration.name)")
+				}
 			}
 		}
 

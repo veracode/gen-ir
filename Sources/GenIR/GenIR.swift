@@ -101,8 +101,8 @@ struct IREmitterCommand: ParsableCommand {
 		let log = try logParser(for: logPath)
 		try log.parse(&targets)
 
-		let runner = CompilerCommandRunner(output: outputPath)
-		try runner.run(targets: targets)
+		// let runner = CompilerCommandRunner(output: outputPath)
+		// try runner.run(targets: targets)
 
 		let postprocessor = try OutputPostprocessor(archive: xcarchivePath, output: outputPath)
 		try postprocessor.process(targets: &targets)
