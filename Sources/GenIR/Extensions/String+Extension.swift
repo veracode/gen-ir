@@ -95,6 +95,34 @@ extension String {
 
 		return nil
 	}
+
+	func index(ofSubstring substring: String) -> Index? {
+		range(of: substring)?.lowerBound
+	}
+
+	func index(ofSubstring substring: String, after index: Self.Index? = nil) -> Index? {
+		if let index {
+			// TODO: add a function for substring
+			// TODO: Add a SUITE of these types of functions so you don't have to keep writing them
+			return String(self[index...]).range(of: substring)?.lowerBound
+		}
+
+		return range(of: substring)?.lowerBound
+	}
+
+	func index(of element: Self.Element, after index: Self.Index) -> Index? {
+		var index = index
+
+		while index != self.endIndex {
+			if self[index] == element {
+				return index
+			}
+
+			self.formIndex(after: &index)
+		}
+
+		return nil
+	}
 }
 extension Substring {
 	/// Returns the first index of a character that hasn't been escaped

@@ -10,4 +10,4 @@
 
 #include "Middle.xcconfig"
 
-TARGET_NAME[sdk=iphoneos*,arch=arm64][arch=x86_64] = $(MIDDLE_TARGET_NAME) Debug
+TARGET_NAME = $(MIDDLE_TARGET_NAME) Debug

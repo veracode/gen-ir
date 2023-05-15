@@ -15,7 +15,7 @@
 
 /* Begin PBXFileReference section */
 		CE015E682A010BF700821785 /* Middle.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Middle.xcconfig; sourceTree = "<group>"; };
-		CE72D27229EE9AAF00135CB7 /* XCConfigurationTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XCConfigurationTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE72D27229EE9AAF00135CB7 /* Config iOS Debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Config iOS Debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE72D27529EE9AAF00135CB7 /* XCConfigurationTestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCConfigurationTestApp.swift; sourceTree = "<group>"; };
 		CE72D27729EE9AAF00135CB7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CE72D27929EE9AB000135CB7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -51,7 +51,7 @@
 		CE72D27329EE9AAF00135CB7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CE72D27229EE9AAF00135CB7 /* XCConfigurationTest.app */,
+				CE72D27229EE9AAF00135CB7 /* Config iOS Debug.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,7 +92,7 @@
 			);
 			name = XCConfigurationTest;
 			productName = XCConfigurationTest;
-			productReference = CE72D27229EE9AAF00135CB7 /* XCConfigurationTest.app */;
+			productReference = CE72D27229EE9AAF00135CB7 /* Config iOS Debug.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -155,7 +155,7 @@
 /* Begin XCBuildConfiguration section */
 		CE72D27E29EE9AB000135CB7 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CE72D28729EE9E1C00135CB7 /* Base.xcconfig */;
+			baseConfigurationReference = CE72D28529EE9C8B00135CB7 /* Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

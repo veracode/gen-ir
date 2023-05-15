@@ -44,6 +44,8 @@ class Target {
 	/// A list of dependencies of this Target
 	private(set) var dependencies: [String] = []
 
+	private var configParsers: [URL: XCConfigParser] = [:]
+
 	let project: ProjectParser?
 
 	/// The name to use when writing IR to disk, prefer the product name if possible.
@@ -108,23 +110,31 @@ class Target {
 			return target.productName
 		}
 
-		// Parse the xcconfig, looking for things like PRODUCT_NAME, TARGET_NAME, or similar
-		let xcconfig = XCConfigParser(path: buildConfiguration)
-		try? xcconfig.parse()
-
-		return nil
-	}
-
-	private func parseXCConfig(at path: URL) -> [String: String] {
-		guard let contents = try? String(contentsOf: path) else {
-			logger.error("Failed to read contents of xcconfig at: \(path)")
-			return [:]
+		if let parser = configParsers[buildConfiguration] {
+			return configProductName(from: parser)
 		}
 
-		contents.components(separatedBy: .newlines)
-			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+		// Parse the xcconfig, looking for things like PRODUCT_NAME, TARGET_NAME, or similar
+		let parser = XCConfigParser(path: buildConfiguration)
+		try? parser.parse()
+		configParsers[buildConfiguration] = parser
 
-		return [:]
+		return configProductName(from: parser)
+	}
+
+	private func configProductName(from parser: XCConfigParser) -> String? {
+		// There's a few build setting keys that can change the name of a product, listed in priority order:
+		// * $PRODUCT_NAME
+		// * $TARGET_NAME or $TARGETNAME alias
+		let keys = ["PRODUCT_NAME", "TARGET_NAME", "TARGETNAME"]
+
+		for key in keys {
+			if let value = parser.value(for: key, constrainedBy: [.sdk(.iOS)]) {
+				return value
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -142,8 +152,6 @@ extension Target: Equatable {
 extension Target: Hashable {
 	public func hash(into hasher: inout Hasher) {
 		hasher.combine(name)
-		hasher.combine(productName)
-		hasher.combine(backingTarget)
 	}
 }
 
