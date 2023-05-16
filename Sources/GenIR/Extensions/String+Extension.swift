@@ -104,3 +104,21 @@ extension Substring {
 		return nil
 	}
 }
+
+extension [String] {
+	func nextIndex(of item: Element, after index: Int) -> Int? {
+		guard index < self.count else { return nil }
+
+		var returnValue = index
+
+		for line in self[index...] {
+			if line == item {
+				return returnValue
+			}
+
+			returnValue += 1
+		}
+
+		return nil
+	}
+}

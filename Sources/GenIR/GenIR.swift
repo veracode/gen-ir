@@ -103,23 +103,35 @@ struct IREmitterCommand: ParsableCommand {
 			log: logPath,
 			archive: xcarchivePath,
 			output: outputPath,
-			level: logger.logLevel
+			level: logger.logLevel,
+			dryRun: dryRun
 		)
 	}
 
-	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level) throws {
-		let project: ProjectParser = try ProjectParser(path: project, logLevel: level)
+	// swiftlint:disable function_parameter_count
+	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+		let project = try ProjectParser(path: project, logLevel: level)
 		var targets = Targets(for: project)
 
 		let log = try logParser(for: log)
 		try log.parse(&targets)
 
-		let runner = CompilerCommandRunner(output: outputPath, dryRun: dryRun)
+		let buildCacheManipulator = try BuildCacheManipulator(
+			buildCachePath: log.buildCachePath,
+			buildSettings: log.settings
+		)
+
+		let runner = CompilerCommandRunner(
+			output: output,
+			buildCacheManipulator: buildCacheManipulator,
+			dryRun: dryRun
+		)
 		try runner.run(targets: targets)
 
 		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
 		try postprocessor.process(targets: &targets)
 	}
+	// swiftlint:enable function_parameter_count
 
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read

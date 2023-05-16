@@ -21,6 +21,8 @@ struct CompilerCommandRunner {
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
+	private let buildCacheManipulator: BuildCacheManipulator
+
 	private let fileManager = FileManager.default
 
 	enum Error: Swift.Error {
@@ -33,13 +35,17 @@ struct CompilerCommandRunner {
 	/// Initializes a runner
 	/// - Parameters:
 	///   - output: The location to place the resulting LLVM IR
-	init(output: URL, dryRun: Bool) {
+	init(output: URL, buildCacheManipulator: BuildCacheManipulator, dryRun: Bool) {
 		self.output = output
 		self.dryRun = dryRun
+		self.buildCacheManipulator = buildCacheManipulator
 	}
 
 	/// Starts the runner
 	func run(targets: Targets) throws {
+		// Quick, do a hack!
+		try buildCacheManipulator.manipulate()
+
 		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")

@@ -6,5 +6,5 @@ excluded:
   - GenIRLogging/.build/
 
 line_length:
-  warning: 120
+  warning: 150
   ignores_comments: true
