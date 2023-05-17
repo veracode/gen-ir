@@ -1,6 +1,6 @@
 //
 //  String+Extension.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 04/07/2022.
 //
@@ -83,7 +83,7 @@ extension Substring {
 		var substring = self[startIndex..<self.endIndex]
 
 		while let index = substring.firstIndex(of: character) {
-			guard index != startIndex else {
+			guard index != substring.startIndex else {
 				return index
 			}
 
