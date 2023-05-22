@@ -41,10 +41,12 @@ extension Process {
 		_ command: String,
 		arguments: [String],
 		environment: [String: String] = ProcessInfo.processInfo.environment,
-		runInDirectory: URL? = nil
+		runInDirectory: URL? = nil,
+		joinPipes: Bool = false
 	) throws -> ReturnValue {
 		let stdoutPipe = Pipe()
-		let stderrPipe = Pipe()
+		let stderrPipe = joinPipes ? stdoutPipe : Pipe()
+
 		let process = Process()
 
 		let executable = command.replacingOccurrences(of: "\\", with: "")

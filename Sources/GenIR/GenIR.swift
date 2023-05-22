@@ -95,16 +95,26 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	mutating func run() throws {
-		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
+		try run(
+			project: projectPath,
+			log: logPath,
+			archive: xcarchivePath,
+			output: outputPath,
+			level: logger.logLevel
+		)
+	}
+
+	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level) throws {
+		let project: ProjectParser = try ProjectParser(path: project, logLevel: level)
 		var targets = Targets(for: project)
 
-		let log = try logParser(for: logPath)
+		let log = try logParser(for: log)
 		try log.parse(&targets)
 
-		let runner = CompilerCommandRunner(output: outputPath)
+		let runner = CompilerCommandRunner(output: output)
 		try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: xcarchivePath, output: outputPath)
+		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
 		try postprocessor.process(targets: &targets)
 	}
 
