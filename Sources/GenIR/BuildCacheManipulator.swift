@@ -85,8 +85,8 @@ struct BuildCacheManipulator {
 		}
 		.reduce(into: [String: URL]()) { $0[$1.lastPathComponent] = $1 }
 
-		print("sym: \(symlinksToUpdate)")
-		print("exist: \(existingFrameworks)")
+		logger.debug("symlinks to update: \(symlinksToUpdate)")
+		logger.debug("existing frameworks: \(existingFrameworks)")
 
 		try symlinksToUpdate.forEach { name, path in
 			guard let buildProductPath = existingFrameworks[name] else {
