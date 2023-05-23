@@ -12,3 +12,5 @@ DerivedData/
 .vscode
 output/
 .docc-build/
+**/build.log
+**/*.xcarchive

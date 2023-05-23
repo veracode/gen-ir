@@ -68,15 +68,16 @@ struct Targets {
 
 	// TODO: maybe specialize a product vs name lookup for those sweet sweet milliseconds
 	func target(for key: String) -> Target? {
-		for target in targets {
-			// Compare name first, this is less likely to clash
-			if target.name == key {
-				return target
-			} else if target.productName == key {
-				return target
-			} else if target.path == key {
-				return target
-			}
+		if let result = targets.filter({ $0.name == key }).first {
+			return result
+		}
+
+		if let result = targets.filter({ $0.productName == key }).first {
+			return result
+		}
+
+		if let result = targets.filter({ $0.path == key }).first {
+			return result
 		}
 
 		return nil

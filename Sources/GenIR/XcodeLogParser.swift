@@ -86,7 +86,7 @@ class XcodeLogParser {
 				continue
 			}
 
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command")
+			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
 
 			currentTarget.commands.append(compilerCommand)
 		}
@@ -112,15 +112,6 @@ class XcodeLogParser {
 				result = true
 				break
 			}
-		}
-
-		if !result, lines.indices.contains(lines.index(index, offsetBy: -2)) {
-			logger.debug(
-			 """
-			 Skipping non-compile command block:
-			 \(lines[lines.index(index, offsetBy: -2)..<lines.index(after: index)])
-			 """
-			)
 		}
 
 		return result
