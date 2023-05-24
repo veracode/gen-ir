@@ -1,6 +1,6 @@
 //
 //  FileManager+Extension.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 29/07/2022.
 //
@@ -145,5 +145,17 @@ extension FileManager {
 		}
 
 		return path
+	}
+
+	func destinationOfSymlinkExists(at path: URL) throws -> Bool {
+		let attributes = try attributesOfItem(atPath: path.filePath)
+
+		if let type = attributes[.type] as? FileAttributeType, type == .typeSymbolicLink {
+			let destination = try destinationOfSymbolicLink(atPath: path.filePath)
+			let actualDestinationCausePathingSucksInFoundation = path.deletingLastPathComponent().appendingPathComponent(destination)
+			return fileExists(atPath: actualDestinationCausePathingSucksInFoundation.filePath)
+		}
+
+		return false
 	}
 }

@@ -25,7 +25,7 @@ struct BuildCacheManipulator {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
 		buildProductsPath = archive
-		shouldDeploySkipInstallHack = buildSettings["SKIP_INSTALL"] == "NO"
+		shouldDeploySkipInstallHack = buildSettings["SKIP_INSTALL"] == "NO" || true
 
 		guard FileManager.default.directoryExists(at: buildCachePath) else {
 			throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
@@ -95,13 +95,15 @@ struct BuildCacheManipulator {
 
 		try symlinksToUpdate.forEach { name, path in
 			guard let buildProductPath = existingFrameworks[name] else {
-				logger.error("Couldn't lookup \(name) in existing frameworks: \(existingFrameworks)")
+				logger.error("Couldn't lookup \(name) in existing frameworks: \(existingFrameworks.keys)")
 				return
 			}
 
 			// Update the symlink
-			try FileManager.default.removeItem(at: path)
-			try FileManager.default.createSymbolicLink(at: path, withDestinationURL: buildProductPath)
+			if !(try FileManager.default.destinationOfSymlinkExists(at: path)) {
+				try FileManager.default.removeItem(at: path)
+				try FileManager.default.createSymbolicLink(at: path, withDestinationURL: buildProductPath)
+			}
 		}
 	}
 
