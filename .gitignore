@@ -16,3 +16,4 @@ output/
 *.xcarchive/
 *.bc
 *.dia
+_build/

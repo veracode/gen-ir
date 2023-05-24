@@ -1,12 +1,19 @@
 import Foundation
 
 struct BuildCacheManipulator {
+	/// Path to the build cache
 	private let buildCachePath: URL
+
+	/// Build settings used as part of the build
 	private let buildSettings: [String: String]
 
+	/// Should we run the SKIP_INSTALL hack?
 	private let shouldDeploySkipInstallHack: Bool
 
+	/// Path to the Archive Build Products inside the Build Cache
 	private let archiveBuildProductsPath: URL
+
+	/// Path to the built products inside the xcarchive
 	private let buildProductsPath: URL
 
 	enum Error: Swift.Error {
@@ -14,9 +21,10 @@ struct BuildCacheManipulator {
 		case tooManyDirectories(String)
 	}
 
-	init(buildCachePath: URL, buildSettings: [String: String]) throws {
+	init(buildCachePath: URL, buildSettings: [String: String], archive: URL) throws {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
+		buildProductsPath = archive
 		shouldDeploySkipInstallHack = buildSettings["SKIP_INSTALL"] == "NO"
 
 		guard FileManager.default.directoryExists(at: buildCachePath) else {
@@ -44,23 +52,18 @@ struct BuildCacheManipulator {
 				.appendingPathComponent(intermediateFolders.first!.lastPathComponent)
 				.appendingPathComponent("BuildProductsPath")
 
-		guard let archivePath = Self.resolveConfigurationDirectory(intermediatesBuildPath) else {
+		guard let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath) else {
 			throw Error.directoryNotFound("Couldn't find archive build directory (expected at: \(intermediatesBuildPath))")
 		}
 
 		archiveBuildProductsPath = archivePath
-
-		let buildCacheProductsPath = buildCachePath
-				.appendingPathComponent("Products")
-
-		guard let buildPath = Self.resolveConfigurationDirectory(buildCacheProductsPath) else {
-			throw Error.directoryNotFound("Couldn't find build products directory (expected at: \(buildCacheProductsPath))")
-		}
-
-		buildProductsPath = buildPath
 	}
 
 	func manipulate() throws {
+		try skipInstallHack()
+	}
+
+	private func skipInstallHack() throws {
 		/* This is a hack. Turn away now.
 
 			When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
@@ -75,6 +78,8 @@ struct BuildCacheManipulator {
 
 			The idea here is simple, attempt to update the symlinks so they point to valid framework product.
 		*/
+		if !shouldDeploySkipInstallHack { return }
+
 		let symlinksToUpdate = FileManager.default.filteredContents(of: archiveBuildProductsPath) {
 			$0.lastPathComponent.hasSuffix("framework")
 		}
@@ -100,7 +105,10 @@ struct BuildCacheManipulator {
 		}
 	}
 
-	private static func resolveConfigurationDirectory(_ path: URL) -> URL? {
+	///  Tries to find the xcode build configuration directory path inside the given path
+	/// - Parameter path: the path to search
+	/// - Returns:
+	private static func findConfigurationDirectory(_ path: URL) -> URL? {
 		let folders = (try? FileManager.default.directories(at: path, recursive: false)) ?? []
 
 		guard folders.count != 0 else {
