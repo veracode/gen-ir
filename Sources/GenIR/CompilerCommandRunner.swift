@@ -94,7 +94,18 @@ struct CompilerCommandRunner {
 			}
 
 			let (executable, arguments) = try parse(command: command)
-			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
+			let result: Process.ReturnValue
+			do {
+				result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
+			} catch {
+				logger.error(
+					"""
+					Couldn't create process for executable: \(executable) with arguments: \(arguments.joined(separator: " ")). \
+					This is likely a bug in parsing the build log. Please raise it as an issue.
+					"""
+				)
+				continue
+			}
 
 			if result.code != 0 {
 				if let stderr = result.stderr {

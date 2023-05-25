@@ -179,9 +179,10 @@ class XcodeLogParser {
 		// Ignore preprocessing of assembly files
 		if stripped.contains("-x assembler-with-cpp") { return nil }
 
-		if stripped.contains("/swiftc") {
+		// Note: the spaces here are so we don't match subpaths
+		if stripped.contains("/swiftc ") {
 			return .init(command: stripped, compiler: .swiftc)
-		} else if stripped.contains("/clang") {
+		} else if stripped.contains("/clang ") {
 			return .init(command: stripped, compiler: .clang)
 		}
 
