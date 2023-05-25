@@ -43,9 +43,11 @@ struct BuildCacheManipulator {
 			throw Error.directoryNotFound("No directories found at \(intermediatesPath), expected exactly one. Ensure you did an archive build.")
 		}
 
+		// TODO: Can we determine the main target being built here (via scheme or something similar?). That way we don't require a cleaned derived data
 		guard intermediateFolders.count == 1 else {
-			logger.debug("intermediateFolders: \(intermediateFolders))")
-			throw Error.tooManyDirectories("Expected exactly one target folder at path: \(intermediatesPath), but found: \(intermediateFolders)")
+			throw Error.tooManyDirectories(
+				"Expected exactly one target folder at path: \(intermediatesPath), but found: \(intermediateFolders). Please manually clear your derived data."
+			)
 		}
 
 		let intermediatesBuildPath = intermediatesPath
@@ -53,7 +55,7 @@ struct BuildCacheManipulator {
 				.appendingPathComponent("BuildProductsPath")
 
 		guard let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath) else {
-			throw Error.directoryNotFound("Couldn't find archive build directory (expected at: \(intermediatesBuildPath))")
+			throw Error.directoryNotFound("Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))")
 		}
 
 		archiveBuildProductsPath = archivePath
@@ -71,10 +73,8 @@ struct BuildCacheManipulator {
 
 			This is how the build cache is (roughly) laid out:
 
-			* Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/Debug-iphoneos
+			* Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/<CONFIGURATION>-<PLATFORM>
 				* this contains a set of symlinks to elsewhere in the build cache. These links remain in place, but the items they point to are removed
-			* Build/Products/Debug-iphoneos
-				* this contains the build products cache
 
 			The idea here is simple, attempt to update the symlinks so they point to valid framework product.
 		*/
