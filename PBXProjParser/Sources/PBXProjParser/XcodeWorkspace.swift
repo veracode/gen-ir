@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents an xcworkspace - which is a set of xcodeproj bundles
-struct XcodeWorkspace {
+class XcodeWorkspace {
 	/// Path to the Workspace
 	let path: URL
 	/// Path to the various underlying xcodeproj bundles
@@ -37,6 +37,9 @@ struct XcodeWorkspace {
 		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
 			project.targets.forEach { (target) in
 				partialResult[target.name] = project
+				if let productName = target.productName, productName != target.name {
+					partialResult[productName] = project
+				}
 			}
 
 			project.packages.forEach { (target) in

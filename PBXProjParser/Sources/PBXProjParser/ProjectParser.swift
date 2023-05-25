@@ -61,7 +61,7 @@ public struct ProjectParser {
 	/// - Returns: an array of dependencies
 	public func dependencies(for target: String) -> [String] {
 		guard let project = project(for: target) else {
-			logger.error("Failed to find project for target: \(target)")
+			logger.error("Couldn't find project for target: \(target)")
 			return []
 		}
 
@@ -97,8 +97,10 @@ public struct ProjectParser {
 	/// - Returns: a `XcodeProject` that holds the target, if one was found
 	private func project(for target: String) -> XcodeProject? {
 		switch type {
-		case .project(let project):				return project
-		case .workspace(let workspace):	return workspace.targetsToProject[target]
+		case .project(let project):
+			return project
+		case .workspace(let workspace):
+			return workspace.targetsToProject[target]
 		}
 	}
 

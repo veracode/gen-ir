@@ -130,17 +130,22 @@ extension PBXNativeTarget: Equatable {
 	}
 }
 
-#if FULL_PBX_PARSING
 extension PBXNativeTarget: CustomStringConvertible {
 	public var description: String {
+		#if FULL_PBX_PARSING
 		"""
-		<PBXNativeTarget: BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
+		<PBXNativeTarget -- BuildPhases: \(buildPhases), productInstallPath: \(productInstallPath ?? "nil") \
 		productReference: \(productReference ?? "nil"), productType: \(productType ?? "nil"), \
 		packageProductDependencies: \(packageProductDependencies)>
 		"""
+		#else
+		"""
+		<PBXNativeTarget --  name: \(name), productName: \(productName ?? "nil"), productType: \(productType ?? "nil"), \
+		productReference: \(productReference ?? "nil"), packageProductDependencies: \(packageProductDependencies)>
+		"""
+		#endif
 	}
 }
-#endif
 
 public class PBXTargetDependency: PBXObject {
 	public let target: String?

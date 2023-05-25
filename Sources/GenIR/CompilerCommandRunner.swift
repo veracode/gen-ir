@@ -21,6 +21,8 @@ struct CompilerCommandRunner {
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
+	private let buildCacheManipulator: BuildCacheManipulator
+
 	private let fileManager = FileManager.default
 
 	enum Error: Swift.Error {
@@ -28,15 +30,22 @@ struct CompilerCommandRunner {
 		case failedToParse(String)
 	}
 
+	private let dryRun: Bool
+
 	/// Initializes a runner
 	/// - Parameters:
 	///   - output: The location to place the resulting LLVM IR
-	init(output: URL) {
+	init(output: URL, buildCacheManipulator: BuildCacheManipulator, dryRun: Bool) {
 		self.output = output
+		self.dryRun = dryRun
+		self.buildCacheManipulator = buildCacheManipulator
 	}
 
 	/// Starts the runner
 	func run(targets: Targets) throws {
+		// Quick, do a hack!
+		try buildCacheManipulator.manipulate()
+
 		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
@@ -75,13 +84,28 @@ struct CompilerCommandRunner {
 		for (index, command) in commands.enumerated() {
 			logger.info(
 				"""
-				Running command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
+				\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
 				Target modules processed: \(targetModulesRun)
 				"""
 			)
 
+			guard dryRun == false else {
+				continue
+			}
+
 			let (executable, arguments) = try parse(command: command)
-			let result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
+			let result: Process.ReturnValue
+			do {
+				result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
+			} catch {
+				logger.error(
+					"""
+					Couldn't create process for executable: \(executable) with arguments: \(arguments.joined(separator: " ")). \
+					This is likely a bug in parsing the build log. Please raise it as an issue.
+					"""
+				)
+				continue
+			}
 
 			if result.code != 0 {
 				if let stderr = result.stderr {
@@ -90,12 +114,13 @@ struct CompilerCommandRunner {
 						continue
 					}
 				}
-				logger.debug(
+				logger.error(
 				"""
 				Command finished:
 					- code: \(result.code)
-					- has stdout: \(String(describing: result.stdout?.isEmpty))
-					- has stderr: \(String(describing: result.stderr?.isEmpty))
+					- command: \(executable) \(arguments.joined(separator: " "))
+					- stdout: \(String(describing: result.stdout))
+					- stderr: \(String(describing: result.stderr))
 				"""
 				)
 

@@ -34,7 +34,7 @@ struct OutputPostprocessor {
 	func  process(targets: inout Targets) throws {
 		let targetsToPaths = try FileManager.default.directories(at: output, recursive: false)
 			.reduce(into: [Target: URL]()) { partialResult, path in
-				let product = path.lastPathComponent
+				let product = path.lastPathComponent.deletingPathExtension()
 
 				guard let target = targets.target(for: product) else {
 					logger.error("Failed to look up target for product: \(product)")

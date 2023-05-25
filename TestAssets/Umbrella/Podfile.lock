@@ -1,0 +1,21 @@
+PODS:
+  - Common (0.0.1)
+  - Networking (0.0.1)
+
+DEPENDENCIES:
+  - Common (from `Common`)
+  - Networking (from `Networking`)
+
+EXTERNAL SOURCES:
+  Common:
+    :path: Common
+  Networking:
+    :path: Networking
+
+SPEC CHECKSUMS:
+  Common: dda898ab2f5ea0d0a3cfc63a0a1966acd8267917
+  Networking: 4d26d54badb68560c88a5cb5fedc8e81a155b03d
+
+PODFILE CHECKSUM: 297b7bcbaec887f8bd50fb754e5596f4dcaf8894
+
+COCOAPODS: 1.11.3

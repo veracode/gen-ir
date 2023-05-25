@@ -13,10 +13,14 @@ class XcodeLogParser {
 
 	/// The Xcode build log contents
 	private let log: [String]
+	/// Any CLI Settings found in the build log
+	private(set) var settings: [String: String] = [:]
+	private(set) var buildCachePath: URL!
 
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
 		case noTargetsFound(String)
+		case noBuildCachePathFound(String)
 	}
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
@@ -49,6 +53,10 @@ class XcodeLogParser {
 				"""
 			)
 		}
+
+		if buildCachePath == nil {
+			throw Error.noBuildCachePathFound("No build cache was found from the build log. Please report this as a bug.")
+		}
 	}
 
 	/// Parses  an array representing the contents of an Xcode build log
@@ -61,6 +69,32 @@ class XcodeLogParser {
 
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+			if line.contains("Build settings from command line") {
+				// Every line until an empty line will contain a build setting from the CLI arguments
+				guard let nextEmptyLine = lines.nextIndex(of: "", after: index) else { continue }
+
+				settings = lines[index.advanced(by: 1)..<nextEmptyLine]
+					.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+					.map { $0.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespacesAndNewlines)} }
+					.filter { $0.count == 2 }
+					.map { ($0[0], $0[1]) }
+					.reduce(into: [String: String]()) { $0[$1.0] = $1.1 }
+			}
+
+			if line.contains("Build description path: ") {
+				guard let startIndex = line.firstIndex(of: ":") else { continue }
+
+				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+				// Stripped will be to the build description path, we want the root of the build path which is 6 folders up
+				buildCachePath = String(stripped).fileURL
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+			}
 
 			if let target = target(from: line), currentTarget?.name != target {
 				if seenTargets.insert(target).inserted {
@@ -145,9 +179,10 @@ class XcodeLogParser {
 		// Ignore preprocessing of assembly files
 		if stripped.contains("-x assembler-with-cpp") { return nil }
 
-		if stripped.contains("/swiftc") {
+		// Note: the spaces here are so we don't match subpaths
+		if stripped.contains("/swiftc ") {
 			return .init(command: stripped, compiler: .swiftc)
-		} else if stripped.contains("/clang") {
+		} else if stripped.contains("/clang ") {
 			return .init(command: stripped, compiler: .clang)
 		}
 
