@@ -10,9 +10,6 @@ struct BuildCacheManipulator {
 	/// Should we run the SKIP_INSTALL hack?
 	private let shouldDeploySkipInstallHack: Bool
 
-	/// Path to the Archive Build Products inside the Build Cache
-	private let archiveBuildProductsPath: URL
-
 	/// Path to the built products inside the xcarchive
 	private let buildProductsPath: URL
 
@@ -30,42 +27,45 @@ struct BuildCacheManipulator {
 		guard FileManager.default.directoryExists(at: buildCachePath) else {
 			throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
 		}
-
-		let intermediatesPath = buildCachePath
-			.appendingPathComponent("Intermediates.noindex")
-			.appendingPathComponent("ArchiveIntermediates")
-
-		var intermediateFolders: [URL]
-
-		do {
-			intermediateFolders = try FileManager.default.directories(at: intermediatesPath, recursive: false)
-		} catch {
-			throw Error.directoryNotFound("No directories found at \(intermediatesPath), expected exactly one. Ensure you did an archive build.")
-		}
-
-		// TODO: Can we determine the main target being built here (via scheme or something similar?). That way we don't require a cleaned derived data
-		guard intermediateFolders.count == 1 else {
-			throw Error.tooManyDirectories(
-				"Expected exactly one target folder at path: \(intermediatesPath), but found: \(intermediateFolders). Please manually clear your derived data."
-			)
-		}
-
-		let intermediatesBuildPath = intermediatesPath
-				.appendingPathComponent(intermediateFolders.first!.lastPathComponent)
-				.appendingPathComponent("BuildProductsPath")
-
-		guard let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath) else {
-			throw Error.directoryNotFound("Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))")
-		}
-
-		archiveBuildProductsPath = archivePath
 	}
 
 	func manipulate() throws {
-		try skipInstallHack()
+		if shouldDeploySkipInstallHack {
+			let intermediatesPath = buildCachePath
+			.appendingPathComponent("Intermediates.noindex")
+			.appendingPathComponent("ArchiveIntermediates")
+
+			var intermediateFolders: [URL]
+
+			do {
+				intermediateFolders = try FileManager.default.directories(at: intermediatesPath, recursive: false)
+			} catch {
+				throw Error.directoryNotFound("No directories found at \(intermediatesPath), expected exactly one. Ensure you did an archive build.")
+			}
+
+			// TODO: Can we determine the main target being built here (via scheme or something similar?). That way we don't require a cleaned derived data
+			guard intermediateFolders.count == 1 else {
+				throw Error.tooManyDirectories(
+					"""
+					Expected exactly one target folder at path: \(intermediatesPath), but found: \(intermediateFolders).
+					Please manually clear your derived data before rebuilding.
+					"""
+				)
+			}
+
+			let intermediatesBuildPath = intermediatesPath
+					.appendingPathComponent(intermediateFolders.first!.lastPathComponent)
+					.appendingPathComponent("BuildProductsPath")
+
+			guard let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath) else {
+				throw Error.directoryNotFound("Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))")
+			}
+
+			try skipInstallHack(archivePath)
+		}
 	}
 
-	private func skipInstallHack() throws {
+	private func skipInstallHack(_ archiveBuildProductsPath: URL) throws {
 		/* This is a hack. Turn away now.
 
 			When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
@@ -78,7 +78,6 @@ struct BuildCacheManipulator {
 
 			The idea here is simple, attempt to update the symlinks so they point to valid framework product.
 		*/
-		if !shouldDeploySkipInstallHack { return }
 
 		let symlinksToUpdate = FileManager.default.filteredContents(of: archiveBuildProductsPath) {
 			$0.lastPathComponent.hasSuffix("framework")
