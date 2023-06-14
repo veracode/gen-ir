@@ -8,6 +8,7 @@
 import Foundation
 import PBXProjParser
 
+/// Represents a collection of `Target`s
 struct Targets {
 	/// The underlying storage of `Target`s
 	private(set) var targets: Set<Target> = []

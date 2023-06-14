@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  XcodeWorkspace.swift
 //
 //
 //  Created by Thomas Hedderwick on 27/01/2023.
@@ -48,16 +48,19 @@ class XcodeWorkspace {
 		})
 	}
 
+	/// All native targets in the workspace
 	var targets: [PBXNativeTarget] {
 		projects.flatMap { $0.targets }
 	}
 
+	/// All packages in the workspace
 	var packages: [XCSwiftPackageProductDependency] {
 		projects.flatMap { $0.packages }
 	}
 }
 
 // swiftlint:disable private_over_fileprivate
+/// A xcworkspace parser
 fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	let parser: XMLParser
 	var projects = [String]()
@@ -94,6 +97,9 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		}
 	}
 
+	/// Returns the location attribute value from the provided attributes, if one exists
+	/// - Parameter attributeDict: the attribute dictionary to extract a location attribute from
+	/// - Returns: the path of the location attribute value
 	private func extractLocation(_ attributeDict: [String: String]) -> String? {
 		guard
 			let location = attributeDict["location"],
@@ -103,6 +109,11 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		return location.replacingOccurrences(of: "group:", with: "")
 	}
 
+	/// Handle a Group tag
+	///
+	/// Group tags require additional logic - since they can contain nested child paths via either additional group tags or file ref tags.
+	/// Set a flag in this function that's handled in `handleFileRefTag(_:)`
+	/// - Parameter attributeDict: the attributes attached to this tag
 	private func handleGroupTag(_ attributeDict: [String: String]) {
 		// For groups, we want to track the 'sub' path as we go deeper into the tree,
 		// this will allow us to create 'full' paths as we see file refs
@@ -111,6 +122,10 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		isInGroup = true
 	}
 
+	/// Handle a FileRef tag
+	///
+	/// Since Group tags can build out parts of paths, we also handle cases where this file ref is part of a group structure.
+	/// - Parameter attributeDict: the attributes attached to this tag
 	private func handleFileRefTag(_ attributeDict: [String: String]) {
 		// For file refs, we have two options - if we're not in a group we can just use the path as-is.
 		// If we're in a group, we will need to construct the current path from the depth we're currently in

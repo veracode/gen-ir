@@ -7,11 +7,6 @@
 
 import Foundation
 
-enum ParsingError: Error {
-	case missingKey(String)
-	case validationError(String)
-}
-
 /// Represents an xcodeproj bundle
 public struct XcodeProject {
 	/// Path to the Workspace
@@ -62,16 +57,22 @@ public struct XcodeProject {
 		}
 	}
 
-	func target(for key: String) -> PBXNativeTarget? {
-		if let target = targets.filter({ $0.name == key }).first {
+	/// Gets the native target for a given name
+	/// - Parameter name: the target name or product name to lookup
+	/// - Returns: the native target corresponding to the name provided
+	func target(for name: String) -> PBXNativeTarget? {
+		if let target = targets.filter({ $0.name == name }).first {
 			return target
-		} else if let target = targets.filter({ $0.productName == key }).first {
+		} else if let target = targets.filter({ $0.productName == name }).first {
 			return target
 		}
 
 		return nil
 	}
 
+	/// Gets the package dependency object for a given name
+	/// - Parameter name: the product name to lookup
+	/// - Returns: the swift package product dependency object corresponding to the name provided
 	func package(for key: String) -> XCSwiftPackageProductDependency? {
 		packages.filter({ $0.productName == key }).first
 	}
@@ -140,6 +141,10 @@ public struct XcodeProject {
 	}
 
 	/// Gets the 'path' (normally the name of the target's product) for a given target
+	/// - Parameters:
+	///   - target: the target to get the path for
+	///   - removeExtension: should the file extension be removed from the returned path
+	/// - Returns: the path, if one was found
 	func path(for target: PBXNativeTarget, removeExtension: Bool = false) -> String? {
 		guard let productReference = target.productReference else {
 			logger.debug("Failed to get product reference for target: \(target). Possibly a SPM Package description?")

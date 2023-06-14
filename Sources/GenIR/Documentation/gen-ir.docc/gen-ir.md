@@ -34,3 +34,7 @@ It accepts input via log file or stdin.
 
 - ``IREmitterCommand``
 - ``Versions``
+- ``BuildCacheManipulator``
+- ``OutputPostprocessor``
+- ``Target``
+- ``Targets``

@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Thomas Hedderwick on 30/08/2022.
 //
@@ -40,6 +40,7 @@ struct StdOutLogHandler: LogHandler {
 
 		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)")
 	}
+	// swiftlint:enable function_parameter_count
 
 	private func prefix(for level: Logger.Level) -> String {
 		switch level {

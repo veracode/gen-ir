@@ -3,6 +3,7 @@ import Logging
 
 var logger: Logger = .init(label: "com.veracode.PBXProjParser")
 
+/// An Xcode project parser (note: not an Xcode Project parser!)
 public struct ProjectParser {
 	/// Path to the xcodeproj or xcworkspace bundle
 	let path: URL
@@ -10,7 +11,7 @@ public struct ProjectParser {
 	/// The type of project
 	let type: ProjectType
 
-	/// Gets all the native targets for the given project
+	/// All the native targets for the project
 	public var targets: [PBXNativeTarget] {
 		switch type {
 		case .project(let project):
@@ -20,7 +21,7 @@ public struct ProjectParser {
 		}
 	}
 
-	/// Gets all the packages for the given project
+	/// All the packages for the project
 	public var packages: [XCSwiftPackageProductDependency] {
 		switch type {
 		case .project(let project):
@@ -32,7 +33,9 @@ public struct ProjectParser {
 
 	/// Type of project this parser is working on
 	enum ProjectType {
+		/// A single Xcode Project
 		case project(XcodeProject)
+		/// An Xcode Workspace, which is a collection of Xcode Projects with some metadata
 		case workspace(XcodeWorkspace)
 	}
 
@@ -56,9 +59,9 @@ public struct ProjectParser {
 		}
 	}
 
-	/// Lists dependencies for a given target
+	/// Returns a list of dependencies for a given target
 	/// - Parameter target: the target to get dependencies for
-	/// - Returns: an array of dependencies
+	/// - Returns: an array of dependency references
 	public func dependencies(for target: String) -> [String] {
 		guard let project = project(for: target) else {
 			logger.error("Couldn't find project for target: \(target)")

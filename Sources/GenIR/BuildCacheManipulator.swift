@@ -1,5 +1,6 @@
 import Foundation
 
+/// Manipulates the build cache, if and when needed, to fix up potential invalidations
 struct BuildCacheManipulator {
 	/// Path to the build cache
 	private let buildCachePath: URL
@@ -65,20 +66,18 @@ struct BuildCacheManipulator {
 		}
 	}
 
+	// This is a hack. Turn away now.
+	//
+	// When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
+	// This means when we rerun commands to generate IR, the frameworks no longer exist on disk, and we fail with linker errors.
+	//
+	// This is how the build cache is (roughly) laid out:
+	//
+	// * Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/<CONFIGURATION>-<PLATFORM>
+	// 	* this contains a set of symlinks to elsewhere in the build cache. These links remain in place, but the items they point to are removed
+	//
+	// The idea here is simple, attempt to update the symlinks so they point to valid framework product.
 	private func skipInstallHack(_ archiveBuildProductsPath: URL) throws {
-		/* This is a hack. Turn away now.
-
-			When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
-			This means when we rerun commands to generate IR, the frameworks no longer exist on disk, and we fail with linker errors.
-
-			This is how the build cache is (roughly) laid out:
-
-			* Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/<CONFIGURATION>-<PLATFORM>
-				* this contains a set of symlinks to elsewhere in the build cache. These links remain in place, but the items they point to are removed
-
-			The idea here is simple, attempt to update the symlinks so they point to valid framework product.
-		*/
-
 		let symlinksToUpdate = FileManager.default.filteredContents(of: archiveBuildProductsPath) {
 			$0.lastPathComponent.hasSuffix("framework")
 		}
