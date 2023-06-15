@@ -44,7 +44,8 @@ struct OutputPostprocessor {
 				partialResult[target] = path
 			}
 
-		let pathsToRemove = try targets.flatMap { target in
+		// TODO: remove 'static' deps so we don't duplicate them in the submission?
+		let _ = try targets.flatMap { target in
 			guard let path = targetsToPaths[target] else {
 				logger.error("Couldn't find path for target: \(target)")
 				return Set<URL>()
@@ -52,8 +53,6 @@ struct OutputPostprocessor {
 
 			return try process(target: target, in: targets, at: path, with: targetsToPaths)
 		}
-
-		// TODO: remove 'static' deps so we don't duplicate them in the submission?
 	}
 
 	/// Processes an individual target
@@ -95,6 +94,9 @@ struct OutputPostprocessor {
 }
 
 // swiftlint:disable private_over_fileprivate
+/// Returns a map of dynamic objects in the provided path
+/// - Parameter xcarchive: the path to search through
+/// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
 fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 	let searchPath = baseSearchPath(startingAt: xcarchive)
 	logger.debug("Using search path for dynamic dependencies: \(searchPath)")

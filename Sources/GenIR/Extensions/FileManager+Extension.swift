@@ -10,12 +10,12 @@ import Foundation
 extension FileManager {
 	/// Returns a Boolean value that indicates whether a directory exists at the specified url
 	/// - Parameter url: The url of the directory. This is tilde expanded
-	/// - Returns: true if a directory exists at the specified path exists, or false if it doesn't exist or it does exist, but is a file
+	/// - Returns: true if a directory exists at the specified path exists, or false if it doesn't exist or it does exist, but is not a directory
 	func directoryExists(at url: URL) -> Bool {
 		var bool = ObjCBool(false)
 		let result: Bool
 
-		result = FileManager.default.fileExists(
+		result = fileExists(
 			atPath: (url.filePath as NSString).expandingTildeInPath,
 			isDirectory: &bool
 		)
@@ -147,6 +147,9 @@ extension FileManager {
 		return path
 	}
 
+	/// Returns a Boolean value indicating the existence of a symlink destination
+	/// - Parameter path: the path to a symlink to check
+	/// - Returns: true if the symlink's destination exists, false if it doesn't or `path` is not a symlink
 	func destinationOfSymlinkExists(at path: URL) throws -> Bool {
 		let attributes = try attributesOfItem(atPath: path.filePath)
 

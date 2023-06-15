@@ -178,6 +178,8 @@ struct IREmitterCommand: ParsableCommand {
 }
 
 extension IREmitterCommand {
+	/// Attempt to automatically determine the Xcode workspace or project path
+	/// - Returns: the path to the first xcworkspace or xcodeproj found in the current directory
 	private func findProjectPath() throws -> URL {
 		let cwd = FileManager.default.currentDirectoryPath.fileURL
 		// First, xcworkspace, then xcodeproj

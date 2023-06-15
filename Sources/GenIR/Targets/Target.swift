@@ -8,6 +8,7 @@
 import Foundation
 import PBXProjParser
 
+/// Represents the concept of a 'Target' that is loosely: a target in Xcode parlance, a swift package product.
 class Target {
 	/// The name of the target
 	let name: String
@@ -24,6 +25,7 @@ class Target {
 		}
 	}()
 
+	/// The various types of target we're wrapping
 	enum BackingTarget: Hashable {
 		/// The Native Target this Target represents
 		case native(PBXNativeTarget)
@@ -42,6 +44,7 @@ class Target {
 	/// A list of dependencies of this Target
 	private(set) var dependencies: [String] = []
 
+	/// The project parser relating to this target
 	let project: ProjectParser?
 
 	/// The name to use when writing IR to disk, prefer the product name if possible.

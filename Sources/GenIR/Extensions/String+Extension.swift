@@ -106,6 +106,11 @@ extension Substring {
 }
 
 extension [String] {
+	/// Finds the next index of a given item after a given index
+	/// - Parameters:
+	///   - item: the element to search for
+	///   - index: the index to start the search from
+	/// - Returns: the index of the found item, or nil if no item was found
 	func nextIndex(of item: Element, after index: Int) -> Int? {
 		guard index < self.count else { return nil }
 

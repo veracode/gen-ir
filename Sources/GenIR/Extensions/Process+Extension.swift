@@ -8,9 +8,13 @@
 import Foundation
 
 extension Process {
+	/// Presents the result of a Process
 	struct ReturnValue {
+		/// The stdout output of the process, if there was any
 		let stdout: String?
+		/// The stderr output of the process, if there was any
 		let stderr: String?
+		/// The return code of the process
 		let code: Int32
 
 		init(stdout: String?, stderr: String?, code: Int32) {
@@ -36,6 +40,7 @@ extension Process {
 	///   - arguments: The arguments to pass to the command
 	///   - environment: The environment variables to run with
 	///   - runInDirectory: The directory to execute the process in
+	///   - joinPipes: Should stderr be redirected to stdout?
 	/// - Returns: A struct with the error code, stdout, and stderr
 	static func runShell(
 		_ command: String,

@@ -15,6 +15,7 @@ class XcodeLogParser {
 	private let log: [String]
 	/// Any CLI Settings found in the build log
 	private(set) var settings: [String: String] = [:]
+	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 
 	enum Error: Swift.Error {
@@ -126,6 +127,11 @@ class XcodeLogParser {
 		}
 	}
 
+	/// Is the index provided part of a compiler command block
+	/// - Parameters:
+	///   - lines: all the lines in the build log
+	///   - index: the index of the line to search from
+	/// - Returns: true if it's determined that the index is part of compiler command block
 	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
 		var result = false
 		var offset = lines.index(index, offsetBy: -2)
@@ -151,6 +157,9 @@ class XcodeLogParser {
 		return result
 	}
 
+	/// Returns the target from the given line
+	/// - Parameter line: the line to parse
+	/// - Returns: the name of the target if one was found, otherwise nil
 	private func target(from line: String) -> String? {
 		if line.contains("Build target ") {
 			var result = line.replacingOccurrences(of: "Build target ", with: "")
@@ -170,6 +179,9 @@ class XcodeLogParser {
 		return nil
 	}
 
+	/// Returns the compiler command from a line, if one exists
+	/// - Parameter line: the line to parse
+	/// - Returns: the compiler command if one was successfully parsed
 	private func compilerCommand(from line: String) -> CompilerCommand? {
 		var stripped = line
 		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {

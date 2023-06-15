@@ -62,7 +62,7 @@ public class PBXProj: Decodable {
 		}
 	}
 
-	/// Fixes `Object`s by unwrapping them and assigning the key that represents them to the reference field
+	/// Fixes `Object`s by unwrapping them and assigning the UUID key that represents them to the reference field
 	private func fixup() {
 		objects.forEach { (key, object) in
 			object.unwrap().reference = key
@@ -70,33 +70,26 @@ public class PBXProj: Decodable {
 	}
 }
 
+/// Helper functions for operating on the project structure
 public extension PBXProj {
+	/// Returns the object for a given key as the given type
+	/// - Parameters:
+	///   - key: the reference key for the object
+	///   - type: the type the object should be cast to
+	/// - Returns: the object, if the reference exists and the type conversion succeeded. Otherwise, nil.
 	func object<T>(forKey key: String, as type: T.Type = T.self) -> T? {
 		objects[key]?.unwrap() as? T
 	}
 
-	func objects<T>(of type: PBXObjectType) -> [T] {
-		objects.compactMap { (_, value) -> T? in
-			let object = value.unwrap()
-
-			if object.isa == type {
-				return object as? T
-			}
-
-			return nil
-		}
-	}
-
-	func objects<T>(of objectType: PBXObjectType, as type: T.Type) -> [T] {
-		objects.compactMap { (_, value) -> T? in
-			let object = value.unwrap()
-
-			if object.isa == objectType {
-				return object as? T
-			}
-
-			return nil
-		}
+	/// Returns all the objects of a given type in the project structure
+	/// - Parameter objectType: the type of objects to find
+	/// - Parameter type: the type to cast the object to
+	/// - Returns: an array of all the typed objects found in the project structure
+	func objects<T>(of objectType: PBXObject.ObjectType, as type: T.Type) -> [T] {
+		objects
+			.map { $1.unwrap() }
+			.filter { $0.isa == objectType }
+			.compactMap { $0 as? T }
 	}
 
 	func project() throws -> PBXProject {
@@ -109,7 +102,10 @@ public extension PBXProj {
 		return project
 	}
 
-	func objects<T>(for identifiers: [String]) -> [T] {
-		identifiers.compactMap { object(forKey: $0) }
+	/// Returns a list of objects for a given list of references
+	/// - Parameter references: a list of references to lookup
+	/// - Returns: a list of objects that matches a reference in the references list
+	func objects<T>(for references: [String]) -> [T] {
+		references.compactMap { object(forKey: $0) }
 	}
 }
