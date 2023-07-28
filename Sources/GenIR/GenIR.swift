@@ -112,42 +112,21 @@ struct IREmitterCommand: ParsableCommand {
 
 	// swiftlint:disable function_parameter_count
 	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
-		// let project = try ProjectParser(path: project, logLevel: level)
-		// var targets = Targets(for: project)
-
-		// let log = try logParser(for: log)
-		// try log.parse(&targets)
-
-		// let buildCacheManipulator = try BuildCacheManipulator(
-		// 	buildCachePath: log.buildCachePath,
-		// 	buildSettings: log.settings,
-		// 	archive: archive
-		// )
-
-		// let runner = CompilerCommandRunner(
-		// 	output: output,
-		// 	buildCacheManipulator: buildCacheManipulator,
-		// 	dryRun: dryRun
-		// )
-		// try runner.run(targets: targets)
-
-		// let postprocessor = try OutputPostprocessor(archive: archive, output: output)
-		// try postprocessor.process(targets: &targets)
 		// TODO: We can't use async parsable commands here as SPM relies on swift-driver which, until Swift 5.9 uses Argument Parser 1.0.3.
 		// Remove these declarations etc when we can use Swift 5.9
-		guard let projectPath = projectPath else {
-			throw ValidationError("Failed to infer project path. Please rerun providing --project-path")
-		}
-		let logPath = logPath
-		let quieter = quieter
-		let outputPath = outputPath
+		let project = project
+		let log = log
+		let archive = archive
+		let output = output
+		let level = level
+		let quieter = dryRun
 
 		let semaphore = DispatchSemaphore(value: 0)
 
 		Task {
-			let project = try await ProjectParser(path: projectPath, logLevel: logger.logLevel)
+			let project = try await ProjectParser(path: project, logLevel: logger.logLevel)
 			var targets = Targets(for: project)
-			let log = try IREmitterCommand.logParser(for: logPath, quieter)
+			let log = try IREmitterCommand.logParser(for: log, quieter)
 			try log.parse(&targets)
 
 			let buildCacheManipulator = try BuildCacheManipulator(
@@ -157,7 +136,7 @@ struct IREmitterCommand: ParsableCommand {
 			)
 
 			let runner = CompilerCommandRunner(
-				output: outputPath,
+				output: output,
 				buildCacheManipulator: buildCacheManipulator,
 				dryRun: dryRun
 			)

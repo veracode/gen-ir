@@ -3,12 +3,12 @@ import XCTest
 import PBXProjParser
 
 final class GenIRTests: XCTestCase {
-	func testManyTargetTestTargets() throws {
+	func testManyTargetTestTargets() async throws {
 		let projectPath = TestContext.baseTestingPath
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("ManyTargetTest")
 			.appendingPathComponent("ManyTargetTest.xcodeproj")
-		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
+		let project = try await ProjectParser(path: projectPath, logLevel: logger.logLevel)
 		let targets = Targets(for: project)
 
 		XCTAssert(targets.count == 3, "Targets count expected to be 3, was \(targets.count)")

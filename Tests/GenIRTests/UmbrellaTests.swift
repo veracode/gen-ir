@@ -18,12 +18,12 @@ final class UmbrellaTests: XCTestCase {
 			"Umbrella.framework": ["GetOrg.bc", "Umbrella_vers.bc"].sorted()
 	]
 
-	func testUmbrellaTargets() throws {
+	func testUmbrellaTargets() async throws {
 		let context = try TestContext()
 		let process = try context.build(test: Self.testPath, scheme: Self.scheme)
 		XCTAssertEqual(process.code, 0, "Failed to build test case")
 
-		let projectParser = try ProjectParser(path: Self.testPath, logLevel: .info)
+		let projectParser = try await ProjectParser(path: Self.testPath, logLevel: .info)
 		let targets = Targets(for: projectParser)
 
 		XCTAssertEqual(targets.count, 4, "Expected 4 targets, got \(targets.count)")
@@ -69,7 +69,7 @@ final class UmbrellaTests: XCTestCase {
 	}
 
 	func testCustomDerivedDataAndSkipInstallNo() throws {
-		let context = try TestContext()
+		let context = try TestContext(podsBuildSystemHack: true)
 		defer { try? FileManager.default.removeItem(at: context.temporaryDirectory) }
 		_ = try context.build(test: Self.testPath, scheme: Self.scheme, additionalArguments: ["SKIP_INSTALL=NO", "-derivedDataPath", "_build"])
 

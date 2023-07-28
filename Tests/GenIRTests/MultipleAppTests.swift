@@ -9,11 +9,11 @@ final class MultipleAppTests: XCTestCase {
 			.appendingPathComponent("MultipleApp.xcodeproj")
 	}()
 
-	func testExpectedTargetLookup() throws {
+	func testExpectedTargetLookup() async throws {
 		let context = try TestContext()
 		let result = try context.build(test: Self.testPath, scheme: "MultipleApp")
 
-		let project: ProjectParser = try ProjectParser(path: Self.testPath, logLevel: .debug)
+		let project: ProjectParser = try await ProjectParser(path: Self.testPath, logLevel: .debug)
 		var targets = Targets(for: project)
 
 		let logContents = try String(contentsOf: context.buildLog).components(separatedBy: .newlines)
