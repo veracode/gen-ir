@@ -96,10 +96,12 @@ public struct XcodeProject {
 	/// - Parameter target: the target to get direct dependencies for
 	private func determineDirectDependencies(_ target: PBXNativeTarget) {
 		// Calculate the native target dependencies
+		logger.debug("Looking for direct dependencies for \(target.name)")
 		target.dependencies
 			.compactMap { model.object(forKey: $0, as: PBXTargetDependency.self) }
 			.compactMap { dependency in
 				if let target = dependency.target {
+					logger.debug("Direct dependency: \(target)")
 					return target
 				}
 
@@ -124,7 +126,7 @@ public struct XcodeProject {
 	/// Determines transitive dependencies by looping through direct dependencies and finding the items they depend on
 	/// - Parameter target: the target to find transitive dependencies for
 	private func determineTransitiveDependencies(_ target: PBXNativeTarget) {
-		logger.debug("Target: \(target.name). Deps: \(target.targetDependencies.map { $0.0 })")
+		logger.debug("Looking for transitive dependencies within Target: \(target.name). Deps: \(target.targetDependencies.map { $0.0 })")
 
 		var targetDependencies = target.targetDependencies.map { $0.1 }
 		var seen = Set<String>()
