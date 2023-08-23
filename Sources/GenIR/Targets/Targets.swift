@@ -69,16 +69,18 @@ struct Targets {
 
 	// TODO: maybe specialize a product vs name lookup for those sweet sweet milliseconds
 	func target(for key: String) -> Target? {
-		if let result = targets.filter({ $0.name == key }).first {
-			return result
+		for target in targets {
+			if target.name == key {
+				return target
+			} else if target.productName == key {
+				return target
+			} else if target.path == key {
+				return target
+			}
 		}
 
-		if let result = targets.filter({ $0.productName == key }).first {
-			return result
-		}
-
-		if let result = targets.filter({ $0.path == key }).first {
-			return result
+		for target in targets where target.nameForOutput.deletingPathExtension() == key {
+			return target
 		}
 
 		return nil

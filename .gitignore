@@ -17,4 +17,4 @@ output/
 *.bc
 *.dia
 _build/
-**/.build/*
+**/.build/

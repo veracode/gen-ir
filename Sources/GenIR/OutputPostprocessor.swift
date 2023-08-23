@@ -28,8 +28,8 @@ struct OutputPostprocessor {
 	/// Starts the OutputPostprocessor
 	/// - Parameter targets: the targets to operate on
 	func  process(targets: inout Targets) throws {
-		let targetsToPaths = try FileManager.default.directories(at: output, recursive: false)
-			.reduce(into: [Target: URL]()) { partialResult, path in
+		try FileManager.default.directories(at: output, recursive: false)
+			.forEach { path in
 				let product = path.lastPathComponent.deletingPathExtension()
 
 				guard let target = targets.target(for: product) else {
@@ -37,18 +37,21 @@ struct OutputPostprocessor {
 					return
 				}
 
-				partialResult[target] = path
+				target.irFolderPath = path
 			}
 
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		_ = try targets.flatMap { target in
-			guard let path = targetsToPaths[target] else {
-				logger.error("Couldn't find path for target: \(target)")
-				return Set<URL>()
-			}
+		_ = try FileManager.default.directories(at: output, recursive: false)
+			.flatMap { path in
+				let product = path.lastPathComponent.deletingPathExtension()
 
-			return try process(target: target, in: targets, at: path, with: targetsToPaths)
-		}
+				guard let target = targets.target(for: product) else {
+					logger.error("Failed to look up target for product: \(product)")
+					return Set<URL>()
+				}
+
+				return try process(target: target, in: targets, at: path/*, with: targetsToPaths*/)
+			}
 	}
 
 	/// Processes an individual target
@@ -61,9 +64,9 @@ struct OutputPostprocessor {
 	private func process(
 		target: Target,
 		in targets: Targets,
-		at path: URL,
-		with targetsToPaths: [Target: URL]
+		at path: URL
 	) throws -> Set<URL> {
+		logger.debug("Processing -- \(target.name)")
 		let dependencies = targets.calculateDependencies(for: target)
 
 		let staticDependencies = dependencies
@@ -76,7 +79,7 @@ struct OutputPostprocessor {
 					return nil
 				}
 
-				guard let dependencyPath = targetsToPaths[dependencyTarget] else {
+				guard let dependencyPath = dependencyTarget.irFolderPath else {
 					logger.debug("Failed to lookup path for target: \(dependencyTarget.name)")
 					return nil
 				}

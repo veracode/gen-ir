@@ -67,6 +67,9 @@ class Target {
 		}
 	}()
 
+	/// The path to the IR folder on disk
+	var irFolderPath: URL?
+
 	init(
 		name: String,
 		backingTarget: BackingTarget? = nil,
