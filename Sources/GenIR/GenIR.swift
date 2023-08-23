@@ -119,7 +119,8 @@ struct IREmitterCommand: ParsableCommand {
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
 			buildSettings: log.settings,
-			archive: archive
+			archive: archive,
+			dryRun: dryRun
 		)
 
 		let runner = CompilerCommandRunner(

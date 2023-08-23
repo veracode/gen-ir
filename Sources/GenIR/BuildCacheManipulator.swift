@@ -8,6 +8,8 @@ struct BuildCacheManipulator {
 	/// Build settings used as part of the build
 	private let buildSettings: [String: String]
 
+	private let dryRun: Bool
+
 	/// Should we run the SKIP_INSTALL hack?
 	private let shouldDeploySkipInstallHack: Bool
 
@@ -19,14 +21,17 @@ struct BuildCacheManipulator {
 		case tooManyDirectories(String)
 	}
 
-	init(buildCachePath: URL, buildSettings: [String: String], archive: URL) throws {
+	init(buildCachePath: URL, buildSettings: [String: String], archive: URL, dryRun: Bool) throws {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
+		self.dryRun = dryRun
 		buildProductsPath = archive
 		shouldDeploySkipInstallHack = self.buildSettings["SKIP_INSTALL"] == "NO"
 
-		guard FileManager.default.directoryExists(at: buildCachePath) else {
-			throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
+		if !dryRun {
+			guard FileManager.default.directoryExists(at: buildCachePath) else {
+				throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
+			}
 		}
 	}
 
