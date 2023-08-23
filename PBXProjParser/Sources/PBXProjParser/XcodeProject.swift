@@ -104,6 +104,30 @@ public struct XcodeProject {
 		target.packageProductDependencies
 			.compactMap { model.object(forKey: $0, as: XCSwiftPackageProductDependency.self) }
 			.forEach { target.add(dependency: .package($0)) }
+
+		// Calculate the dependencies from "Link Binary with Library" build phase
+		let buildFiles = determineBuildPhaseFrameworkDependencies(target, with: model)
+
+		// Now, we have two potential targets - file & package dependencies.
+		// File dependencies will likely have a reference in another Xcode Project. We might not have seen said project yet, so we need to offload discovery until after we've parsed all projects...
+		// Package dependencies will be a swift package - those we can handle easily :)
+
+		// ONE: package dependencies - they are the easiest
+		buildFiles
+			.compactMap { $0.productRef }
+			.compactMap { model.object(forKey: $0, as: XCSwiftPackageProductDependency.self) }
+			.forEach { target.add(dependency: .package($0)) }
+
+		// TWO: Resolve dependencies to... a thing that refers to something in the other project
+		let fileReferences = buildFiles
+			.compactMap { $0.fileRef }
+			.compactMap { model.object(forKey: $0, as: PBXFileReference.self) }
+
+		fileReferences
+			.filter { $0.explicitFileType == "wrapper.framework" }
+			.compactMap { $0.path } // TODO: do we want to last path component the path here? Need to figure out matching...
+			.filter { !$0.contains("System/Library/Frameworks/")} // System frameworks will contain this path
+			.forEach { target.add(dependency: .externalProjectFramework($0)) }
 	}
 
 	/// Determines transitive dependencies by looping through direct dependencies and finding the items they depend on
@@ -164,4 +188,19 @@ public struct XcodeProject {
 
 		return path
 	}
+}
+
+private func determineBuildPhaseFrameworkDependencies(_ target: PBXNativeTarget, with model: PBXProj) -> [PBXBuildFile] {
+	// Find the 'Link Binary with Libraries' build phase
+	let buildPhase = target.buildPhases
+		.compactMap { model.object(forKey: $0, as: PBXFrameworksBuildPhase.self) }
+		.first
+
+	guard let buildPhase else {
+		logger.debug("No PBXFrameworkBuild phase for target: \(target) found, continuing.")
+		return []
+	}
+
+	return buildPhase.files
+		.compactMap { model.object(forKey: $0, as: PBXBuildFile.self) }
 }

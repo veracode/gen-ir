@@ -8,35 +8,39 @@
 import Foundation
 
 public class PBXBuildPhase: PBXObject {
+	public let files: [String]
 #if FULL_PBX_PARSING
 	public let alwaysOutOfDate: String?
 	public let buildActionMask: UInt32
-	public let files: [String]
 	public let runOnlyForDeploymentPostprocessing: Int
+#endif
 
 	private enum CodingKeys: String, CodingKey {
+		case files
+		#if FULL_PBX_PARSING
 		case alwaysOutOfDate
 		case buildActionMask
-		case files
 		case runOnlyForDeploymentPostprocessing
+		#endif
 	}
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
+		#if FULL_PBX_PARSING
 		alwaysOutOfDate = try container.decodeIfPresent(String.self, forKey: .alwaysOutOfDate)
 
 		let mask = try container.decode(String.self, forKey: .buildActionMask)
 		buildActionMask = UInt32(mask) ?? 0
 
-		files = try container.decode([String].self, forKey: .files)
-
 		let flag = try container.decode(String.self, forKey: .runOnlyForDeploymentPostprocessing)
 		runOnlyForDeploymentPostprocessing = Int(flag) ?? 0
+		#endif
+
+		files = try container.decodeIfPresent([String].self, forKey: .files) ?? []
 
 		try super.init(from: decoder)
 	}
-#endif
 }
 
 public class PBXCopyFilesBuildPhase: PBXBuildPhase {

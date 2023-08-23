@@ -8,33 +8,39 @@
 import Foundation
 
 public class PBXBuildFile: PBXObject {
-#if FULL_PBX_PARSING
+	public let productRef: String?
 	public let fileRef: String?
+
+	#if FULL_PBX_PARSING
 	public let platformFilter: String?
 	public let platformFilters: [String]?
-	public let productRef: String?
 	public let settings: [String: Any]?
+	#endif
 
 	private enum CodingKeys: String, CodingKey {
+		case productRef
 		case fileRef
+
+		#if FULL_PBX_PARSING
 		case platformFilter
 		case platformFilters
-		case productRef
 		case settings
+		#endif
 	}
 
 	required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
-
+		productRef = try container.decodeIfPresent(String.self, forKey: .productRef)
 		fileRef = try container.decodeIfPresent(String.self, forKey: .fileRef)
+
+		#if FULL_PBX_PARSING
 		platformFilter = try container.decodeIfPresent(String.self, forKey: .platformFilter)
 		platformFilters = try container.decodeIfPresent([String].self, forKey: .platformFilters)
-		productRef = try container.decodeIfPresent(String.self, forKey: .productRef)
 		settings = try container.decodeIfPresent([String: Any].self, forKey: .settings)
+		#endif
 
 		try super.init(from: decoder)
 	}
-#endif
 }
 
 public class PBXBuildRule: PBXObject {}

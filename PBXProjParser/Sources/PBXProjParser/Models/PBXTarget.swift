@@ -62,9 +62,9 @@ public class PBXLegacyTarget: PBXTarget {}
 
 public class PBXNativeTarget: PBXTarget {
 	#if FULL_PBX_PARSING
-	public let buildPhases: [String]
 	public let productInstallPath: String?
 	#endif
+	public let buildPhases: [String]
 	public let productType: String?
 	public let productReference: String?
 	public let packageProductDependencies: [String]
@@ -74,6 +74,7 @@ public class PBXNativeTarget: PBXTarget {
 	public enum TargetDependency {
 		case native(PBXNativeTarget)
 		case package(XCSwiftPackageProductDependency)
+		case externalProjectFramework(String)
 
 		public var name: String {
 			switch self {
@@ -81,15 +82,17 @@ public class PBXNativeTarget: PBXTarget {
 				return target.name
 			case .package(let package):
 				return package.productName
+			case .externalProjectFramework(let filename):
+				return (filename as NSString).deletingPathExtension
 			}
 		}
 	}
 
 	private enum CodingKeys: String, CodingKey {
 		#if FULL_PBX_PARSING
-		case buildPhases
 		case productInstallPath
 		#endif
+		case buildPhases
 		case productType
 		case productReference
 		case packageProductDependencies
@@ -99,9 +102,9 @@ public class PBXNativeTarget: PBXTarget {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 
 		#if FULL_PBX_PARSING
-		buildPhases = try container.decode([String].self, forKey: .buildPhases)
 		productInstallPath = try container.decodeIfPresent(String.self, forKey: .productInstallPath)
 		#endif
+		buildPhases = try container.decodeIfPresent([String].self, forKey: .buildPhases) ?? []
 		productType = try container.decodeIfPresent(String.self, forKey: .productType)
 		productReference = try container.decodeIfPresent(String.self, forKey: .productReference)
 		packageProductDependencies = try container.decodeIfPresent([String].self, forKey: .packageProductDependencies) ?? []
