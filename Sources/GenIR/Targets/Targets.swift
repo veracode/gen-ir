@@ -89,12 +89,14 @@ struct Targets {
 	// TODO: once we stabilize Targets, this should return a Set<Target> not [String]
 	func calculateDependencies(for target: Target) -> [String] {
 		// TODO: eventually we'd like to move some of the project dependencies calculations here
-		let dependencies = project.dependencies(for: target.name)
+		var dependencies = project.dependencies(for: target.name)
 
 		if dependencies.count == 0, let productName = target.productName {
 			// HACK: once we stabilize Targets to not use one of two potential names, this can be removed...
-			return project.dependencies(for: productName)
+			dependencies = project.dependencies(for: productName)
 		}
+
+		logger.debug("Calculated dependencies for target: \(target.name). Dependencies: \(dependencies)")
 
 		return dependencies
 	}
