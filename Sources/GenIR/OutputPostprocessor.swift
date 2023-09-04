@@ -19,10 +19,14 @@ struct OutputPostprocessor {
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
-	init(archive: URL, output: URL) throws {
+	private let graph: DependencyGraph
+
+	init(archive: URL, output: URL, targets: Targets) throws {
 		self.output = output
 
 		dynamicDependencyToPath = dynamicDependencies(in: archive)
+
+		graph = DependencyGraphBuilder(targets: targets).build()
 	}
 
 	/// Starts the OutputPostprocessor
@@ -66,7 +70,19 @@ struct OutputPostprocessor {
 		in targets: Targets,
 		at path: URL
 	) throws -> Set<URL> {
-		logger.debug("Processing -- \(target.name)")
+
+		// guard let chain = graph.buildChain(for: target) else {
+		// 	logger.debug("Uh oh...")
+		// 	return []
+		// }
+		let chain = graph.search(target)
+
+		logger.info("Chain for target: \(target.name):\n\(chain)")
+
+
+
+
+	logger.debug("Processing -- \(target.name)")
 		let dependencies = targets.calculateDependencies(for: target)
 
 		let staticDependencies = dependencies

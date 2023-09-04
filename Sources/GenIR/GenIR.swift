@@ -130,7 +130,7 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+		let postprocessor = try OutputPostprocessor(archive: archive, output: output, targets: targets)
 		try postprocessor.process(targets: &targets)
 	}
 	// swiftlint:enable function_parameter_count
