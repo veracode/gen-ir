@@ -101,12 +101,20 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	/// - Parameter attributeDict: the attribute dictionary to extract a location attribute from
 	/// - Returns: the path of the location attribute value
 	private func extractLocation(_ attributeDict: [String: String]) -> String? {
-		guard
-			let location = attributeDict["location"],
-			location.starts(with: "group:")
-		else { return nil }
+		guard let location = attributeDict["location"] else { return nil }
 
-		return location.replacingOccurrences(of: "group:", with: "")
+		if location.starts(with: "group:") {
+			return location.replacingOccurrences(of: "group:", with: "")
+		} else if location.starts(with: "container:") {
+			let location = location.replacingOccurrences(of: "container:", with: "")
+
+			if !location.isEmpty { return location }
+
+			// Sometimes, location could be empty, in this case _normally_ you'll have a name attribute
+			return attributeDict["name"]
+		}
+
+		return nil
 	}
 
 	/// Handle a Group tag
