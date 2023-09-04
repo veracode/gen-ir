@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <Group
+      location = "container:Modules"
+      name = "Frameworks">
+      <FileRef
+         location = "group:FrameworkB/FrameworkB.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:FrameworkA/FrameworkA.xcodeproj">
+      </FileRef>
+   </Group>
+   <FileRef
+      location = "group:App/App.xcodeproj">
+   </FileRef>
+</Workspace>
