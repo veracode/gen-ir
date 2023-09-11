@@ -7,8 +7,6 @@ excluded:
   - TestAssets/
 
 line_length:
-  warning: 150
+  warning: 200
   ignores_comments: true
-
-disabled_rules:
-  - todo
+todo: false

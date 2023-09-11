@@ -60,7 +60,7 @@ extension FileManager {
 	///   - path: The path of the directory to search in
 	///   - suffix: The suffix to match against file names
 	///   - recursive: A Boolean value to indicate whether a recursive search should be performed
-	/// - Returns: An array of URL file paths matching the suffix found in the specifed path
+	/// - Returns: An array of URL file paths matching the suffix found in the specified path
 	func files(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
 		try filteredContents(of: path, recursive: recursive) { url in
 			let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
@@ -156,7 +156,9 @@ extension FileManager {
 		if let type = attributes[.type] as? FileAttributeType, type == .typeSymbolicLink {
 			let destination = try destinationOfSymbolicLink(atPath: path.filePath)
 			// swiftlint:disable identifier_name
-			let actualDestinationCausePathingSucksInFoundation = path.deletingLastPathComponent().appendingPathComponent(destination)
+			let actualDestinationCausePathingSucksInFoundation = path
+				.deletingLastPathComponent()
+				.appendingPathComponent(destination)
 			// swiftlint:enable identifier_name
 			return fileExists(atPath: actualDestinationCausePathingSucksInFoundation.filePath)
 		}
