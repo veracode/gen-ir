@@ -6,23 +6,25 @@
 //
 
 class DependencyGraphBuilder {
-	let targets: Targets
-
-	init(targets: Targets) {
-		self.targets = targets
-	}
-
-	func build() -> DependencyGraph {
+	/// Builds a dependency graph for the given collection of targets
+	/// - Parameter targets: the targets to build a graph for
+	/// - Returns: the dependency graph
+	static func build(targets: Targets) -> DependencyGraph {
 		let graph = DependencyGraph()
 
 		for target in targets {
-			addToGraph(graph, target: target)
+			add(target: target, in: targets, to: graph)
 		}
 
 		return graph
 	}
 
-	func addToGraph(_ graph: DependencyGraph, target: Target) {
+	/// Adds a target (and it's dependencies) to the graph
+	/// - Parameters:
+	///   - graph: the graph to add a target to
+	///   - target: the target to add
+	///   - targets: the targets containing the target and it's dependencies
+	static func add(target: Target, in targets: Targets, to graph: DependencyGraph) {
 		logger.debug("Adding target: \(target.name) to graph")
 
 		guard let node = graph.addNode(target: target) else {
@@ -38,14 +40,15 @@ class DependencyGraphBuilder {
 				continue
 			}
 
-			addToGraph(graph, target: dependencyTarget)
+			add(target: dependencyTarget, in: targets, to: graph)
 
 			guard let dependencyNode = graph.findNode(for: dependencyTarget) else {
 				logger.debug("Couldn't find node for target (\(dependencyTarget.name)) even though it was just inserted?")
 				continue
 			}
 
-			node.add(neighbor: .init(neighbor: dependencyNode))
+			node.add(edge: .init(to: dependencyNode, from: node, relationship: .dependency))
+			dependencyNode.add(edge: .init(to: node, from: dependencyNode, relationship: .depender))
 		}
 	}
 }

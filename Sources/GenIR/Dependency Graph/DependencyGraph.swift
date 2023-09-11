@@ -5,11 +5,18 @@
 //  Created by Thomas Hedderwick on 28/08/2023.
 //
 
+import Logging
+
+
+/// A directed graph that maps dependencies between targets (nodes) via edges (directions between nodes)
 class DependencyGraph {
+	/// All the nodes in the graph
 	private(set) var nodes: [Node] = []
 
+	/// Adds a target to the graph
+	/// - Parameter target: the target to add
+	/// - Returns: the node added, iff a node for this target didn't already exist in the graph
 	func addNode(target: Target) -> Node? {
-		// Don't add nodes we've already added
 		if findNode(for: target) != nil {
 			return nil
 		}
@@ -19,15 +26,17 @@ class DependencyGraph {
 		return node
 	}
 
-	func addEdge(from source: Node, to destination: Node) {
-		source.add(neighbor: .init(neighbor: destination))
-	}
-
+	/// Finds a target's node in the graph
+	/// - Parameter target: the target to look for
+	/// - Returns: the node for the given target, if found
 	func findNode(for target: Target) -> Node? {
 		nodes.first(where: { $0.target == target })
 	}
 
-	func search(_ target: Target) -> [Node] {
+	/// Builds a dependency 'chain' for a target using a depth-first search
+	/// - Parameter target: the target to get a chain for
+	/// - Returns: the chain of nodes, starting
+	func chain(for target: Target) -> [Node] {
 		guard let targetNode = findNode(for: target) else {
 			logger.debug("Couldn't find node for target: \(target.name)")
 			return []
@@ -36,64 +45,34 @@ class DependencyGraph {
 		return depthFirstSearch(startingAt: targetNode)
 	}
 
-	func depthFirstSearch(startingAt node: Node) -> [Node] {
-		logger.info("----\nSearching for: \(node.target.name)")
+	/// Perform a depth-first search starting at the provided node
+	/// - Parameter node: the node whose children to search through
+	/// - Returns: an array of nodes ordered by a depth-first search approach
+	private func depthFirstSearch(startingAt node: Node) -> [Node] {
+		logger.debug("----\nSearching for: \(node.target.name)")
 		var visited = Set<Node>()
 		var chain = [Node]()
 
 		func depthFirst(node: Node) {
-			logger.info("inserting node: \(node.target.name)")
+			logger.debug("inserting node: \(node.target.name)")
 			visited.insert(node)
-			logger.info("visited: \(visited)")
+			logger.debug("visited: \(visited)")
 
-			for edge in node.neighbors {
-				logger.info("edge to: \(edge.neighbor)")
-				if visited.insert(edge.neighbor).inserted {
-					logger.info("inserted, recursing")
-					depthFirst(node: edge.neighbor)
+			for edge in node.edges {
+				logger.debug("edge to: \(edge.to)")
+				if visited.insert(edge.to).inserted {
+					logger.debug("inserted, recursing")
+					depthFirst(node: edge.to)
 				} else {
-					logger.info("edge already in visited: \(visited)")
+					logger.debug("edge already in visited: \(visited)")
 				}
 			}
 
-			logger.info("appending to chain: \(node.target.name)")
+			logger.debug("appending to chain: \(node.target.name)")
 			chain.append(node)
 		}
 
 		depthFirst(node: node)
-		return chain
-	}
-
-
-
-	/// Builds a dependency chain in the order of which dependencies should be operated on
-	/// - Parameter target: the target to build a chain for
-	/// - Returns: an array of nodes, ordered in the way they should be operated on
-	func buildChain(for target: Target) -> [Node]? {
-		guard let targetNode = findNode(for: target) else {
-			logger.debug("Couldn't find node for target: \(target.name)")
-			return nil
-		}
-
-		func depthFirst(startingAt node: Node, visited: inout Set<Node>) -> [Node] {
-			logger.debug("search ------\nstart: \(node). Visited: \(visited)")
-			var chain = [node]
-			visited.insert(node)
-
-			for edge in node.neighbors where visited.insert(edge.neighbor).inserted {
-				logger.debug("found edge: \(edge.neighbor).")
-				chain += depthFirst(startingAt: edge.neighbor, visited: &visited)
-			}
-
-			return chain
-		}
-
-		/// do a depth first search
-		var visited = Set<Node>()
-		let chain = depthFirst(startingAt: targetNode, visited: &visited)
-
-		print("chain: \(chain)")
-
 		return chain
 	}
 }

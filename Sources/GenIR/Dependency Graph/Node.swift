@@ -8,25 +8,28 @@
 import Foundation
 
 class Node {
-	private(set) var neighbors: [Edge] = []
+	/// The edges from and to this node
+	private(set) var edges = [Edge]()
+	/// The target this node represents
 	let target: Target
+	/// The name of this node, mostly used for debugging and printing
 	let name: String
-	let uuid: UUID
 
 	init(_ target: Target) {
 		self.target = target
 		self.name = target.name
-		self.uuid = UUID()
 	}
 
-	func add(neighbor: Edge) {
-		neighbors.append(neighbor)
+	/// Adds an edge to this node
+	/// - Parameter edge: the edge to add
+	func add(edge: Edge) {
+		edges.append(edge)
 	}
 }
 
 extension Node: Equatable {
 	static func == (_ lhs: Node, rhs: Node) -> Bool {
-		lhs.target == rhs.target && lhs.neighbors == rhs.neighbors
+		lhs.target == rhs.target && lhs.edges == rhs.edges
 	}
 }
 
@@ -34,8 +37,8 @@ extension Node: CustomStringConvertible {
 	var description: String {
 		var description = ""
 
-		if !neighbors.isEmpty {
-			description += "[Node: \(target.name), edges: \(neighbors.map { $0.neighbor.target.name})] "
+		if !edges.isEmpty {
+			description += "[Node: \(target.name), edges: \(edges.map { $0.to.target.name})] "
 		} else {
 			description += "[Node: \(target.name)] "
 		}
@@ -46,6 +49,7 @@ extension Node: CustomStringConvertible {
 
 extension Node: Hashable {
 	func hash(into hasher: inout Hasher) {
-		hasher.combine(uuid)
+		hasher.combine(name)
+		hasher.combine(target)
 	}
 }

@@ -24,9 +24,9 @@ struct OutputPostprocessor {
 	init(archive: URL, output: URL, targets: Targets) throws {
 		self.output = output
 
-		dynamicDependencyToPath = dynamicDependencies(in: archive)
+		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
 
-		graph = DependencyGraphBuilder(targets: targets).build()
+		graph = DependencyGraphBuilder.build(targets: targets)
 	}
 
 	/// Starts the OutputPostprocessor
@@ -54,57 +54,58 @@ struct OutputPostprocessor {
 					return Set<URL>()
 				}
 
-				return try process(target: target, in: targets, at: path/*, with: targetsToPaths*/)
+				return try process(target: target)
 			}
 	}
 
 	/// Processes an individual target
 	/// - Parameters:
 	///   - target: the target to process
-	///   - targets: a list of all targets
 	///   - path: the output path
-	///   - targetsToPaths: a map of targets to their IR folder paths
 	/// - Returns:
 	private func process(
-		target: Target,
-		in targets: Targets,
-		at path: URL
+		target: Target
 	) throws -> Set<URL> {
-
-		// guard let chain = graph.buildChain(for: target) else {
-		// 	logger.debug("Uh oh...")
-		// 	return []
-		// }
-		let chain = graph.search(target)
+		let chain = graph.chain(for: target)
 
 		logger.info("Chain for target: \(target.name):\n\(chain)")
 
+		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
+		var processed = Set<URL>()
 
+		for node in chain {
+			logger.debug("Processing Node: \(node.name)")
+			// Ensure node is not a dynamic dependency
+			guard dynamicDependencyToPath[node.target.nameForOutput] == nil else { continue }
 
+			// Only care about moving dependencies into dependers - check this node's edges to dependent relationships
+			let dependers = node.edges
+				.filter { $0.relationship == .depender }
+				.map { $0.to }
 
-	logger.debug("Processing -- \(target.name)")
-		let dependencies = targets.calculateDependencies(for: target)
-
-		let staticDependencies = dependencies
-			.filter { dynamicDependencyToPath[$0] == nil }
-
-		let processedPaths = try staticDependencies
-			.compactMap { product -> URL? in
-				guard let dependencyTarget = targets.target(for: product) else {
-					logger.debug("Failed to lookup target for product: \(product)")
-					return nil
-				}
-
-				guard let dependencyPath = dependencyTarget.irFolderPath else {
-					logger.debug("Failed to lookup path for target: \(dependencyTarget.name)")
-					return nil
-				}
-
-				try FileManager.default.copyItemMerging(at: dependencyPath, to: path)
-				return dependencyPath
+			// Move node's IR into depender's IR folder
+			guard let nodeFolderPath = node.target.irFolderPath else {
+				logger.debug("IR folder for node: \(node) is nil")
+				continue
 			}
 
-		return Set(processedPaths)
+			for depender in dependers {
+				guard let dependerFolderPath = depender.target.irFolderPath else {
+					logger.debug("IR folder for depender node \(depender) is nil")
+					continue
+				}
+
+				// Move the dependency IR (the node) to the depender (the thing depending on this node)
+				do {
+					try FileManager.default.copyItemMerging(at: nodeFolderPath, to: dependerFolderPath, replacing: true)
+				} catch {
+					logger.debug("Copy error: \(error)")
+				}
+				processed.insert(nodeFolderPath)
+			}
+		}
+
+		return processed
 	}
 }
 
