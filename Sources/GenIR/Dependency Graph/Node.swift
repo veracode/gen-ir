@@ -38,7 +38,7 @@ extension Node: CustomStringConvertible {
 		var description = ""
 
 		if !edges.isEmpty {
-			description += "[Node: \(target.name), edges: \(edges.map { $0.to.target.name})] "
+			description += "[Node: \(target.name), edges: \(edges.filter({ $0.relationship == .dependency }).map { $0.to.target.name})] "
 		} else {
 			description += "[Node: \(target.name)] "
 		}
