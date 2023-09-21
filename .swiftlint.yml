@@ -6,7 +6,9 @@ excluded:
   - GenIRLogging/.build/
   - TestAssets/
 
+disabled_rules:
+  - todo
+
 line_length:
   warning: 200
   ignores_comments: true
-todo: false

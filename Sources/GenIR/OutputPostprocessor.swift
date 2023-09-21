@@ -68,7 +68,8 @@ struct OutputPostprocessor {
 	) throws -> Set<URL> {
 		let chain = graph.chain(for: target)
 
-		logger.info("Chain for target: \(target.name):\n\(chain)")
+		logger.info("Chain for target: \(target.nameForOutput):\n")
+		chain.forEach { logger.info("\($0)") }
 
 		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
 		var processed = Set<URL>()

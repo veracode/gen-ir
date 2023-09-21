@@ -12,8 +12,8 @@ class DependencyGraphBuilder {
 	static func build(targets: Targets) -> DependencyGraph {
 		let graph = DependencyGraph()
 
-		for target in targets {
-			add(target: target, in: targets, to: graph)
+		targets.forEach {
+			add(target: $0, in: targets, to: graph)
 		}
 
 		return graph
@@ -47,6 +47,8 @@ class DependencyGraphBuilder {
 				continue
 			}
 
+			// We add both an edge from and to the node and dependency - this way we can do bidirectional
+			// searches for a given node and see what it's dependencies are and who depends on it
 			node.add(edge: .init(to: dependencyNode, from: node, relationship: .dependency))
 			dependencyNode.add(edge: .init(to: node, from: dependencyNode, relationship: .depender))
 		}

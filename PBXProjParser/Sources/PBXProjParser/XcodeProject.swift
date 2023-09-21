@@ -149,14 +149,18 @@ public struct XcodeProject {
 
 			seen.insert(dependency.name)
 
-			if case .native(let native) = dependency {
-				logger.debug("Adding native dependency: \(dependency.name), deps: \(native.targetDependencies.map { $0.0 })")
-				targetDependencies.append(contentsOf: native.targetDependencies.map { $0.1 })
-				native.targetDependencies.forEach { target.add(dependency: $0.1) }
-			} else {
+			switch dependency {
+			case .native(let nativeTarget):
+				logger.debug("Adding native dependency: \(dependency.name), deps: \(nativeTarget.targetDependencies.map { $0.0 })")
+				targetDependencies.append(contentsOf: nativeTarget.targetDependencies.map { $0.1 })
+				nativeTarget.targetDependencies.forEach { target.add(dependency: $0.1) }
+			case .package:
 				// Packages don't have a transitive dependency field like native targets do, so we can't find dependency of a dependency from the project file
 				logger.debug("Adding package dependency: \(dependency.name)")
 				target.add(dependency: dependency)
+			case .externalProjectFramework:
+				// Can't move IR dependencies for prebuilt frameworks
+				continue
 			}
 		}
 

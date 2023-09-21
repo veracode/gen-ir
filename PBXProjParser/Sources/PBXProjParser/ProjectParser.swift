@@ -87,11 +87,16 @@ public struct ProjectParser {
 		return target.targetDependencies
 			.values
 			.map { dependency in
-				if case .native(let native) = dependency, let path = project.path(for: native) {
-					return path
-				}
+				switch dependency {
+				case .native(let target):
+					if let path = project.path(for: target) {
+						return path
+					}
 
-				return dependency.name
+					fallthrough
+				default:
+					return dependency.name
+				}
 			}
 	}
 

@@ -32,7 +32,7 @@ class Edge {
 
 extension Edge: Equatable {
 	static func == (_ lhs: Edge, rhs: Edge) -> Bool {
-		lhs.to == rhs.to && lhs.from == rhs.from
+		lhs.to == rhs.to && lhs.from == rhs.from && lhs.relationship == rhs.relationship
 	}
 }
 

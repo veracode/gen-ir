@@ -5,9 +5,6 @@
 //  Created by Thomas Hedderwick on 28/08/2023.
 //
 
-import Logging
-
-
 /// A directed graph that maps dependencies between targets (nodes) via edges (directions between nodes)
 class DependencyGraph {
 	/// All the nodes in the graph
