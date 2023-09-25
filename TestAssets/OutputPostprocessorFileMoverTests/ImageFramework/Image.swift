@@ -10,7 +10,7 @@ import SwiftUI
 public struct Image: View {
 	@inline(never)
 	public var body: some View {
-		Text("Pretend I'm an Image - Library")
+		Text("Pretend I'm an Image - Framework")
 	}
 
 	public init () {}

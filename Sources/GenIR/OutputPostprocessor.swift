@@ -179,13 +179,7 @@ class OutputPostprocessor {
 			return
 		}
 
-		// if sourceSize == destinationSize {
-		// 	// Ignore the file
-		// 	logger.debug("Ignoring copy of: \(destination.lastPathComponent) as the sizes are the same")
-		// 	return
-		// }
-
-		let uniqueDestinationURL = manager.uniqueFilename(directory: destination, filename: source.lastPathComponent)
+		let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
 		// TODO: Should we use all file attributes here? What about created date etc?
 		if seenConflictingFiles[source] == nil {
@@ -194,10 +188,10 @@ class OutputPostprocessor {
 
 		for (_, size) in seenConflictingFiles[source]! where size == destinationSize {
 			logger.debug("Ignoring copy of: \(destination.lastPathComponent) as the sizes where the same")
-			continue
+			return
 		}
 
-		seenConflictingFiles[source]?.append((uniqueDestinationURL.lastPathComponent, destinationSize))
+		seenConflictingFiles[source]!.append((uniqueDestinationURL.lastPathComponent, destinationSize))
 
 		try manager.copyItem(at: source, to: uniqueDestinationURL)
 	}
