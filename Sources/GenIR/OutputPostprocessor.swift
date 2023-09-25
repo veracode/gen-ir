@@ -8,6 +8,8 @@
 import Foundation
 import PBXProjParser
 
+private typealias FilenameAndSize = (String, Int)
+
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
 /// The `OutputPostprocessor` attempts to remedy this by using the `ProjectParser` to detect dependencies between products AND
@@ -21,7 +23,9 @@ class OutputPostprocessor {
 
 	private let graph: DependencyGraph
 
-	private var seenConflictingFiles: [URL: [(String, Int)]] = [:]
+	private var seenConflictingFiles: [URL: [FilenameAndSize]] = [:]
+
+	private let manager: FileManager = .default
 
 	init(archive: URL, output: URL, targets: Targets) throws {
 		self.output = output
@@ -34,7 +38,7 @@ class OutputPostprocessor {
 	/// Starts the OutputPostprocessor
 	/// - Parameter targets: the targets to operate on
 	func  process(targets: inout Targets) throws {
-		try FileManager.default.directories(at: output, recursive: false)
+		try manager.directories(at: output, recursive: false)
 			.forEach { path in
 				let product = path.lastPathComponent.deletingPathExtension()
 
@@ -47,7 +51,7 @@ class OutputPostprocessor {
 			}
 
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		_ = try FileManager.default.directories(at: output, recursive: false)
+		_ = try manager.directories(at: output, recursive: false)
 			.flatMap { path in
 				let product = path.lastPathComponent.deletingPathExtension()
 
@@ -100,8 +104,7 @@ class OutputPostprocessor {
 
 				// Move the dependency IR (the node) to the depender (the thing depending on this node)
 				do {
-					try copyDirectoryMergingDifferingFiles(at: nodeFolderPath, to: dependerFolderPath)
-					// try FileManager.default.copyItemMerging(at: nodeFolderPath, to: dependerFolderPath, replacing: true)
+					try copyContentsOfDirectoryMergingDifferingFiles(at: nodeFolderPath, to: dependerFolderPath)
 				} catch {
 					logger.debug("Copy error: \(error)")
 				}
@@ -112,11 +115,54 @@ class OutputPostprocessor {
 		return processed
 	}
 
-	// TODO: rework this file to not have side effects and make it more readable...
-	func copyDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
-		let manager = FileManager.default
+	// TODO: Write tests for this.
+	/// Copies the contents of a directory from source to destination, merging files that share the same name but differ in attributes
+	/// - Parameters:
+	///   - source: the source directory to copy the contents of
+	///   - destination: the destination directory for the contents
+	func copyContentsOfDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
 		let files = try manager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
+		// Get two arrays of file paths of the source and destination file where:
+		//  1) destination already exists
+		//  2) destination doesn't already exist
+		typealias SourceAndDestination = (source: URL, destination: URL)
+		let (existing, nonexisting) = files
+			.map {
+				(
+					source: source.appendingPathComponent($0.lastPathComponent),
+					destination: destination.appendingPathComponent($0.lastPathComponent)
+				)
+			}
+			.reduce(into: (existing: [SourceAndDestination](), nonexisting: [SourceAndDestination]())) { (partialResult, sourceAndDestination) in
+				if manager.fileExists(atPath: sourceAndDestination.destination.filePath) {
+					partialResult.existing.append(sourceAndDestination)
+				} else {
+					partialResult.nonexisting.append(sourceAndDestination)
+				}
+			}
+
+		// Nonexisting files are easy - just move them
+		try nonexisting
+			.forEach { (source, destination) in
+				try manager.copyItem(at: source, to: destination)
+			}
+
+		// Existing files require some additional checks and renaming
+		try existing
+			.forEach {
+				try copyFileUniquingConflictingFiles(source: $0.source, destination: $0.destination)
+			}
+	}
+
+	/// Copies a file, uniquing the path if it conflicts, _if_ the files they conflict with aren't the same size
+	/// - Parameters:
+	///   - source: source file path
+	///   - destination: destination file path
+	private func copyFileUniquingConflictingFiles(source: URL, destination: URL) throws {
+		/// Returns the size of the path. Throws is attributes cannot be found for this file path.
+		/// - Parameter path: the path to get the file size of
+		/// - Returns: the size of the file at path, if it was able to be converted to an integer
 		func size(for path: URL) throws -> Int? {
 			do {
 				return try manager.attributesOfItem(atPath: path.filePath)[.size] as? Int
@@ -126,56 +172,34 @@ class OutputPostprocessor {
 			}
 		}
 
-		let (existing, nonexisting) = files
-			.map {
-				(source: source.appendingPathComponent($0.lastPathComponent), destination: destination.appendingPathComponent($0.lastPathComponent))
-			}
-			.reduce(into: (existing: [(source: URL, destination: URL)](), nonexisting: [(source: URL, destination: URL)]())) { (partialResult, sourceAndDestination) in
-				if manager.fileExists(atPath: sourceAndDestination.destination.filePath) {
-					partialResult.existing.append(sourceAndDestination)
-				} else {
-					partialResult.nonexisting.append(sourceAndDestination)
-				}
-			}
-
-		// Files that don't already exist at the destination can be moved over easily
-		try nonexisting
-			.forEach { (source, destination) in
-				try manager.copyItem(at: source, to: destination)
-			}
-
-		// Files that do exist require some additional checks, and potentially renaming
-		for (sourceURL, destinationURL) in existing {
-			guard
-				let destinationSize = try size(for: destinationURL),
-				let sourceSize = try size(for: sourceURL)
-			else {
-				continue
-			}
-
-			if sourceSize == destinationSize {
-				// Ignore the file
-				logger.debug("Ignoring copy of: \(destinationURL.lastPathComponent) as the sizes are the same")
-				continue
-			}
-
-			// Unique the file name
-			let uniqueDestinationURL = manager.uniqueFilename(directory: destination, filename: sourceURL.lastPathComponent)
-
-			// TODO: Should we use all file attributes here? What about created date etc?
-			if seenConflictingFiles[sourceURL] == nil {
-				seenConflictingFiles[sourceURL] = [(sourceURL.lastPathComponent, sourceSize)]
-			}
-
-			for (_, size) in seenConflictingFiles[sourceURL]! where size == destinationSize {
-				logger.debug("Ignoring copy of: \(destinationURL.lastPathComponent) as the sizes where the same")
-				continue
-			}
-
-			seenConflictingFiles[sourceURL]?.append((uniqueDestinationURL.lastPathComponent, destinationSize))
-
-			try manager.copyItem(at: sourceURL, to: uniqueDestinationURL)
+		guard
+			let destinationSize = try size(for: destination),
+			let sourceSize = try size(for: source)
+		else {
+			return
 		}
+
+		// if sourceSize == destinationSize {
+		// 	// Ignore the file
+		// 	logger.debug("Ignoring copy of: \(destination.lastPathComponent) as the sizes are the same")
+		// 	return
+		// }
+
+		let uniqueDestinationURL = manager.uniqueFilename(directory: destination, filename: source.lastPathComponent)
+
+		// TODO: Should we use all file attributes here? What about created date etc?
+		if seenConflictingFiles[source] == nil {
+			seenConflictingFiles[source] = [(source.lastPathComponent, sourceSize)]
+		}
+
+		for (_, size) in seenConflictingFiles[source]! where size == destinationSize {
+			logger.debug("Ignoring copy of: \(destination.lastPathComponent) as the sizes where the same")
+			continue
+		}
+
+		seenConflictingFiles[source]?.append((uniqueDestinationURL.lastPathComponent, destinationSize))
+
+		try manager.copyItem(at: source, to: uniqueDestinationURL)
 	}
 }
 

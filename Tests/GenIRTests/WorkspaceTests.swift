@@ -61,7 +61,6 @@ final class WorkspaceTests: XCTestCase {
 			project: Self.testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
-			output: output,
 			level: .debug,
 			dryRun: false
 		)
