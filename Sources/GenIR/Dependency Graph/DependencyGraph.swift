@@ -5,6 +5,8 @@
 //  Created by Thomas Hedderwick on 28/08/2023.
 //
 
+import Foundation
+
 /// A directed graph that maps dependencies between targets (nodes) via edges (directions between nodes)
 class DependencyGraph {
 	/// All the nodes in the graph
@@ -40,6 +42,19 @@ class DependencyGraph {
 		}
 
 		return depthFirstSearch(startingAt: targetNode)
+	}
+
+	func toDot(_ path: String) throws {
+		var contents = "digraph DependencyGraph {\n"
+
+		for node in nodes {
+			for edge in node.edges.filter({ $0.relationship == .dependency }) {
+				contents.append("\(node.name.replacingOccurrences(of: "-", with: "_")) -> \(edge.to.name.replacingOccurrences(of: "-", with: "_"))\n")
+			}
+		}
+
+		contents.append("}")
+		try contents.write(toFile: path, atomically: true, encoding: .utf8)
 	}
 
 	/// Perform a depth-first search starting at the provided node

@@ -59,6 +59,9 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Runs the tool without outputting IR to disk (i.e. leaving out the compiler command runner stage)")
 	var dryRun = false
 
+	@Flag(help: "Output the dependency graph as .dot files to the output directory - debug only")
+	var dumpDependencyGraph = false
+
 	mutating func validate() throws {
 		if debug {
 			logger.logLevel = .debug
@@ -121,7 +124,12 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output, targets: targets)
+		let postprocessor = try OutputPostprocessor(
+			archive: archive,
+			output: output,
+			targets: targets,
+			dumpGraph: dumpDependencyGraph
+		)
 		try postprocessor.process(targets: &targets)
 	}
 

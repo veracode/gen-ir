@@ -8,7 +8,7 @@
 import Foundation
 import PBXProjParser
 
-private typealias FilenameAndSize = (String, Int)
+private typealias SizeAndCreation = (Int, Date)
 
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
@@ -23,16 +23,23 @@ class OutputPostprocessor {
 
 	private let graph: DependencyGraph
 
-	private var seenConflictingFiles: [URL: [FilenameAndSize]] = [:]
+	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
 
 	private let manager: FileManager = .default
 
-	init(archive: URL, output: URL, targets: Targets) throws {
+	init(archive: URL, output: URL, targets: Targets, dumpGraph: Bool) throws {
 		self.output = output
 
 		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
 
 		graph = DependencyGraphBuilder.build(targets: targets)
+		if dumpGraph {
+			do {
+				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
+			} catch {
+				logger.error("toDot error: \(error)")
+			}
+		}
 	}
 
 	/// Starts the OutputPostprocessor
@@ -74,8 +81,8 @@ class OutputPostprocessor {
 	) throws -> Set<URL> {
 		let chain = graph.chain(for: target)
 
-		logger.info("Chain for target: \(target.nameForOutput):\n")
-		chain.forEach { logger.info("\($0)") }
+		logger.debug("Chain for target: \(target.nameForOutput):\n")
+		chain.forEach { logger.debug("\($0)") }
 
 		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
 		var processed = Set<URL>()
@@ -160,48 +167,39 @@ class OutputPostprocessor {
 	///   - source: source file path
 	///   - destination: destination file path
 	private func copyFileUniquingConflictingFiles(source: URL, destination: URL) throws {
-		/// Returns the size of the path. Throws is attributes cannot be found for this file path.
-		/// - Parameter path: the path to get the file size of
-		/// - Returns: the size of the file at path, if it was able to be converted to an integer
-		func size(for path: URL) throws -> Int? {
-			do {
-				return try manager.attributesOfItem(atPath: path.filePath)[.size] as? Int
-			} catch {
-				logger.debug("Couldn't get size attribute for path: \(path.filePath)")
-				throw error
-			}
-		}
+		let destinationAttributes = try manager.attributesOfItem(atPath: destination.filePath)
+		let sourceAttributes = try manager.attributesOfItem(atPath: source.filePath)
 
 		guard
-			let destinationSize = try size(for: destination),
-			let sourceSize = try size(for: source)
+			let destinationSize = destinationAttributes[.size] as? Int,
+			let sourceSize = sourceAttributes[.size] as? Int,
+			let destinationCreatedDate = destinationAttributes[.creationDate] as? Date,
+			let sourceCreatedDate = sourceAttributes[.creationDate] as? Date
 		else {
+			logger.debug("Failed to get attributes for source: \(source) & destination: \(destination)")
 			return
 		}
 
 		let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
-		// TODO: Should we use all file attributes here? What about created date etc?
 		if seenConflictingFiles[source] == nil {
-			seenConflictingFiles[source] = [(source.lastPathComponent, sourceSize)]
+			seenConflictingFiles[source] = [(sourceSize, sourceCreatedDate)]
 		}
 
-		for (_, size) in seenConflictingFiles[source]! where size == destinationSize {
-			logger.debug("Ignoring copy of: \(destination.lastPathComponent) as the sizes where the same")
+		for (size, date) in seenConflictingFiles[source]! where size == destinationSize && date == destinationCreatedDate {
 			return
 		}
 
-		seenConflictingFiles[source]!.append((uniqueDestinationURL.lastPathComponent, destinationSize))
-
+		seenConflictingFiles[source]!.append((destinationSize, destinationCreatedDate))
+		logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
 		try manager.copyItem(at: source, to: uniqueDestinationURL)
 	}
 }
 
-// swiftlint:disable private_over_fileprivate
 /// Returns a map of dynamic objects in the provided path
 /// - Parameter xcarchive: the path to search through
 /// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
-fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
+private func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 	let searchPath = baseSearchPath(startingAt: xcarchive)
 	logger.debug("Using search path for dynamic dependencies: \(searchPath)")
 
@@ -220,7 +218,7 @@ fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 /// Returns the base URL to start searching inside an xcarchive
 /// - Parameter path: the original path, should be an xcarchive
 /// - Returns: the path to start a dependency search from
-fileprivate func baseSearchPath(startingAt path: URL) -> URL {
+private func baseSearchPath(startingAt path: URL) -> URL {
 	let productsPath = path.appendingPathComponent("Products")
 	let applicationsPath = productsPath.appendingPathComponent("Applications")
 	let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
@@ -250,4 +248,3 @@ fileprivate func baseSearchPath(startingAt path: URL) -> URL {
 	logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
 	return productsPath
 }
-// swiftlint:enable private_over_fileprivate

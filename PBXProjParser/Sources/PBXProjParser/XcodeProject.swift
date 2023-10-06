@@ -42,11 +42,8 @@ public struct XcodeProject {
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
-		// First pass - get all the direct dependencies
+		// get all the direct dependencies
 		targets.forEach { determineDirectDependencies($0) }
-
-		// Second pass - get all the transitive dependencies
-		targets.forEach { determineTransitiveDependencies($0) }
 
 		targets.forEach { target in
 			logger.debug("target: \(target.name). Dependencies: \(target.targetDependencies.map { $0.1.name })")
@@ -105,8 +102,13 @@ public struct XcodeProject {
 			.compactMap { model.object(forKey: $0, as: XCSwiftPackageProductDependency.self) }
 			.forEach { target.add(dependency: .package($0)) }
 
+		// Calculate dependencies from "Embed Frameworks" copy files build phase
+		let embeddedFrameworks = determineEmbeddedFrameworksDependencies(target, with: model)
+
 		// Calculate the dependencies from "Link Binary with Library" build phase
-		let buildFiles = determineBuildPhaseFrameworkDependencies(target, with: model)
+		let linkLibraries = determineBuildPhaseFrameworkDependencies(target, with: model)
+
+		let buildFiles = embeddedFrameworks + linkLibraries
 
 		// Now, we have two potential targets - file & package dependencies.
 		// File dependencies will likely have a reference in another Xcode Project. We might not have seen said project yet, so we need to offload discovery until after we've parsed all projects...
@@ -205,6 +207,25 @@ private func determineBuildPhaseFrameworkDependencies(_ target: PBXNativeTarget,
 		return []
 	}
 
-	return buildPhase.files
+	return buildPhase
+		.files
 		.compactMap { model.object(forKey: $0, as: PBXBuildFile.self) }
+}
+
+private func determineEmbeddedFrameworksDependencies(_ target: PBXNativeTarget, with model: PBXProj) -> [PBXBuildFile] {
+	// Find the "Embed Frameworks" build phase (copy files build phase)
+	let buildPhases = target
+		.buildPhases
+		.compactMap { model.object(forKey: $0, as: PBXCopyFilesBuildPhase.self) }
+
+	return buildPhases
+		.flatMap { $0.files }
+		.compactMap { model.object(forKey: $0, as: PBXBuildFile.self) }
+		.filter { file in
+			guard let ref = file.fileRef else { return false }
+			guard let object = model.object(forKey: ref, as: PBXFileReference.self) else { return false }
+			guard object.explicitFileType == "wrapper.framework" else { return false }
+
+			return true
+		}
 }
