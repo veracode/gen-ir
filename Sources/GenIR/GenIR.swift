@@ -99,7 +99,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		try run(
-			project: projectPath,
+			projectPath: projectPath,
 			log: logPath,
 			archive: xcarchivePath,
 			output: outputPath,
@@ -109,9 +109,30 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	// swiftlint:disable function_parameter_count
-	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
-		let project = try ProjectParser(path: project, logLevel: level)
+	mutating func run(projectPath: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+        
+        logger.debug("running ... ")
+        // parse the top-level project file (either a Workspace or Project)
+
+		/// the .xcodeworkspace is really a special case, as it just contains a list of top-level projects
+		/* if project.pathExtension == "xcworkspace" {
+			logger.info("Parsing workspace \(project)")
+			let workspace = try ProjectParser(path: project, logLevel: level)
+			logger.info("Workspace: \(workspace)")
+		} */
+
+		
+		let project = try ProjectParser(path: projectPath, logLevel: level)
+        
+        
+        
+        
+        /* krise - need to rucurse through all targets... */
+        
 		var targets = Targets(for: project)
+        
+        /* at this point, we've only parsed the top level file and gotten a list of projects
+           need to recurse through all the files... */
 
 		let log = try logParser(for: log)
 		try log.parse(&targets)

@@ -30,6 +30,7 @@ public struct XcodeProject {
 
 	public init(path: URL) throws {
 		self.path = path
+        logger.debug("Scanning Project: \(path)")
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
@@ -109,7 +110,7 @@ public struct XcodeProject {
 	/// Determines transitive dependencies by looping through direct dependencies and finding the items they depend on
 	/// - Parameter target: the target to find transitive dependencies for
 	private func determineTransitiveDependencies(_ target: PBXNativeTarget) {
-		logger.debug("Target: \(target.name). Deps: \(target.targetDependencies.map { $0.0 })")
+		logger.debug("Target: \(target.name). Direct Deps: \(target.targetDependencies.map { $0.0 })")
 
 		var targetDependencies = target.targetDependencies.map { $0.1 }
 		var seen = Set<String>()
@@ -137,7 +138,7 @@ public struct XcodeProject {
 		}
 
 		logger.debug("--- FINAL ---")
-		logger.debug("Target: \(target.name), deps: \(target.targetDependencies.map { $0.0 })")
+		logger.debug("Target: \(target.name), All Deps: \(target.targetDependencies.map { $0.0 })")
 	}
 
 	/// Gets the 'path' (normally the name of the target's product) for a given target

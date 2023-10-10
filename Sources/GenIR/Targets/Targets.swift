@@ -19,8 +19,10 @@ struct Targets {
 	init(for project: ProjectParser) {
 		self.project = project
 
-		project.targets.forEach { insert(native: $0) }
-		project.packages.forEach { insert(package: $0) }
+		logger.debug("Target: project = \(project)")
+
+		//project.targets.forEach { insert(native: $0) }
+		//project.packages.forEach { insert(package: $0) }
 	}
 
 	/// The sum of all commands for all stored targets

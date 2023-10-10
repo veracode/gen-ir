@@ -6,12 +6,15 @@ var logger: Logger = .init(label: "com.veracode.PBXProjParser")
 /// An Xcode project parser (note: not an Xcode Project parser!)
 public struct ProjectParser {
 	/// Path to the xcodeproj or xcworkspace bundle
-	let path: URL
+	//let path: URL
 
 	/// The type of project
-	let type: ProjectType
+	//let type: ProjectType
+
+	var projectPaths = [URL]()
 
 	/// All the native targets for the project
+	/*
 	public var targets: [PBXNativeTarget] {
 		switch type {
 		case .project(let project):
@@ -20,8 +23,10 @@ public struct ProjectParser {
 			return workspace.targets
 		}
 	}
+	*/
 
 	/// All the packages for the project
+	/*
 	public var packages: [XCSwiftPackageProductDependency] {
 		switch type {
 		case .project(let project):
@@ -30,6 +35,7 @@ public struct ProjectParser {
 			return workspace.packages
 		}
 	}
+	*/
 
 	/// Type of project this parser is working on
 	enum ProjectType {
@@ -44,20 +50,34 @@ public struct ProjectParser {
 	}
 
 	public init(path: URL, logLevel level: Logger.Level) throws {
-		self.path = path
+		//self.path = path
 		logger.logLevel = level
 
 		switch path.pathExtension {
 		case "xcodeproj":
-			let project = try XcodeProject(path: path)
-			type = .project(project)
+            logger.info("Parsing project \(path)")
+			let project = try XcodeProject(path: path /*, projectPaths */)
+			//type = .project(project)
 		case "xcworkspace":
+			/// the workspace is really just a special case that will contain 1 (or more) projects
+            logger.info("Parsing workspace \(path)")
 			let workspace = try XcodeWorkspace(path: path)
-			type = .workspace(workspace)
+			for project in workspace.projectPaths {
+				logger.info("Parsing project: \(project)")
+				//let project = try XcodeProject(path: path /* , projectPaths */)
+			}
+			//type = .workspace(workspace)
 		default:
 			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")
 		}
 	}
+
+
+	/// Now that we have the list of projects and targets - deal with them...
+	 
+
+
+
 
 	/// Returns a list of dependencies for a given target
 	/// - Parameter target: the target to get dependencies for
@@ -99,12 +119,14 @@ public struct ProjectParser {
 	/// - Parameter target: the target to search for
 	/// - Returns: a `XcodeProject` that holds the target, if one was found
 	private func project(for target: String) -> XcodeProject? {
-		switch type {
+		/* switch type {
 		case .project(let project):
 			return project
 		case .workspace(let workspace):
-			return workspace.targetsToProject[target]
-		}
+			//return workspace.targetsToProject[target]
+			return nil
+		} */
+		return nil
 	}
 
 	/// Gets the project model for a given target

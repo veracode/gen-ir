@@ -10,17 +10,20 @@ import Foundation
 /// Represents an xcworkspace - which is a set of xcodeproj bundles
 class XcodeWorkspace {
 	/// Path to the Workspace
-	let path: URL
+	//let path: URL
+
 	/// Path to the various underlying xcodeproj bundles
-	private(set) var projectPaths: [URL]
+	//private(set) var projectPaths: [URL]
+	private(set) var projectPaths = [URL]()
+
 	/// List of projects this workspace references
-	let projects: [XcodeProject]
+	///let projects: [XcodeProject]
 
 	/// A mapping of targets to the projects that define them
-	let targetsToProject: [String: XcodeProject]
+	//let targetsToProject: [String: XcodeProject]
 
-	init(path: URL) throws {
-		self.path = path
+	init(path: URL/*, projectPaths: inout [URL] */) throws {
+		//self.path = path
 
 		// Parse the `contents.xcworkspacedata` (XML) file and get the list of projects
 		let contentsPath = path.appendingPathComponent("contents.xcworkspacedata")
@@ -29,10 +32,20 @@ class XcodeWorkspace {
 		let parser = XCWorkspaceDataParser(data: data)
 
 		let baseFolder = path.deletingLastPathComponent()
-		projectPaths = parser.projects
+		let workspacePaths = parser.projects
 			.map { baseFolder.appendingPathComponent($0, isDirectory: true) }
 
+		/// at this point, we've got the project path(s) 
+		/// (the paths to the top level .xcodeproj files contained in the Workspace, so we're done)
+		for path in workspacePaths {
+			//logger.info("Parsing Workspace, found project: \(path)")
+			projectPaths.append(path)
+		}
+		
+
+		/*
 		projects = try projectPaths.map(XcodeProject.init(path:))
+        logger.debug("Parsing Workspace, found project(s): \(projects as AnyObject)")
 
 		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
 			project.targets.forEach { (target) in
@@ -46,8 +59,10 @@ class XcodeWorkspace {
 				partialResult[target.productName] = project
 			}
 		})
+		*/
 	}
 
+	/*
 	/// All native targets in the workspace
 	var targets: [PBXNativeTarget] {
 		projects.flatMap { $0.targets }
@@ -57,6 +72,7 @@ class XcodeWorkspace {
 	var packages: [XCSwiftPackageProductDependency] {
 		projects.flatMap { $0.packages }
 	}
+	*/
 }
 
 // swiftlint:disable private_over_fileprivate
@@ -78,6 +94,8 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 
 		parser.delegate = self
 		parser.parse()
+        
+        logger.debug("Workspace: found projects: \(projects)")
 	}
 
 	func parser(
