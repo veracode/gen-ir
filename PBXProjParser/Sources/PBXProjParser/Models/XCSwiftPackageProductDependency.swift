@@ -44,4 +44,5 @@ extension XCSwiftPackageProductDependency: Equatable {
 }
 
 public class XCRemoteSwiftPackageReference: PBXObject {}
+public class XCLocalSwiftPackageReference: PBXObject {}
 public class XCVersionGroup: PBXObject {}
