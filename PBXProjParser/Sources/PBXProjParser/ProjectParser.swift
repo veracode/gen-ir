@@ -11,7 +11,8 @@ public struct ProjectParser {
 	/// The type of project
 	//let type: ProjectType
 
-	var projectPaths = [URL]()
+	/// array of all the project files we need to process
+	var targets = [BuildTarget]()
 
 	/// All the native targets for the project
 	/*
@@ -55,16 +56,16 @@ public struct ProjectParser {
 
 		switch path.pathExtension {
 		case "xcodeproj":
-            logger.info("Parsing project \(path)")
-			let project = try XcodeProject(path: path /*, projectPaths */)
+			//logger.info("Parsing project at: \(path)")
+			/*let project =*/ try XcodeProject(path: path, buildTargets: &targets)
 			//type = .project(project)
 		case "xcworkspace":
 			/// the workspace is really just a special case that will contain 1 (or more) projects
-            logger.info("Parsing workspace \(path)")
+			logger.info("Parsing workspace at: \(path)")
 			let workspace = try XcodeWorkspace(path: path)
-			for project in workspace.projectPaths {
-				logger.info("Parsing project: \(project)")
-				//let project = try XcodeProject(path: path /* , projectPaths */)
+			for path in workspace.projectPaths {
+				//logger.info("Parsing project at: \(path)")
+				try XcodeProject(path: path, buildTargets: &targets)
 			}
 			//type = .workspace(workspace)
 		default:

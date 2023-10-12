@@ -28,12 +28,17 @@ public struct XcodeProject {
 		case invalidPBXProj(String)
 	}
 
-	public init(path: URL) throws {
+	public init(path: URL, buildTargets: inout[BuildTarget]) throws {
 		self.path = path
-        logger.debug("Scanning Project: \(path)")
+        logger.info("Scanning Project: \(path)")
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
+		/* 
+		 * direct build targets of this project
+		 */
+
+		// need to start with this list and work through the IDs to get the name and type
 		targets = model.objects(for: project.targets)
 			.filter {
 				// Cocoapods likes to insert resource bundles as native targets. On iOS resource bundles
@@ -41,8 +46,30 @@ public struct XcodeProject {
 				$0.productType != "com.apple.product-type.bundle"
 			}
 
+		// list of FileRefs, for matching to target.productReference
+		let fileRefs: [PBXFileReference] = model.objects(of: .fileReference, as: PBXFileReference.self )
+
+		// create a buildTarget for every target we find
+		for target in targets {
+			logger.debug("processing target: \(target)")
+ 
+			// get the File Reference
+			let fileRef = fileRefs.filter({ $0.reference == target.productReference})[0]
+
+			// create BuildTarget and save in the master array
+			let bt: BuildTarget = BuildTarget(name:target.name, productName:target.productName!, fileRef:fileRef)
+			buildTargets.append(bt)
+		}
+
+		/* 
+		 * project references of this project
+		 * 	(these will lead to parsing other project files)
+		 */
+
+		
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
+		/*
 		// First pass - get all the direct dependencies
 		targets.forEach { determineDirectDependencies($0) }
 
@@ -56,6 +83,7 @@ public struct XcodeProject {
 		packages.forEach { package in
 			logger.debug("package: \(package.productName)")
 		}
+		*/
 	}
 
 	/// Gets the native target for a given name

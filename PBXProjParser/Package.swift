@@ -9,7 +9,8 @@ let package = Package(
 		// Products define the executables and libraries a package produces, and make them visible to other packages.
 		.library(
 			name: "PBXProjParser",
-			targets: ["PBXProjParser"])
+			targets: ["PBXProjParser"]),
+        //.executable(name: "projparser", targets: ["projparser"])
 	],
 	dependencies: [
 		// Dependencies declare other packages that this package depends on.
@@ -23,16 +24,18 @@ let package = Package(
 			name: "PBXProjParser",
 			dependencies: [
 				.product(name: "Logging", package: "swift-log")
-			]),
-		.testTarget(
-			name: "PBXProjParserTests",
-			dependencies: ["PBXProjParser"]),
+			],
+            swiftSettings: [.define("FULL_PBX_PARSING")]),
+        .testTarget(
+            name: "PBXProjParserTests",
+            dependencies: ["PBXProjParser"],
+            exclude: ["TestAssets/Projects/DoubleTargetTest"] ),
 		.executableTarget(
 			name: "projparser",
 			dependencies: [
 				.product(name: "Logging", package: "swift-log"),
 				"PBXProjParser"
-			]
-		)
+			],
+            swiftSettings: [.define("FULL_PBX_PARSING")])
 	]
 )

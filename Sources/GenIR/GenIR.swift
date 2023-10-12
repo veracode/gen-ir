@@ -126,9 +126,7 @@ struct IREmitterCommand: ParsableCommand {
         
         
         
-        
-        /* krise - need to rucurse through all targets... */
-        
+                
 		var targets = Targets(for: project)
         
         /* at this point, we've only parsed the top level file and gotten a list of projects

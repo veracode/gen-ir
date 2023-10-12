@@ -95,7 +95,7 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 		parser.delegate = self
 		parser.parse()
         
-        logger.debug("Workspace: found projects: \(projects)")
+        logger.debug("Parsed workspace: found project(s): \(projects)")
 	}
 
 	func parser(
