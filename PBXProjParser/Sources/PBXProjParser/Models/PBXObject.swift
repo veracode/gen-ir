@@ -35,6 +35,7 @@ public class PBXObject: Decodable {
 	case buildConfiguration            = "XCBuildConfiguration"
 	case configurationList             = "XCConfigurationList"
 	case swiftPackageProductDependency = "XCSwiftPackageProductDependency"
+	case localSwiftPackageReference    = "XCLocalSwiftPackageReference"
 	case remoteSwiftPackageReference   = "XCRemoteSwiftPackageReference"
 	case referenceProxy                = "PBXReferenceProxy"
 	case versionGroup                  = "XCVersionGroup"
@@ -65,6 +66,7 @@ public class PBXObject: Decodable {
 		case .configurationList:							return XCConfigurationList.self
 		case .swiftPackageProductDependency:	return XCSwiftPackageProductDependency.self
 		case .remoteSwiftPackageReference:		return XCRemoteSwiftPackageReference.self
+		case .localSwiftPackageReference:			return XCLocalSwiftPackageReference.self
 		case .referenceProxy:									return PBXReferenceProxy.self
 		case .versionGroup:										return XCVersionGroup.self
 		case .buildRule:											return PBXBuildRule.self
