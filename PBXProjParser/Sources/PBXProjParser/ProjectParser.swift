@@ -71,10 +71,17 @@ public struct ProjectParser {
 		default:
 			throw Error.invalidPath("Path should be a xcodeproj or xcworkspace, got: \(path.lastPathComponent)")
 		}
+
+		// Now that we have the list of projects and targets - deal with them...
+		logger.info("Found the following targets:")
+		for target in targets {
+			logger.info("\(target)")
+		}
+
 	}
 
 
-	/// Now that we have the list of projects and targets - deal with them...
+
 	 
 
 

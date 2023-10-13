@@ -30,7 +30,7 @@ public struct XcodeProject {
 
 	public init(path: URL, buildTargets: inout[BuildTarget]) throws {
 		self.path = path
-        logger.info("Scanning Project: \(path)")
+        logger.info("Parsing Project: \(path)")
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
@@ -52,7 +52,7 @@ public struct XcodeProject {
 		// create a buildTarget for every target we find
 		logger.info("Processing direct Targets...")
 		for target in targets {
-			logger.debug("processing target: \(target.name), refID: \( (target.reference)!)")
+			logger.debug("Processing target: \(target.name), refID: \( (target.reference)!)")
  
 			// get the File Reference
 			let fileRef = fileRefs.filter({ $0.reference == target.productReference})[0]
@@ -70,10 +70,10 @@ public struct XcodeProject {
 		logger.info("Processing project references...")
 		let projRefs = project.projectReferences
 		if projRefs != nil {
-			logger.info("found project references")
+			logger.info("Found project references")
 
 			for ref in projRefs! {
-				logger.debug("handling project reference \(ref)")
+				logger.debug("Handling project reference \(ref)")
 				let pr = ref["ProjectRef"]!
 
 				// get the File Reference
