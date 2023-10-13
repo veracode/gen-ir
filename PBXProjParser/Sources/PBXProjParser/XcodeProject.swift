@@ -50,13 +50,15 @@ public struct XcodeProject {
 		let fileRefs: [PBXFileReference] = model.objects(of: .fileReference, as: PBXFileReference.self )
 
 		// create a buildTarget for every target we find
+		logger.info("Processing direct Targets...")
 		for target in targets {
-			logger.debug("processing target: \(target)")
+			logger.debug("processing target: \(target.name), refID: \( (target.reference)!)")
  
 			// get the File Reference
 			let fileRef = fileRefs.filter({ $0.reference == target.productReference})[0]
 
 			// create BuildTarget and save in the master array
+			logger.debug("Adding build target \(target.name) of type \( (target.productType)! )")
 			let bt: BuildTarget = BuildTarget(name:target.name, productName:target.productName!, fileRef:fileRef)
 			buildTargets.append(bt)
 		}
@@ -65,8 +67,40 @@ public struct XcodeProject {
 		 * project references of this project
 		 * 	(these will lead to parsing other project files)
 		 */
+		logger.info("Processing project references...")
+		let projRefs = project.projectReferences
+		if projRefs != nil {
+			logger.info("found project references")
+
+			for ref in projRefs! {
+				logger.debug("handling project reference \(ref)")
+				let pr = ref["ProjectRef"]!
+
+				// get the File Reference
+				let fileRef = fileRefs.filter({ $0.reference == pr})[0]
+				// check fileRef.lastKnownFileType == "wrapper.pb-project"??
+
+				//logger.debug("Processing project ref: \( (fileRef.name as String?)! ) at \(fileRef.path)")
+				logger.debug("Processing project ref: \( (fileRef.name)! ) at \(fileRef.path)")
+				// paths are relative to the dir with the .xcodeproj file
+				let refPath = path.appendingPathComponent("..").appendingPathComponent(fileRef.path)
+
+				// And, now we recurse...
+				try _ = XcodeProject(path: refPath, buildTargets: &buildTargets)
+			}
+		} else {
+			logger.info("No project references found")
+		}
+
 
 		
+
+
+
+
+
+
+
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
 		/*

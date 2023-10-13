@@ -57,7 +57,7 @@ public struct ProjectParser {
 		switch path.pathExtension {
 		case "xcodeproj":
 			//logger.info("Parsing project at: \(path)")
-			/*let project =*/ try XcodeProject(path: path, buildTargets: &targets)
+			/*let project =*/ try _ = XcodeProject(path: path, buildTargets: &targets)
 			//type = .project(project)
 		case "xcworkspace":
 			/// the workspace is really just a special case that will contain 1 (or more) projects
@@ -65,7 +65,7 @@ public struct ProjectParser {
 			let workspace = try XcodeWorkspace(path: path)
 			for path in workspace.projectPaths {
 				//logger.info("Parsing project at: \(path)")
-				try XcodeProject(path: path, buildTargets: &targets)
+				try _ = XcodeProject(path: path, buildTargets: &targets)
 			}
 			//type = .workspace(workspace)
 		default:
