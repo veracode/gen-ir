@@ -38,7 +38,7 @@ class XcodeWorkspace {
 		/// at this point, we've got the project path(s) 
 		/// (the paths to the top level .xcodeproj files contained in the Workspace, so we're done)
 		for path in workspacePaths {
-			//logger.info("Parsing Workspace, found project: \(path)")
+			//logger.debug("Parsing Workspace, found project: \(path)")
 			projectPaths.append(path)
 		}
 		

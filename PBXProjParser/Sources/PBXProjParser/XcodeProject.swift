@@ -103,6 +103,10 @@ public struct XcodeProject {
 
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
+
+
+
+
 		/*
 		// First pass - get all the direct dependencies
 		targets.forEach { determineDirectDependencies($0) }

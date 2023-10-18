@@ -15,11 +15,22 @@ public struct BuildTarget {
     let frPath: String
     let type: TargetType
 
-    enum TargetType {
+    enum TargetType: CustomStringConvertible {
         case Application
         case Framework
         case Bundle
+        case Extension
         case Unknown
+
+        var description: String {
+            switch self {
+                case .Application: return "Application"
+                case .Framework: return "Framework"
+                case .Bundle: return "Bundle"
+                case .Extension: return "Extension"
+                default: return "Unknown"
+            }
+        }
     }
 
     public init(name: String, productName: String, fileRef: PBXFileReference) {
@@ -30,6 +41,10 @@ public struct BuildTarget {
 
     }
 
+    // public var description: String {
+    //     return "{name: \(name), productName: \(productName), type: \(type), fileRefPath: \(frPath)}"
+    // }
+    
     private static func getType(typeName: String?) -> TargetType{
         switch typeName {
             case "wrapper.application":
@@ -38,6 +53,8 @@ public struct BuildTarget {
                 return TargetType.Framework
             case "wrapper.cfbundle":
                 return TargetType.Bundle
+            case "wrapper.app-extension":
+                return TargetType.Extension
             default:
                 return TargetType.Unknown
         }

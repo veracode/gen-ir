@@ -73,9 +73,9 @@ public struct ProjectParser {
 		}
 
 		// Now that we have the list of projects and targets - deal with them...
-		logger.info("Found the following targets:")
+		logger.info("Found the following target(s):")
 		for target in targets {
-			logger.info("\(target)")
+			logger.info("  \(target)")
 		}
 
 	}

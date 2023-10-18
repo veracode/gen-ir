@@ -125,7 +125,8 @@ struct IREmitterCommand: ParsableCommand {
 		let project = try ProjectParser(path: projectPath, logLevel: level)
         
         
-        
+		/******  temp return *******/
+        return
                 
 		var targets = Targets(for: project)
         
