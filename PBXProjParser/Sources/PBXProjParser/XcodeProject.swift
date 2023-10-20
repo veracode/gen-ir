@@ -30,7 +30,7 @@ public struct XcodeProject {
 
 	public init(path: URL, buildTargets: inout[BuildTarget]) throws {
 		self.path = path
-        logger.info("Parsing Project: \(path)")
+		logger.info("Parsing Project: \(path)")
 		model = try PBXProj.contentsOf(path.appendingPathComponent("project.pbxproj"))
 		project = try model.project()
 
@@ -100,7 +100,7 @@ public struct XcodeProject {
 
 
 
-
+		// krise - we really don't need this (for now?), but leave alone to let the rest of the file compile
 		packages = model.objects(of: .swiftPackageProductDependency, as: XCSwiftPackageProductDependency.self)
 
 

@@ -45,7 +45,7 @@ class XcodeWorkspace {
 
 		/*
 		projects = try projectPaths.map(XcodeProject.init(path:))
-        logger.debug("Parsing Workspace, found project(s): \(projects as AnyObject)")
+		logger.debug("Parsing Workspace, found project(s): \(projects as AnyObject)")
 
 		targetsToProject = projects.reduce(into: [String: XcodeProject](), { partialResult, project in
 			project.targets.forEach { (target) in
@@ -76,7 +76,7 @@ class XcodeWorkspace {
 }
 
 // swiftlint:disable private_over_fileprivate
-/// A xcworkspace parser
+/// A xcworkspace parser.  Basically, looking for the list of xcodeproj's in the workspace
 fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 	let parser: XMLParser
 	var projects = [String]()
@@ -94,8 +94,8 @@ fileprivate class XCWorkspaceDataParser: NSObject, XMLParserDelegate {
 
 		parser.delegate = self
 		parser.parse()
-        
-        logger.debug("Parsed workspace: found project(s): \(projects)")
+		
+		logger.debug("Parsed workspace: found project(s): \(projects)")
 	}
 
 	func parser(
