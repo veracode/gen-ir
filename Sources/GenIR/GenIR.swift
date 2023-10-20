@@ -44,6 +44,10 @@ struct IREmitterCommand: ParsableCommand {
 	@Argument(help: "Path to the xcarchive associated with the build log")
 	var xcarchivePath: URL
 
+	/// Scheme name, needed to find the build manifest
+	@Option(help: "Name of the scheme used when building")
+	var scheme: String
+
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
 	var projectPath: URL!
@@ -101,6 +105,7 @@ struct IREmitterCommand: ParsableCommand {
 		try run(
 			projectPath: projectPath,
 			log: logPath,
+			scheme: scheme,
 			archive: xcarchivePath,
 			output: outputPath,
 			level: logger.logLevel,
@@ -109,10 +114,10 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	// swiftlint:disable function_parameter_count
-	mutating func run(projectPath: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
-        
-        logger.debug("running ... ")
-        // parse the top-level project file (either a Workspace or Project)
+	mutating func run(projectPath: URL, log: String, scheme: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+		
+		logger.debug("running ... ")
+		// parse the top-level project file (either a Workspace or Project)
 
 		/// the .xcodeworkspace is really a special case, as it just contains a list of top-level projects
 		/* if project.pathExtension == "xcworkspace" {
@@ -122,35 +127,41 @@ struct IREmitterCommand: ParsableCommand {
 		} */
 
 		
-		let project = try ProjectParser(path: projectPath, logLevel: level)
-        
-        
+		//let project = try ProjectParser(path: projectPath, logLevel: level)
+		
+		/* project.targets is the list of all the build targets we're dealing with.
+		 * Some, maybe all, of these will get built, and thus need IR generated for them
+		 */
+
+		// parse the JSON build manifest
+		let manifestParser = BuildManifestParser(project: projectPath, scheme: scheme)
+
+
+
+
 		/******  temp return *******/
-        return
-                
-		var targets = Targets(for: project)
-        
-        /* at this point, we've only parsed the top level file and gotten a list of projects
-           need to recurse through all the files... */
+		return
+				
+		// var targets = Targets(for: project)
 
-		let log = try logParser(for: log)
-		try log.parse(&targets)
+		// let log = try logParser(for: log)
+		// try log.parse(&targets)
 
-		let buildCacheManipulator = try BuildCacheManipulator(
-			buildCachePath: log.buildCachePath,
-			buildSettings: log.settings,
-			archive: archive
-		)
+		// let buildCacheManipulator = try BuildCacheManipulator(
+		// 	buildCachePath: log.buildCachePath,
+		// 	buildSettings: log.settings,
+		// 	archive: archive
+		// )
 
-		let runner = CompilerCommandRunner(
-			output: output,
-			buildCacheManipulator: buildCacheManipulator,
-			dryRun: dryRun
-		)
-		try runner.run(targets: targets)
+		// let runner = CompilerCommandRunner(
+		// 	output: output,
+		// 	buildCacheManipulator: buildCacheManipulator,
+		// 	dryRun: dryRun
+		// )
+		// try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
-		try postprocessor.process(targets: &targets)
+		// let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+		// try postprocessor.process(targets: &targets)
 	}
 	// swiftlint:enable function_parameter_count
 
