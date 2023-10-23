@@ -74,16 +74,8 @@ So, if you have released a new major or minor version you should:
 
 ### Creating Versioned Formulae
 
-Creating a versioned formula can happen in one of two ways - I suggest using `brew extract` for this, but you can also manually find and copy the formula file, ensuring you add `keg_only :versioned_formula`.
+Using the history of the `homebrew-tap` find the version of the Gen IR formula you're looking for, then copy the file to the `Formula` folder renaming it like so: `gen-ir@<version>`
 
-Rather unhelpfully, you can only use `brew extract` to extract a formula from one tap to another - not to an existing tap with the same formula. In this case you can substitute in any tap, but in this case I will use mine: `ninjalikescheez/tap`
+Edit the file to add the `keg_only :versioned_formula` tag after the `bottle`.
 
-```shell
-# assuming you're inside the veracode/homebrew-tap checkout
-brew extract --version=<version> veracode/tap/gen-ir ninjalikescheez/tap
-cp /opt/homebrew/Library/Taps/ninjalikescheez/homebrew-tap/Formula/gen-ir@<version>.rb Formula/
-```
-
-Edit the file to add the `keg_only :versioned_formula` tag.
-
-TODO: Try this irl and see if the brew automation is able to auto-add the bottles or if we have to do it ourselves.
+> Note: it is a good idea to run `brew style Formulae/gen-ir@<version>.rb` before you push the commit! Brew is _very_ particular about the layout of a formula and the test-bot will fail if your key isn't in the right spot.
