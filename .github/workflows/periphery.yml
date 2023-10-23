@@ -7,7 +7,7 @@ on:
 
 jobs:
   periphery-scan:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v1
       - name: Set up Homebrew
