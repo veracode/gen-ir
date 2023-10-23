@@ -16,15 +16,11 @@ struct OutputPostprocessor {
 	/// The to the output IR folders that will be processed
 	let output: URL
 
-	/// The archive path, this should be the parent path of `output`
-	let archive: URL
-
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
 	init(archive: URL, output: URL) throws {
 		self.output = output
-		self.archive = archive
 
 		dynamicDependencyToPath = dynamicDependencies(in: archive)
 	}
@@ -45,7 +41,7 @@ struct OutputPostprocessor {
 			}
 
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		let _ = try targets.flatMap { target in
+		_ = try targets.flatMap { target in
 			guard let path = targetsToPaths[target] else {
 				logger.error("Couldn't find path for target: \(target)")
 				return Set<URL>()

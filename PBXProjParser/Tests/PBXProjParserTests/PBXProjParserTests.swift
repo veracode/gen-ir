@@ -36,7 +36,7 @@ final class PBXProjParserTests: XCTestCase {
 			"DoubleTargetTest": [],
 			// TODO: should we also disregard Cocoapods doing their stupid bundle as a native target even though it isn't
 			"MyBundle": ["MyBundle.bundle"],
-			"Pods-DoubleTargetTest": ["MyBundle.framework", "MyBundle.bundle"],
+			"Pods-DoubleTargetTest": ["MyBundle.framework", "MyBundle.bundle"]
 			]
 
 		XCTAssert(

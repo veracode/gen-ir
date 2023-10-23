@@ -155,7 +155,9 @@ extension FileManager {
 
 		if let type = attributes[.type] as? FileAttributeType, type == .typeSymbolicLink {
 			let destination = try destinationOfSymbolicLink(atPath: path.filePath)
+			// swiftlint:disable identifier_name
 			let actualDestinationCausePathingSucksInFoundation = path.deletingLastPathComponent().appendingPathComponent(destination)
+			// swiftlint:enable identifier_name
 			return fileExists(atPath: actualDestinationCausePathingSucksInFoundation.filePath)
 		}
 

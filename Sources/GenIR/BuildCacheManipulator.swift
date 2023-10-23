@@ -23,7 +23,7 @@ struct BuildCacheManipulator {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
 		buildProductsPath = archive
-		shouldDeploySkipInstallHack = buildSettings["SKIP_INSTALL"] == "NO"
+		shouldDeploySkipInstallHack = self.buildSettings["SKIP_INSTALL"] == "NO"
 
 		guard FileManager.default.directoryExists(at: buildCachePath) else {
 			throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
