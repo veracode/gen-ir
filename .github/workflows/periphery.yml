@@ -1,0 +1,21 @@
+name: periphery
+
+on:
+  pull_request:
+    paths:
+      - '**/*.swift'
+
+jobs:
+  periphery-scan:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Install periphery
+        run: |
+          brew install peripheryapp/periphery/periphery
+      - name: Scan for unused code
+        run: |
+          periphery scan
