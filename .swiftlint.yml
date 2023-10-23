@@ -4,7 +4,11 @@ excluded:
   - .vscode/
   - PBXProjParser/.build/ # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
   - GenIRLogging/.build/
+  - TestAssets/
 
 line_length:
   warning: 150
   ignores_comments: true
+
+disabled_rules:
+  - todo

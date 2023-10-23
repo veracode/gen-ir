@@ -22,9 +22,10 @@ struct StdOutLogHandler: LogHandler {
 
 	var logLevel: Logging.Logger.Level = .info
 
-	init(label: String) { }
+	init(_: String) { }
 
 	// swiftlint:disable function_parameter_count
+	// periphery:ignore:parameters source
 	func log(
 		level: Logger.Level,
 		message: Logger.Message,
@@ -36,7 +37,7 @@ struct StdOutLogHandler: LogHandler {
 	) {
 		let levelPrefix = prefix(for: level)
 		let timestamp = timestamp(for: level)
-		let lineInfo = lineInfo(for: level, source: source, file: file, function: function, line: line)
+		let lineInfo = lineInfo(for: level, file: file, function: function, line: line)
 
 		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)")
 	}
@@ -70,7 +71,7 @@ struct StdOutLogHandler: LogHandler {
 		}
 	}
 
-	private func lineInfo(for level: Logger.Level, source: String, file: String, function: String, line: UInt) -> String {
+	private func lineInfo(for level: Logger.Level, file: String, function: String, line: UInt) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
 			return "[\(file):\(line) \(function)] "
