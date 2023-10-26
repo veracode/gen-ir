@@ -142,7 +142,7 @@ struct IREmitterCommand: ParsableCommand {
 		}
 
 		// parse the JSON build manifest
-		let manifestParser = BuildManifestParser(project: projectPath, scheme: scheme, targets: &genTargets)
+		let buildOutput = BuildOutputHandler(project: projectPath, scheme: scheme, targets: &genTargets)
 
 
 		// at this point, we have:

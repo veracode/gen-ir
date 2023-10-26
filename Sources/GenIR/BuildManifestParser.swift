@@ -1,103 +1,80 @@
 //
-//  BuildManifestParser.swift
+//  File.swift
+//  
 //
+//  Created by Bartosz Polaczyk on 6/18/23.
 //
-//  Created by Kevin Rise on 10/19/23
-//
-
-// heavily inspired from https://github.com/polac24/XCBuildAnalyzer.git
 
 import Foundation
-import Logging
-import enum PBXProjParser.TargetType
 
-public struct BuildManifestParser {
-	private let manifestFinder = ManifestFinder()
-	private var manifestLocation: ManifestLocation?
+public typealias BuildManifestTool = String
+public typealias BuildManifestId = String
 
-	public init(project: URL, scheme: String, targets: inout [GenTarget]) {
+public struct BuildManifestCommand: Codable, Hashable {
 
+    enum CodingKeys: String, CodingKey {
+        case tool
+        case inputs
+        case outputs
+        case expectedOutputs
+        case roots
+        case env
+        case description
+        case args
+        case signature
+        case workingDirectory = "working-directory"
+        case alwaysOutOfDate = "always-out-of-date"
+    }
 
-		// move this out to gen-ir??
-			// find the manifest file, then hand off to the parser
+    var tool: BuildManifestTool
+    var inputs: [String]?
+    var outputs: [String]?
+    var expectedOutputs: [String]?
+    var roots: [String]?
+    var env: [String: String]?
+    var description: String?
+    var args: [String]?
+    var signature: String?
+    var workingDirectory: String?
+    var alwaysOutOfDate: Bool?
+}
 
-		// then, walk the list of targets and using the manifest, create the IR code for each target
+public struct BuildManifestClient: Codable {
+    let version: Int
+    let name: String
+}
 
+public struct BuildManifest: Codable {
+    let client: BuildManifestClient
+    /// Actually all nodes
+    let commands: [String: BuildManifestCommand]
+    /// All targets that are requested
+    let targets: [String: [String]]
 
-		// given a workspace or project file, find the build manifest
+    public init(
+        client: BuildManifestClient,
+        commands: [String : BuildManifestCommand],
+        targets: [String: [String]]
+    ) {
+        self.commands = commands
+        self.client = client
+        self.targets = targets
+    }
+}
 
-		do { 
-			manifestLocation = try manifestFinder.findLatestManifest(options: .build(project: project, scheme: scheme))
+public class BuildManifestParser {
+    private let decoder: JSONDecoder
 
-			logger.info("Found build manifest \(manifestLocation!.manifest)")
-			logger.info("Found PIFCache \(manifestLocation!.pifCache!)")
+    public init() {
+        decoder = JSONDecoder()
+    }
 
-			// get the GUIDs for each target
-			let fm = FileManager.default
-			let targetParser = TargetParser()
-			do {
-				let files = try fm.contentsOfDirectory(at: manifestLocation!.pifCache!, includingPropertiesForKeys: nil)
+    public func process(_ path: String) throws -> BuildManifest {
+        return try process(URL(fileURLWithPath: path))
+    }
 
-				for file in files {
-					print("found file \(file)")
-					
-					do {
-						let targetManifest = try targetParser.process(file)
-
-						logger.debug("Target manifest: \(targetManifest)")
-
-						// add guid into GenTarget
-						// probably a more elegant way to do this, but with only a small number of targets to process...
-						// TODO: fix/guard - handle optional
-						let targetType = getTargetType(targetManifest.productTypeIdentifier)
-
-						for index in 0..<targets.count {
-							if targets[index].buildTarget.type == targetType && targets[index].buildTarget.name == targetManifest.name {
-								targets[index].guid = targetManifest.guid
-								break
-							}
-
-						}
-
-
-					} catch {
-						logger.error("Error parsing target manifest \(file)")
-					}
-				}
-			} catch {
-				logger.error("Error reading TARGET files")
-			}
-
-			// get the manifest into readable JSON format
-
-			// return
-
-		} catch let error as ManifestFinderError {
-			logger.error("\(error.errorDescription!) \n\n \(error.recoverySuggestion!)")
-
-			// return / throw error
-		} catch {
-			logger.error("\(error.localizedDescription)")
-
-			// return / throw error
-		}
-
-	}
-
-	// TODO: clean up.  use last part only?
-	private func getTargetType(_ typeName: String?) -> TargetType{
-		switch typeName {
-			case "com.apple.product-type.application":
-				return TargetType.Application
-			case "com.apple.product-type.framework":
-				return TargetType.Framework
-			case "wrapper.cfbundle":
-				return TargetType.Bundle
-			case "wrapper.app-extension":
-				return TargetType.Extension
-			default:
-				return TargetType.Unknown
-		}
-	}
-
+    public func process(_ url: URL) throws -> BuildManifest {
+        let data = try Data(contentsOf: url)
+        return try decoder.decode(BuildManifest.self, from: data)
+    }
 }
