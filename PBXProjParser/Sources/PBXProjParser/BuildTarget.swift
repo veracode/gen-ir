@@ -7,22 +7,18 @@
 
 import Foundation
 
-/// Represents a build target we need to process
-public struct BuildTarget {
+// TODO: ?? move to genIR?
 
-    let name: String
-    let productName: String
-    let frPath: String
-    let type: TargetType
 
-    enum TargetType: CustomStringConvertible {
+// TODO: this enum is shared by both this and the TARGET file parser - combine/do-better
+public enum TargetType: CustomStringConvertible {
         case Application
         case Framework
         case Bundle
         case Extension
         case Unknown
 
-        var description: String {
+        public var description: String {
             switch self {
                 case .Application: return "Application"
                 case .Framework: return "Framework"
@@ -32,6 +28,14 @@ public struct BuildTarget {
             }
         }
     }
+
+/// Represents a build target we need to process
+public struct BuildTarget {
+
+    public let name: String
+    let productName: String
+    let frPath: String
+    public let type: TargetType
 
     public init(name: String, productName: String, fileRef: PBXFileReference) {
         self.name = name

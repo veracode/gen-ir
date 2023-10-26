@@ -116,25 +116,40 @@ struct IREmitterCommand: ParsableCommand {
 	// swiftlint:disable function_parameter_count
 	mutating func run(projectPath: URL, log: String, scheme: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
 		
+		/// array of all the project files we need to process
+		//var targets = [BuildTarget]()
+
 		logger.debug("running ... ")
 		// parse the top-level project file (either a Workspace or Project)
 
 		/// the .xcodeworkspace is really a special case, as it just contains a list of top-level projects
-		/* if project.pathExtension == "xcworkspace" {
+		/*if project.pathExtension == "xcworkspace" {
 			logger.info("Parsing workspace \(project)")
 			let workspace = try ProjectParser(path: project, logLevel: level)
 			logger.info("Workspace: \(workspace)")
-		} */
+		}*/
 
 		
-		//let project = try ProjectParser(path: projectPath, logLevel: level)
+		let project = try ProjectParser(path: projectPath, logLevel: level)
 		
 		/* project.targets is the list of all the build targets we're dealing with.
 		 * Some, maybe all, of these will get built, and thus need IR generated for them
 		 */
+		var genTargets: [GenTarget] = [GenTarget]()
+		for target in project.targets {
+			let g = GenTarget(buildTarget: target, guid: nil)
+			genTargets.append(g)
+		}
 
 		// parse the JSON build manifest
-		let manifestParser = BuildManifestParser(project: projectPath, scheme: scheme)
+		let manifestParser = BuildManifestParser(project: projectPath, scheme: scheme, targets: &genTargets)
+
+
+		// at this point, we have:
+		//	- the list of build targets
+		//	- the manifest parsed
+		//
+		// so, walk the target list and create the IR for each target
 
 
 

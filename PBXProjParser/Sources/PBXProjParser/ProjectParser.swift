@@ -12,7 +12,7 @@ public struct ProjectParser {
 	//let type: ProjectType
 
 	/// array of all the project files we need to process
-	var targets = [BuildTarget]()
+	public var targets = [BuildTarget]()
 
 	/// All the native targets for the project
 	/*

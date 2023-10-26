@@ -35,10 +35,11 @@ public struct ManifestFinderOptions {
 public struct ManifestLocation {
 	let projectFile: URL?
 	let manifest: URL
+	var pifCache: URL?
 	let timingDatabase: URL?
 
 	func withProjectFile(_ url: URL) -> Self {
-		.init(projectFile: url, manifest: self.manifest, timingDatabase: self.timingDatabase)
+		.init(projectFile: url, manifest: self.manifest, pifCache: self.pifCache, timingDatabase: self.timingDatabase)
 	}
 }
 
@@ -47,6 +48,7 @@ public struct ManifestFinder {
 	//let xcbuildDataDir = "Build/Intermediates.noindex/XCBuildData/"
 	let xcbuildArchiveDataDir = "Build/Intermediates.noindex/ArchiveIntermediates/"
 	let xcbuildDataDir = "IntermediateBuildFilesPath/XCBuildData"
+	let pifCacheDir = "Build/Intermediates.noindex/XCBuildData/PIFCache/target"
 
 	var defaultDerivedData: URL {
 		let homeDirURL = URL.homeDirectory
@@ -80,8 +82,12 @@ public struct ManifestFinder {
 								.appendingPathComponent(options.scheme)
 								.appendingPathComponent(xcbuildDataDir)
 
-		return try getLatestManifest(xcbuildDir)
-
+		// TODO: is there a better/cleaner way to do this?
+		//return try getLatestManifest(xcbuildDir)
+		var manifestLocation: ManifestLocation
+		manifestLocation = try getLatestManifest(xcbuildDir)
+		manifestLocation.pifCache = projectDir.appendingPathComponent(pifCacheDir)
+		return manifestLocation
 	}
 
 
