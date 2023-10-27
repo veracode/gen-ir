@@ -150,7 +150,11 @@ struct IREmitterCommand: ParsableCommand {
 		//	- the manifest parsed
 		//
 		// so, walk the target list and create the IR for each target
+		for target in genTargets {
+			buildOutput.findBuildCommandsForTarget(target)
 
+
+		}
 
 
 

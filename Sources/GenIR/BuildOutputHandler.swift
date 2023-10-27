@@ -15,6 +15,8 @@ public struct BuildOutputHandler {
 	private let manifestFinder = ManifestFinder()
 	private var manifestLocation: ManifestLocation?
 
+	var buildManifest: BuildManifest?			// TODO: init as empty?
+
 	public init(project: URL, scheme: String, targets: inout [GenTarget]) {
 
 
@@ -49,7 +51,7 @@ public struct BuildOutputHandler {
 						// add guid into GenTarget
 						// probably a more elegant way to do this, but with only a small number of targets to process...
 						// TODO: fix/guard - handle optional
-						let targetType = getTargetType(targetManifest.productTypeIdentifier)
+						let targetType = Self.getTargetType(targetManifest.productTypeIdentifier)
 
 						for index in 0..<targets.count {
 							if targets[index].buildTarget.type == targetType && targets[index].buildTarget.name == targetManifest.name {
@@ -69,7 +71,8 @@ public struct BuildOutputHandler {
 			}
 
 			// get the manifest into readable JSON format
-			
+			let manifestParser = BuildManifestParser()
+			buildManifest = try manifestParser.process(manifestLocation!.manifest) 
 
 			// return
 
@@ -82,11 +85,10 @@ public struct BuildOutputHandler {
 
 			// return / throw error
 		}
-
 	}
 
 	// TODO: clean up.  use last part only?
-	private func getTargetType(_ typeName: String?) -> TargetType{
+	private static func getTargetType(_ typeName: String?) -> TargetType{
 		switch typeName {
 			case "com.apple.product-type.application":
 				return TargetType.Application
@@ -98,6 +100,23 @@ public struct BuildOutputHandler {
 				return TargetType.Extension
 			default:
 				return TargetType.Unknown
+		}
+	}
+
+	public func findBuildCommandsForTarget(_ target: GenTarget) {
+
+		// return an array of the build commands
+		logger.info("Gathering build commands for target: \(target)")
+
+		let commandKey = "P0:target-" + target.buildTarget.name + "-" + target.guid!
+		let res = buildManifest!.commands.filter{ $0.key.starts(with: commandKey)}
+
+		for (key, value) in res {
+
+			// TODO: other commands also, obj-C, 
+			if(value.tool == "swift-driver-compilation") {
+				print(value.tool)
+			}
 		}
 	}
 
