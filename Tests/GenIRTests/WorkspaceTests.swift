@@ -54,7 +54,6 @@ final class WorkspaceTests: XCTestCase {
 		let process = try context.build(test: Self.testPath, scheme: Self.scheme)
 		XCTAssertEqual(process.code, 0, "Build returned non-zero exit code")
 
-		let output = context.archive.appendingPathComponent("IR")
 		var genIR = gen_ir.IREmitterCommand()
 
 		try genIR.run(
@@ -62,7 +61,8 @@ final class WorkspaceTests: XCTestCase {
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		// Check dependencies made it to the right place

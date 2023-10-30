@@ -20,7 +20,8 @@ final class OutputPostprocessorFileMoverTests: XCTestCase {
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		// Check the output path for unique Image files

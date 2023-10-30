@@ -98,11 +98,19 @@ struct IREmitterCommand: ParsableCommand {
 			log: logPath,
 			archive: xcarchivePath,
 			level: logger.logLevel,
-			dryRun: dryRun
+			dryRun: dryRun,
+			dumpDependencyGraph: dumpDependencyGraph
 		)
 	}
 
-	mutating func run(project: URL, log: String, archive: URL, level: Logger.Level, dryRun: Bool) throws {
+	mutating func run(
+		project: URL,
+		log: String,
+		archive: URL,
+		level: Logger.Level,
+		dryRun: Bool,
+		dumpDependencyGraph: Bool
+	) throws {
 		let output = archive.appendingPathComponent("IR")
 		let project = try ProjectParser(path: project, logLevel: level)
 		var targets = Targets(for: project)

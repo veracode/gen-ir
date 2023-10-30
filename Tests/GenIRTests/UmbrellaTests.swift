@@ -51,7 +51,8 @@ final class UmbrellaTests: XCTestCase {
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		let directories = try FileManager.default.directories(at: output, recursive: false)
@@ -82,7 +83,8 @@ final class UmbrellaTests: XCTestCase {
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		let directories = try FileManager.default.directories(at: output, recursive: false)
