@@ -13,6 +13,7 @@ import struct PBXProjParser.BuildTarget
 public struct GenTarget {
 	let buildTarget: BuildTarget
 	var guid: String?
+	var compilerInputs = [String]()
 
 	public init(buildTarget: BuildTarget, guid: String?) {
 		self.buildTarget = buildTarget

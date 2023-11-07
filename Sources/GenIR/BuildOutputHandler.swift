@@ -103,7 +103,7 @@ public struct BuildOutputHandler {
 		}
 	}
 
-	public func findBuildCommandsForTarget(_ target: GenTarget) {
+	public func findBuildCommandsForTarget(_ target: inout GenTarget) {
 
 		// return an array of the build commands
 		logger.info("Gathering build commands for target: \(target)")
@@ -116,6 +116,11 @@ public struct BuildOutputHandler {
 			// TODO: other commands also, obj-C, 
 			if(value.tool == "swift-driver-compilation") {
 				print(value.tool)
+
+				// TODO: ignore inputs starting with a '<'?  Compare vs Xcode building
+				target.compilerInputs.append(contentsOf: value.inputs!)		// TODO: check optional?
+
+
 			}
 		}
 	}

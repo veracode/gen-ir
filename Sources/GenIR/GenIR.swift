@@ -150,11 +150,19 @@ struct IREmitterCommand: ParsableCommand {
 		//	- the manifest parsed
 		//
 		// so, walk the target list and create the IR for each target
-		for target in genTargets {
-			buildOutput.findBuildCommandsForTarget(target)
+
+		// Step 1 - get the list of build commands for each target
+		for index in 0..<genTargets.count {
+			buildOutput.findBuildCommandsForTarget(&genTargets[index])
 
 
 		}
+
+		// for target in genTargets {
+		// 	buildOutput.findBuildCommandsForTarget(target)
+
+
+		// }
 
 
 
@@ -166,11 +174,16 @@ struct IREmitterCommand: ParsableCommand {
 		// let log = try logParser(for: log)
 		// try log.parse(&targets)
 
+
+
 		// let buildCacheManipulator = try BuildCacheManipulator(
 		// 	buildCachePath: log.buildCachePath,
 		// 	buildSettings: log.settings,
 		// 	archive: archive
 		// )
+
+
+
 
 		// let runner = CompilerCommandRunner(
 		// 	output: output,
