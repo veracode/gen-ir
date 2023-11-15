@@ -44,6 +44,10 @@ struct IREmitterCommand: ParsableCommand {
 	@Argument(help: "Path to the xcarchive associated with the build log")
 	var xcarchivePath: URL
 
+	/// Scheme name, needed to find the build manifest
+	@Option(help: "Name of the scheme used when building")
+	var scheme: String
+
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
 	var projectPath: URL!
@@ -101,6 +105,7 @@ struct IREmitterCommand: ParsableCommand {
 		try run(
 			project: projectPath,
 			log: logPath,
+			scheme: scheme,
 			archive: xcarchivePath,
 			output: outputPath,
 			level: logger.logLevel,
@@ -109,7 +114,23 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	// swiftlint:disable function_parameter_count
-	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+	mutating func run(project: URL, log: String, scheme: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+		logger.debug("running...")
+
+		var genTargets: [GenTarget] = [GenTarget]()
+
+
+		// find the PIFCache location
+		let pifCacheHandler = PifCacheHandler(project: project, scheme: scheme)
+
+		// parse the PIF cache files and create a list of projects and targets
+		pifCacheHandler.getTargets(targets: &genTargets)
+		
+		
+		
+		
+		
+		
 		let project = try ProjectParser(path: project, logLevel: level)
 		var targets = Targets(for: project)
 
