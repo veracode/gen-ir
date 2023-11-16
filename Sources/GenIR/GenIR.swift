@@ -118,24 +118,25 @@ struct IREmitterCommand: ParsableCommand {
 		logger.debug("running...")
 
 		var genTargets: [GenTarget] = [GenTarget]()
-
+		var genProjects: [GenProject] = [GenProject]()
 
 		// find the PIFCache location
 		let pifCacheHandler = PifCacheHandler(project: project, scheme: scheme)
 
 		// parse the PIF cache files and create a list of projects and targets
 		pifCacheHandler.getTargets(targets: &genTargets)
+		pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
 		
 		
 		
 		
 		
 		
-		let project = try ProjectParser(path: project, logLevel: level)
-		var targets = Targets(for: project)
+		//let project = try ProjectParser(path: project, logLevel: level)
+		//var targets = Targets(for: project)
 
 		let log = try logParser(for: log)
-		try log.parse(&targets)
+		//try log.parse(&targets)
 
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
@@ -148,10 +149,10 @@ struct IREmitterCommand: ParsableCommand {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(targets: targets)
+		//try runner.run(targets: targets)
 
 		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
-		try postprocessor.process(targets: &targets)
+		//try postprocessor.process(targets: &targets)
 	}
 	// swiftlint:enable function_parameter_count
 

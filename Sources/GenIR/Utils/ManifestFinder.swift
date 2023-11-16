@@ -48,7 +48,7 @@ public struct ManifestFinder {
 	//let xcbuildDataDir = "Build/Intermediates.noindex/XCBuildData/"
 	let xcbuildArchiveDataDir = "Build/Intermediates.noindex/ArchiveIntermediates/"
 	let xcbuildDataDir = "IntermediateBuildFilesPath/XCBuildData"
-	let pifCacheDir = "Build/Intermediates.noindex/XCBuildData/PIFCache/target"
+	let pifCacheDir = "Build/Intermediates.noindex/XCBuildData/PIFCache"
 
 	var defaultDerivedData: URL {
 		let homeDirURL = URL.homeDirectory

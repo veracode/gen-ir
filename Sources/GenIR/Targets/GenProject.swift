@@ -8,17 +8,17 @@
 import Foundation
 
 public struct GenProject {
-	//let buildTarget: BuildTarget
-	var name: String
 	var guid: String
-	var filename: String
-
+	var filename: URL
+	var name: String
 	var targets: [GenTarget]?
 	
-	public init(name: String, guid: String, filename: String) {
-		self.name = name
+	public init(guid: String, filename: URL, name: String) {
 		self.guid = guid
 		self.filename = filename
+		self.name = name
+		//self.targets = targets
+
 	}
 
 	public func addTarget(/*target: GenTarget*/) {
