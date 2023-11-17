@@ -117,7 +117,8 @@ struct IREmitterCommand: ParsableCommand {
 	mutating func run(project: URL, log: String, scheme: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
 		logger.debug("running...")
 
-		var genTargets: [GenTarget] = [GenTarget]()
+		//var genTargets: [GenTarget] = [GenTarget]()
+		var genTargets = [String: GenTarget]()		// dict of all the targets, using filename as the key
 		var genProjects: [GenProject] = [GenProject]()
 
 		// find the PIFCache location
@@ -127,10 +128,17 @@ struct IREmitterCommand: ParsableCommand {
 		pifCacheHandler.getTargets(targets: &genTargets)
 		pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
 		
-		
-		
-		
-		
+		// print the project/target tree
+		logger.info("Project/Target tree:")
+		for p in genProjects {
+			logger.info("Project: \(p.name)")
+
+			for t in (p.targets ?? []) {
+				logger.info("  - Target: \(t.name) [\(t.type)]")
+			}
+
+			// target deps...
+		}
 		
 		//let project = try ProjectParser(path: project, logLevel: level)
 		//var targets = Targets(for: project)

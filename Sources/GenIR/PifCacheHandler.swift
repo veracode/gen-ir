@@ -26,7 +26,7 @@ public struct PifCacheHandler {
 	}
 
 	// parse the Target files in the PIFCache directory
-	public func getTargets(targets: inout [GenTarget]) {
+	public func getTargets(targets: inout [String: GenTarget]) {
 
 		logger.info("Parsing PIFCache Target files")
 
@@ -57,14 +57,15 @@ public struct PifCacheHandler {
 
 					// add this target to the list
 					if pifTarget.productTypeIdentifier != nil {
-						let g = GenTarget(guid: pifTarget.guid, filename: file, name: pifTarget.name, typeName: pifTarget.productTypeIdentifier!)
-						targets.append(g)
+						let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, typeName: pifTarget.productTypeIdentifier!)
+						//targets.append(g)
+						targets[file.lastPathComponent] = g
 					} else {
 						logger.debug("non-standard file")
-						let g = GenTarget(guid: pifTarget.guid, filename: file, name: pifTarget.name, typeName: pifTarget.type)
-						targets.append(g)
+						let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, typeName: pifTarget.type)
+						//targets.append(g)
+						targets[file.lastPathComponent] = g
 					}
-
 				} catch {
 					logger.error("Error parsing PifTarget")
 				}
@@ -80,7 +81,7 @@ public struct PifCacheHandler {
 	}
 
 	// parse the Project files in the PIFCache directory
-	public func getProjects(targets: [GenTarget], projects: inout [GenProject]) {
+	public func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) {
 
 		logger.info("Parsing PIFCache Project files")
 
@@ -109,11 +110,29 @@ public struct PifCacheHandler {
 					let pifProject = try projectParser.process(file)
 					logger.debug("PifProject: \(pifProject)")
 
+					// create the project data struct
+					let p = GenProject(guid: pifProject.guid, filename: file, name: pifProject.groupTree.name)
+
+					// add targets to this project
+					for t in pifProject.targets {
+						// if let tt = targets[t + "-json"] {
+						// 	print("value for \(t) is \(tt)")
+						// } else {
+						// 	print("Key \(t) does not exist")
+						// }
+
+
+
+						if let tt = targets[t + "-json"] { 
+							p.addTarget(target: tt)
+						} else {
+							logger.info("Unable to find target \(t) in target list")
+						}
+						//p.addTarget(target: targets[t])
+					}
+
 					// add this project to the list
-					let g = GenProject(guid: pifProject.guid, filename: file, name: pifProject.groupTree.name)
-					projects.append(g)
-
-
+					projects.append(p)
 				} catch {
 					logger.error("Error parsing PifProject")
 				}
@@ -189,7 +208,6 @@ private struct GroupTree: Codable {
 
 private struct PifProject: Codable {
 	let guid: String
-	//let name: String
 	let groupTree: GroupTree
 	let targets: [String]		// Optional?
 
@@ -200,7 +218,6 @@ private struct PifProject: Codable {
 	) {
 		self.guid = guid
 		self.groupTree = groupTree
-		//self.name = groupTree.name
 		self.targets = targets
 	}
 }

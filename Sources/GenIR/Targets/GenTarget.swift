@@ -9,10 +9,10 @@
 
 import Foundation
 
-public struct GenTarget {
+public class GenTarget {
 	//let buildTarget: BuildTarget
 	var guid: String
-	var filename: URL
+	var file: URL
 	var name: String
 	var type: TargetType
 	var isDependency: Bool
@@ -38,9 +38,9 @@ public struct GenTarget {
 		}
 	}
 
-	public init(guid: String, filename: URL, name: String, typeName: String) {
+	public init(guid: String, file: URL, name: String, typeName: String) {
 		self.guid = guid
-		self.filename = filename
+		self.file = file
 		self.name = name
 		self.type = Self.getType(typeName: typeName)
 		self.isDependency = false
@@ -48,9 +48,9 @@ public struct GenTarget {
 
 	private static func getType(typeName: String) -> TargetType {
 		switch typeName {
-			case "wrapper.application":
+			case "com.apple.product-type.application":
 				return TargetType.Application
-			case "wrapper.framework":
+			case "com.apple.product-type.framework":
 				return TargetType.Framework
 			case "wrapper.cfbundle":
 				return TargetType.Bundle

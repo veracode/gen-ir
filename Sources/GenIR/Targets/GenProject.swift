@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct GenProject {
+public class GenProject {
 	var guid: String
 	var filename: URL
 	var name: String
@@ -17,12 +17,13 @@ public struct GenProject {
 		self.guid = guid
 		self.filename = filename
 		self.name = name
-		//self.targets = targets
-
 	}
 
-	public func addTarget(/*target: GenTarget*/) {
+	public func addTarget(target: GenTarget) {
 		//self.targets.append(target)
+		if (self.targets?.append(target)) == nil {
+			self.targets = [target]
+		}
 	}
 
 }
