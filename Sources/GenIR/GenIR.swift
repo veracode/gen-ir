@@ -143,8 +143,13 @@ struct IREmitterCommand: ParsableCommand {
 		//let project = try ProjectParser(path: project, logLevel: level)
 		//var targets = Targets(for: project)
 
-		let log = try logParser(for: log)
+		let log = try logParser(for: log, targets: genTargets, projects: genProjects)
 		//try log.parse(&targets)
+		try log.parse()
+
+
+
+
 
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
@@ -167,7 +172,7 @@ struct IREmitterCommand: ParsableCommand {
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
 	/// - Returns: An `XcodeLogParser` for the given path
-	private func logParser(for path: String) throws -> XcodeLogParser {
+	private func logParser(for path: String, targets: [String: GenTarget], projects: [GenProject]) throws -> XcodeLogParser {
 		var input: [String] = []
 
 		if path == "-" {
@@ -176,7 +181,7 @@ struct IREmitterCommand: ParsableCommand {
 			input = try String(contentsOf: path.fileURL).components(separatedBy: .newlines)
 		}
 
-		return XcodeLogParser(log: input)
+		return XcodeLogParser(log: input, targets: targets, projects: projects)
 	}
 
 	/// Reads stdin until an EOF is found

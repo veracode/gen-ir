@@ -11,6 +11,7 @@ import Foundation
 
 public struct PifCacheHandler {
 	private var manifestLocation: ManifestLocation?
+	private let jsonFileExtension = "-json"
 
 	// TODO: is project needed?
 	public init(project: URL, scheme: String) {
@@ -115,15 +116,7 @@ public struct PifCacheHandler {
 
 					// add targets to this project
 					for t in pifProject.targets {
-						// if let tt = targets[t + "-json"] {
-						// 	print("value for \(t) is \(tt)")
-						// } else {
-						// 	print("Key \(t) does not exist")
-						// }
-
-
-
-						if let tt = targets[t + "-json"] { 
+						if let tt = targets[t + jsonFileExtension] { 
 							p.addTarget(target: tt)
 						} else {
 							logger.info("Unable to find target \(t) in target list")

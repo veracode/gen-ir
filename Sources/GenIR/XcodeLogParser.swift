@@ -18,6 +18,9 @@ class XcodeLogParser {
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 
+	private var targets: [String: GenTarget]
+	private var projects: [GenProject]
+
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
 		case noTargetsFound(String)
@@ -26,14 +29,18 @@ class XcodeLogParser {
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
-	init(log: [String]) {
+	init(log: [String], targets: [String: GenTarget], projects: [GenProject]) {
 		self.log = log
+		self.targets = targets
+		self.projects = projects
 	}
 
 	/// Start parsing the build log
 	/// - Parameter targets: The global list of targets
-	func parse(_ targets: inout Targets) throws {
-		parseBuildLog(log, &targets)
+	//func parse(_ targets: inout Targets) throws {
+	func parse() throws {
+		//parseBuildLog(log, &targets)
+		parseBuildLog(lines: log)
 
 		if targets.isEmpty {
 			logger.debug("Found no targets in log: \(log)")
@@ -45,15 +52,15 @@ class XcodeLogParser {
 			)
 		}
 
-		if targets.totalCommandCount == 0 {
-			logger.debug("Found no commands in log: \(log)")
+		// if targets.totalCommandCount == 0 {
+		// 	logger.debug("Found no commands in log: \(log)")
 
-			throw Error.noCommandsFound(
-				"""
-				No commands were parsed from the build log, if there are commands in the log file please report this as a bug
-				"""
-			)
-		}
+		// 	throw Error.noCommandsFound(
+		// 		"""
+		// 		No commands were parsed from the build log, if there are commands in the log file please report this as a bug
+		// 		"""
+		// 	)
+		// }
 
 		if buildCachePath == nil {
 			throw Error.noBuildCachePathFound("No build cache was found from the build log. Please report this as a bug.")
@@ -64,9 +71,11 @@ class XcodeLogParser {
 	/// - Parameters:
 	///   - lines: contents of the Xcode build log lines
 	///   - targets: the container to add found targets to
-	private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
-		var currentTarget: Target?
-		var seenTargets = Set<String>()
+	//private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
+	private func parseBuildLog(lines: [String]) {
+		//var currentTarget: Target?
+		var currentTarget: GenTarget?
+		//var seenTargets = Set<String>()
 
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -97,18 +106,25 @@ class XcodeLogParser {
 					.deletingLastPathComponent()
 			}
 
-			if let target = target(from: line), currentTarget?.name != target {
-				if seenTargets.insert(target).inserted {
-					logger.debug("Found target: \(target)")
-				}
 
-				if let targetObject = targets.target(for: target) {
-					currentTarget = targetObject
-				} else {
-					currentTarget = .init(name: target)
-					targets.insert(target: currentTarget!)
-				}
+
+			// validate on guid??
+			if let target = target(from: line)/*, currentTarget?.name != target*/ {
+
+				currentTarget = target
+
+
+			// 	if seenTargets.insert(target).inserted {
+			// 		logger.debug("Found target: \(target)")
 			}
+
+			// 	if let targetObject = targets.target(for: target) {
+			// 		currentTarget = targetObject
+			// 	} else {
+			// 		currentTarget = .init(name: target)
+			// 		targets.insert(target: currentTarget!)
+			// 	}
+			// }
 
 			guard let currentTarget else {
 				continue
@@ -121,9 +137,9 @@ class XcodeLogParser {
 				continue
 			}
 
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
+			//logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
 
-			currentTarget.commands.append(compilerCommand)
+			//currentTarget.commands.append(compilerCommand)
 		}
 	}
 
@@ -160,20 +176,63 @@ class XcodeLogParser {
 	/// Returns the target from the given line
 	/// - Parameter line: the line to parse
 	/// - Returns: the name of the target if one was found, otherwise nil
-	private func target(from line: String) -> String? {
+	private func target(from line: String) -> GenTarget? {
+
+		// TODO: fix this case also
+
+
 		if line.contains("Build target ") {
-			var result = line.replacingOccurrences(of: "Build target ", with: "")
+			// var result = line.replacingOccurrences(of: "Build target ", with: "")
 
-			if let bound = result.range(of: "of ")?.lowerBound {
-				result = String(result[result.startIndex..<bound])
-			} else if let bound = result.range(of: "with configuration ")?.lowerBound {
-				result = String(result[result.startIndex..<bound])
-			}
+			// if let bound = result.range(of: "of ")?.lowerBound {
+			// 	result = String(result[result.startIndex..<bound])
+			// } else if let bound = result.range(of: "with configuration ")?.lowerBound {
+			// 	result = String(result[result.startIndex..<bound])
+			// }
 
-			return result.trimmingCharacters(in: .whitespacesAndNewlines)
+			// return result.trimmingCharacters(in: .whitespacesAndNewlines)
 		} else if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
 			// sometimes (seemingly for archives) build logs follow a different format for targets
-			return String(line[startIndex..<endIndex])
+			let targetName = String(line[startIndex..<endIndex])
+
+			// get the project name
+			guard let pStartIndex = line.range(of: "from project '")?.upperBound,
+				let pEndIndex = line[endIndex...].range(of: "')")?.lowerBound else {
+					logger.error("Unable to find project name from build target")
+					return nil
+				}
+			
+			// get the project name, find GenProject
+			let projectName = String(line[pStartIndex..<pEndIndex])
+
+			logger.debug("Found target named \(targetName) in project named \(projectName)")
+
+			for p in self.projects {
+				if projectName == p.name {
+					logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
+					// walk the list of targets for this project, looking for a match
+					if p.targets == nil {
+						return nil
+					}
+
+					for t in p.targets! {
+						if targetName == t.name{
+							logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
+							return t
+						}
+					}
+				}
+			}
+
+
+
+
+			// walk list of targets to find GenTarget
+			// check for errors
+			// return GenTarget, or guid?
+
+
+			//return String(line[startIndex..<endIndex])
 		}
 
 		return nil
