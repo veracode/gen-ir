@@ -137,9 +137,9 @@ class XcodeLogParser {
 				continue
 			}
 
-			//logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
+			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name) [\(currentTarget.guid)]")
 
-			//currentTarget.commands.append(compilerCommand)
+			currentTarget.commands.append(compilerCommand)
 		}
 	}
 
@@ -205,11 +205,11 @@ class XcodeLogParser {
 			// get the project name, find GenProject
 			let projectName = String(line[pStartIndex..<pEndIndex])
 
-			logger.debug("Found target named \(targetName) in project named \(projectName)")
+			//logger.debug("Found target named \(targetName) in project named \(projectName)")
 
 			for p in self.projects {
 				if projectName == p.name {
-					logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
+					//logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
 					// walk the list of targets for this project, looking for a match
 					if p.targets == nil {
 						return nil
@@ -217,19 +217,15 @@ class XcodeLogParser {
 
 					for t in p.targets! {
 						if targetName == t.name{
-							logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
+							//logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
 							return t
 						}
 					}
 				}
 			}
 
-
-
-
-			// walk list of targets to find GenTarget
-			// check for errors
-			// return GenTarget, or guid?
+			logger.error("Unable to match project '\(projectName)' and target '\(targetName)' with an existing project/target!!")
+			return nil
 
 
 			//return String(line[startIndex..<endIndex])

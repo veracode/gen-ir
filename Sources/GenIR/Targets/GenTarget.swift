@@ -18,6 +18,9 @@ public class GenTarget {
 	var isDependency: Bool
 	// var Dependencies[] 
 
+	// A list of CompilerCommands relating to this target
+	var commands: [CompilerCommand] = []
+
 	public enum TargetType: CustomStringConvertible {
 		case Application
 		case Framework
