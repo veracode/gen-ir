@@ -23,7 +23,7 @@ public class GenTarget {
 
 	// The name to use when writing IR to disk, prefer the product name if possible.
 	//lazy var nameForOutput: String = name + "-" + guid			// TODO: FIX THIS!
-	lazy var nameForOutput: String = name + "." + "\(type)"			// TODO: FIX THIS!
+	lazy var nameForOutput: String = name + "." + self.getPathExtension()			// TODO: FIX THIS!
 
 	public enum TargetType: CustomStringConvertible {
 		case Application
@@ -59,14 +59,23 @@ public class GenTarget {
 				return TargetType.Application
 			case "com.apple.product-type.framework":
 				return TargetType.Framework
-			case "wrapper.cfbundle":
+			case "wrapper.cfbundle":							// TODO: fix
 				return TargetType.Bundle
-			case "wrapper.app-extension":
+			case "wrapper.app-extension":						// TODO: fix
 				return TargetType.Extension
-			case "packageProduct":
+			case "packageProduct":								// TODO: fix
 				return TargetType.Package
 			default:
 				return TargetType.Unknown
+		}
+	}
+
+	private func getPathExtension() -> String {
+		switch type {
+			case .Application: return "app"
+			case .Framework: return "framework"
+																// TODO: more
+			default: return "unknown"
 		}
 	}
 
