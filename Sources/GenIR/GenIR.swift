@@ -147,10 +147,6 @@ struct IREmitterCommand: ParsableCommand {
 		//try log.parse(&targets)
 		try log.parse()
 
-
-
-
-
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
 			buildSettings: log.settings,
@@ -162,7 +158,7 @@ struct IREmitterCommand: ParsableCommand {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		//try runner.run(targets: targets)
+		try runner.run(targets: genTargets)
 
 		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
 		//try postprocessor.process(targets: &targets)

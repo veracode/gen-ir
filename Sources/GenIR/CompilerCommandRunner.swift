@@ -7,7 +7,7 @@
 
 import Foundation
 import Logging
-import PBXProjParser
+//import PBXProjParser
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -18,19 +18,16 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	/// The directory to place the LLVM BC output
-	private let output: URL
-
+	
+	private let output: URL				/// The directory to place the LLVM BC output
 	private let buildCacheManipulator: BuildCacheManipulator
-
 	private let fileManager = FileManager.default
+	private let dryRun: Bool
 
 	enum Error: Swift.Error {
 		/// Command runner failed to parse the command for the required information
 		case failedToParse(String)
 	}
-
-	private let dryRun: Bool
 
 	/// Initializes a runner
 	/// - Parameters:
@@ -42,7 +39,7 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	func run(targets: Targets) throws {
+	func run(targets: [String: GenTarget]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
@@ -50,15 +47,17 @@ struct CompilerCommandRunner {
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targets.totalCommandCount
-		logger.info("Total commands to run: \(totalCommands)")
+		//let totalCommands = targets.totalCommandCount
+		//logger.info("Total commands to run: \(totalCommands)")
 
-		var totalModulesRun = 0
+		//var totalModulesRun = 0
 
-		for target in targets {
-			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
+		// ?? loop through projects (and targets within projects) ??
+		for (key, target) in targets {
+			//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
+			logger.info("Operating on target: \(target.name) [\(target.guid)]")
 
-			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+			/*totalModulesRun +=*/ try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 		}
 
 		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)

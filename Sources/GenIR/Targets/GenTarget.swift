@@ -21,6 +21,10 @@ public class GenTarget {
 	// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
 
+	// The name to use when writing IR to disk, prefer the product name if possible.
+	//lazy var nameForOutput: String = name + "-" + guid			// TODO: FIX THIS!
+	lazy var nameForOutput: String = name + "." + "\(type)"			// TODO: FIX THIS!
+
 	public enum TargetType: CustomStringConvertible {
 		case Application
 		case Framework
