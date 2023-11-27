@@ -22,8 +22,7 @@ public class GenTarget {
 	var commands: [CompilerCommand] = []
 
 	// The name to use when writing IR to disk, prefer the product name if possible.
-	//lazy var nameForOutput: String = name + "-" + guid			// TODO: FIX THIS!
-	lazy var nameForOutput: String = name + "." + self.getPathExtension()			// TODO: FIX THIS!
+	lazy var nameForOutput: String = name + "." + self.getPathExtension()
 
 	public enum TargetType: CustomStringConvertible {
 		case Application

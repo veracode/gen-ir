@@ -10,11 +10,10 @@ import XcodeHasher
 
 public struct ManifestFinderOptions {
 	let project: URL
-	let scheme: String
 	let derivedData: URL?
 
-	static func build(project: URL, scheme: String) -> Self {
-		ManifestFinderOptions(project: project, scheme: scheme, derivedData: nil)
+	static func build(project: URL) -> Self {
+		ManifestFinderOptions(project: project, derivedData: nil)
 	}
 
 	func guessProjectName() throws -> String  {
@@ -79,13 +78,12 @@ public struct ManifestFinder {
 		// manifests are in xcbuild dir
 		let xcbuildDir = projectDir
 								.appendingPathComponent(xcbuildArchiveDataDir)
-								.appendingPathComponent(options.scheme)
 								.appendingPathComponent(xcbuildDataDir)
 
 		// TODO: is there a better/cleaner way to do this?
 		//return try getLatestManifest(xcbuildDir)
 		var manifestLocation: ManifestLocation
-		manifestLocation = try getLatestManifest(xcbuildDir)
+		manifestLocation = try getLatestManifest(xcbuildDir)			// TODO: we don't need this, just the PIFCache
 		manifestLocation.pifCache = projectDir.appendingPathComponent(pifCacheDir)
 		return manifestLocation
 	}

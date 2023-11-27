@@ -27,7 +27,7 @@ enum ManifestFinderError: Error, LocalizedError {
 	var recoverySuggestion: String? {
 		switch self {
 		case .projectDictionaryNotFound(let dirs):
-			return "Make sure you DerivedData dir exist at any of these directories: \n\(dirs.map(\.path).joined(separator: ",\n"))"
+			return "Make sure your DerivedData dir exists at any of these directories: \n\(dirs.map(\.path).joined(separator: ",\n"))"
 		case .invalidFileFormat(let url): return "The file \(url.path) is not supported. Please open .xcodeproj, .xcworkspace, Package.swift, .playground or raw manifest.json/-manifest.xcbuild"
 		default:
 			return "Make sure you built at least once from Xcode"

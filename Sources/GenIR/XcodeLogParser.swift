@@ -42,15 +42,15 @@ class XcodeLogParser {
 		//parseBuildLog(log, &targets)
 		parseBuildLog(lines: log)
 
-		if targets.isEmpty {
-			logger.debug("Found no targets in log: \(log)")
+		// if targets.isEmpty {
+		// 	logger.debug("Found no targets in log: \(log)")
 
-			throw Error.noTargetsFound(
-				"""
-				No targets were parsed from the build log, if there are targets in the log file please report this as a bug
-				"""
-			)
-		}
+		// 	throw Error.noTargetsFound(
+		// 		"""
+		// 		No targets were parsed from the build log, if there are targets in the log file please report this as a bug
+		// 		"""
+		// 	)
+		// }
 
 		// if targets.totalCommandCount == 0 {
 		// 	logger.debug("Found no commands in log: \(log)")

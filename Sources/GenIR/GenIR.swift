@@ -1,7 +1,7 @@
 import Foundation
 import ArgumentParser
 import Logging
-import PBXProjParser
+//import PBXProjParser
 
 /// Global logger object
 var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
@@ -43,10 +43,6 @@ struct IREmitterCommand: ParsableCommand {
 	/// Path to the xcarchive to write the LLVM BC files to
 	@Argument(help: "Path to the xcarchive associated with the build log")
 	var xcarchivePath: URL
-
-	/// Scheme name, needed to find the build manifest
-	@Option(help: "Name of the scheme used when building")
-	var scheme: String
 
 	/// Path to xcodeproj or xcworkspace file
 	@Option(help: "Path to your Xcode Project or Workspace file")
@@ -102,31 +98,35 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	mutating func run() throws {
-		try run(
-			project: projectPath,
-			log: logPath,
-			scheme: scheme,
-			archive: xcarchivePath,
-			output: outputPath,
-			level: logger.logLevel,
-			dryRun: dryRun
-		)
+		do {
+			try run(
+				project: projectPath,
+				log: logPath,
+				archive: xcarchivePath,
+				output: outputPath,
+				level: logger.logLevel,
+				dryRun: dryRun
+			)
+
+			print("SUCCESS")
+		} catch {
+			print("FAILED, \(error)")
+		}
 	}
 
 	// swiftlint:disable function_parameter_count
-	mutating func run(project: URL, log: String, scheme: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
 		logger.debug("running...")
 
-		//var genTargets: [GenTarget] = [GenTarget]()
 		var genTargets = [String: GenTarget]()		// dict of all the targets, using filename as the key
 		var genProjects: [GenProject] = [GenProject]()
 
 		// find the PIFCache location
-		let pifCacheHandler = PifCacheHandler(project: project, scheme: scheme)
+		let pifCacheHandler = try PifCacheHandler(project: project)
 
 		// parse the PIF cache files and create a list of projects and targets
-		pifCacheHandler.getTargets(targets: &genTargets)
-		pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
+		try pifCacheHandler.getTargets(targets: &genTargets)
+		try pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
 		
 		// print the project/target tree
 		logger.info("Project/Target tree:")
@@ -139,6 +139,7 @@ struct IREmitterCommand: ParsableCommand {
 
 			// target deps...
 		}
+		
 		
 		//let project = try ProjectParser(path: project, logLevel: level)
 		//var targets = Targets(for: project)
@@ -160,7 +161,7 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(targets: genTargets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+		//let postprocessor = try OutputPostprocessor(archive: archive, output: output)
 		//try postprocessor.process(targets: &targets)
 	}
 	// swiftlint:enable function_parameter_count

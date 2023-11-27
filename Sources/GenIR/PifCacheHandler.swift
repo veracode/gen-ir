@@ -13,32 +13,34 @@ public struct PifCacheHandler {
 	private var manifestLocation: ManifestLocation?
 	private let jsonFileExtension = "-json"
 
+	enum PifError: Error {
+		case setupError(_ msg: String)
+		case processingError(_ msg: String)
+	}
+
 	// TODO: is project needed?
-	public init(project: URL, scheme: String) {
+	public init(project: URL) throws {
 		// find the PIFCache folder
 		let manifestFinder = ManifestFinder()
 
 		do {
-			manifestLocation = try manifestFinder.findLatestManifest(options: .build(project: project, scheme: scheme))
+			manifestLocation = try manifestFinder.findLatestManifest(options: .build(project: project))
 			logger.info("Found PIFCache \(manifestLocation!.pifCache!)")
-		} catch {
-			logger.error("Error looking for PIFCache")
+		} catch let error as ManifestFinderError {
+			throw PifError.setupError("Unable to find PIFCache - \(error.errorDescription!), \(error.recoverySuggestion!)")
 		}
 	}
 
 	// parse the Target files in the PIFCache directory
-	public func getTargets(targets: inout [String: GenTarget]) {
-
+	public func getTargets(targets: inout [String: GenTarget]) throws {
 		logger.info("Parsing PIFCache Target files")
 
 		guard self.manifestLocation != nil else {
-			logger.error("PifCache, manifest location unknown")
-			return
+			throw PifError.processingError("PifCache, manifest location unknown")
 		}
 
 		guard self.manifestLocation!.pifCache != nil else {
-			logger.error("PifCache, PIFCache lcation unknown")
-			return
+			throw PifError.processingError("PifCache, PIFCache lcation unknown")
 		}
 
 		// pass 1: get all the files
@@ -59,20 +61,18 @@ public struct PifCacheHandler {
 					// add this target to the list
 					if pifTarget.productTypeIdentifier != nil {
 						let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, typeName: pifTarget.productTypeIdentifier!)
-						//targets.append(g)
 						targets[file.lastPathComponent] = g
 					} else {
 						logger.debug("non-standard file")
 						let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, typeName: pifTarget.type)
-						//targets.append(g)
 						targets[file.lastPathComponent] = g
 					}
 				} catch {
-					logger.error("Error parsing PifTarget")
+					throw PifError.processingError("Error parsing PifTarget [\(error)]")
 				}
 			}
 		} catch {
-				logger.error("Error finding Target files")
+				throw PifError.processingError("Error finding Target files [\(error)]")
 		}
 
 		// pass 2: work out any inter-target dependencies
@@ -82,18 +82,15 @@ public struct PifCacheHandler {
 	}
 
 	// parse the Project files in the PIFCache directory
-	public func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) {
-
+	public func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) throws {
 		logger.info("Parsing PIFCache Project files")
 
 		guard self.manifestLocation != nil else {
-			logger.error("PifCache, manifest location unknown")
-			return
+			throw PifError.processingError("PifCache, manifest location unknown")
 		}
 
 		guard self.manifestLocation!.pifCache != nil else {
-			logger.error("PifCache, PIFCache lcation unknown")
-			return
+			throw PifError.processingError("PifCache, PIFCache lcation unknown")
 		}
 
 		// pass 1: get all the files
@@ -121,17 +118,16 @@ public struct PifCacheHandler {
 						} else {
 							logger.info("Unable to find target \(t) in target list")
 						}
-						//p.addTarget(target: targets[t])
 					}
 
 					// add this project to the list
 					projects.append(p)
 				} catch {
-					logger.error("Error parsing PifProject")
+					throw PifError.processingError("Error parsing PifProject [\(error)]")
 				}
 			}
 		} catch {
-				logger.error("Error finding Project files")
+				throw PifError.processingError("Error finding Project files [\(error)]")
 		}
 
 
