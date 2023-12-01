@@ -18,6 +18,9 @@ class OutputPostprocessor {
 	/// The to the output IR folders that will be processed
 	let output: URL
 
+	/// The archive path, this should be the parent path of `output`
+	let archive: URL
+
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
@@ -29,6 +32,7 @@ class OutputPostprocessor {
 
 	init(archive: URL, output: URL, targets: Targets, dumpGraph: Bool) throws {
 		self.output = output
+		self.archive = archive
 
 		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
 
