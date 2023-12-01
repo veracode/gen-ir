@@ -1,6 +1,6 @@
 # Gen IR Branching Model
 
-![Branching Model](images/branching_model.png)
+![Branching Model](images/branching_model.svg)
 
 Gen IR uses the [GitFlow](https://nvie.com/posts/a-successful-git-branching-model/) branching model. This model is tried, tested, and has remained so over 10+ years for a project of this type.
 
