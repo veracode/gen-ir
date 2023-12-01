@@ -90,6 +90,9 @@ So, if you have released a new major or minor version you should:
 
 Using the history of the `homebrew-tap` find the version of the Gen IR formula you're looking for, then copy the file to the `Formula` folder renaming it like so: `gen-ir@<version>`
 
-Edit the file to add the `keg_only :versioned_formula` tag after the `bottle`.
+Edit the file to:
+
+- change the name of the class to add the version, for example version 0.3.11 becomes: `GenIrAT0311`.
+- add the `keg_only :versioned_formula` tag after the `bottle`.
 
 > Note: it is a good idea to run `brew style Formulae/gen-ir@<version>.rb` before you push the commit! Brew is _very_ particular about the layout of a formula and the test-bot will fail if your key isn't in the right spot.
