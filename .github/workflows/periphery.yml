@@ -15,7 +15,6 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
       - name: Install periphery
         run: |
-          brew update && brew upgrade
           brew install peripheryapp/periphery/periphery
       - name: Scan for unused code
         run: |
