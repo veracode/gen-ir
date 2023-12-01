@@ -82,9 +82,24 @@ public struct ManifestFinder {
 
 		// TODO: is there a better/cleaner way to do this?
 		//return try getLatestManifest(xcbuildDir)
-		var manifestLocation: ManifestLocation
-		manifestLocation = try getLatestManifest(xcbuildDir)			// TODO: we don't need this, just the PIFCache
+		// var manifestLocation: ManifestLocation
+		// do {
+		// 	manifestLocation = try getLatestManifest(xcbuildDir)			// TODO: we don't need this, just the PIFCache
+		// 	manifestLocation.pifCache = projectDir.appendingPathComponent(pifCacheDir)
+		// 	return manifestLocation
+		// } catch let error as NSError /*CocoaError.fileNoSuchFile*/ {
+		// 	if error.domain == "NSCocoaErrorDomain" && error.code == 260 {
+		// 		logger.error("Unable to find Archive directory, do you build an xcarchive?")
+		// 	}
+		// 	logger.error("\(error)")
+		// 	throw ManifestFinderError.manifestNotFound
+		// }
+
+		// TODO: clean this up - we really don't need to find the manifest
+		let dummyURL = URL(string:"N/A")
+		var manifestLocation = ManifestLocation(projectFile: nil, manifest: dummyURL!, timingDatabase: nil )
 		manifestLocation.pifCache = projectDir.appendingPathComponent(pifCacheDir)
+
 		return manifestLocation
 	}
 

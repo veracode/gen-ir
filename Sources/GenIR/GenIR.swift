@@ -87,13 +87,18 @@ struct IREmitterCommand: ParsableCommand {
 			throw ValidationError("xcarchive path must have an .xcarchive extension. Found \(xcarchivePath.lastPathComponent)")
 		}
 
-		if !FileManager.default.directoryExists(at: outputPath) {
-			logger.debug("Output path doesn't exist, creating \(outputPath)")
+		if FileManager.default.directoryExists(at: outputPath) {
 			do {
-				try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
+				try FileManager.default.removeItem(at: outputPath)
 			} catch {
-				throw ValidationError("Failed to create output directory with error: \(error)")
+				throw ValidationError("Unable to delete outputPath \(outputPath)  Error: \(error)")
 			}
+		}
+		//logger.debug("Output path doesn't exist, creating \(outputPath)")
+		do {
+			try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
+		} catch {
+			throw ValidationError("Failed to create output directory with error: \(error)")
 		}
 	}
 
@@ -131,16 +136,20 @@ struct IREmitterCommand: ParsableCommand {
 		// print the project/target tree
 		logger.info("Project/Target tree:")
 		for p in genProjects {
-			logger.info("Project: \(p.name)")
+			logger.info("Project: \(p.name) [\(p.guid)]")
+
+			// TODO: handle recursion
 
 			for t in (p.targets ?? []) {
-				logger.info("  - Target: \(t.name) [\(t.type)]")
-			}
+				logger.info("  - Target: \(t.name) [\(t.type)] [\(t.guid)]")
 
-			// target deps...
+				for d in (t.dependencyTargets ?? []) {
+					logger.info("    - Dependency: \(d.name) [\(d.guid)]")
+				}
+			}
 		}
 		
-		
+
 		//let project = try ProjectParser(path: project, logLevel: level)
 		//var targets = Targets(for: project)
 
@@ -159,7 +168,8 @@ struct IREmitterCommand: ParsableCommand {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(targets: genTargets)
+		//try runner.run(targets: genTargets)
+		try runner.run(projects: genProjects)
 
 		//let postprocessor = try OutputPostprocessor(archive: archive, output: output)
 		//try postprocessor.process(targets: &targets)

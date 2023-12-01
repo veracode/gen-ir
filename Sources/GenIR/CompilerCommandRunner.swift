@@ -39,7 +39,9 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	func run(targets: [String: GenTarget]) throws {
+	//func run(targets: [String: GenTarget]) throws {
+	func run(projects: [GenProject]) throws {
+		logger.info("Building bitcode files")
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
@@ -52,18 +54,61 @@ struct CompilerCommandRunner {
 
 		//var totalModulesRun = 0
 
-		// ?? loop through projects (and targets within projects) ??
-		for (key, target) in targets {
-			//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
-			logger.info("Operating on target: \(target.name) [\(target.guid)]")
+		// loop through all of the projects and create IR for each target
+		for currentProject in projects {
+			logger.info("Operating on project: \(currentProject.name) [\(currentProject.guid)]")
 
-			/*totalModulesRun +=*/ try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+			for target in (currentProject.targets ?? []) {
+
+				// prefer productRef.name, else fall back to name
+				//let nameToUse = target.productRef
+
+
+
+			//for (key, target) in targets {
+				//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
+				logger.info("Operating on target:   \(target.name) [\(target.guid)]")
+
+
+				/*totalModulesRun +=*/ try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+
+
+				// handle dependencies of this target
+				for dep in (target.dependencyTargets ?? []) {
+					try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+				//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
+				}
+				
+				//do {
+					//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
+					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
+				// } catch {
+				// 	// TODO: Fix me!
+				// 	logger.info("File copy, skipping as duplicate: \(output.appendingPathComponent(target.nameForOutput))")
+				// }
+
+			}
+
+			//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
+
+			//let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
+			//logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
+			logger.info("Finished compiling all targets for project: \(currentProject.name) [\(currentProject.guid)]")
 		}
 
-		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
+		logger.info("Finished processing all projects")
+	}
 
-		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
-		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
+	private func runDependencies(target: GenTarget, tempDir: URL) throws {
+		logger.info("Running dependencies for: \(target.name) [\(target.guid)]")
+
+		// adjust ouptut dir to avoid clobbering existing files
+		try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
+
+		// recurse...
+
+
+
 	}
 
 	/// Runs all commands for a given target

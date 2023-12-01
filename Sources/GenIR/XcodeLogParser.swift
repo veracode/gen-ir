@@ -205,7 +205,7 @@ class XcodeLogParser {
 			// get the project name, find GenProject
 			let projectName = String(line[pStartIndex..<pEndIndex])
 
-			//logger.debug("Found target named \(targetName) in project named \(projectName)")
+			logger.debug("Found target named \(targetName) in project named \(projectName)")
 
 			for p in self.projects {
 				if projectName == p.name {
@@ -226,7 +226,6 @@ class XcodeLogParser {
 
 			logger.error("Unable to match project '\(projectName)' and target '\(targetName)' with an existing project/target!!")
 			return nil
-
 
 			//return String(line[startIndex..<endIndex])
 		}
