@@ -81,7 +81,6 @@ struct FileRef: Reference {
 			}
 
 			return path + "/" + location.path
-			// return URL(fileURLWithPath: path).appendingPathComponent(location.path).path
 		}
 	}
 }
