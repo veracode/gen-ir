@@ -59,8 +59,8 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Runs the tool without outputting IR to disk (i.e. leaving out the compiler command runner stage)")
 	var dryRun = false
 
-	/// Path to write IR to
-	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
+	@Flag(help: "Output the dependency graph as .dot files to the output directory - debug only")
+	var dumpDependencyGraph = false
 
 	mutating func validate() throws {
 		if debug {
@@ -76,7 +76,7 @@ struct IREmitterCommand: ParsableCommand {
 			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
 		}
 
-		// Version 0.2.x and below allowed the output folder to be any artibrary folder.
+		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
 		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
 		// folder, remove the IR portion
 		if xcarchivePath.filePath.hasSuffix("IR") {
@@ -87,13 +87,8 @@ struct IREmitterCommand: ParsableCommand {
 			throw ValidationError("xcarchive path must have an .xcarchive extension. Found \(xcarchivePath.lastPathComponent)")
 		}
 
-		if !FileManager.default.directoryExists(at: outputPath) {
-			logger.debug("Output path doesn't exist, creating \(outputPath)")
-			do {
-				try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
-			} catch {
-				throw ValidationError("Failed to create output directory with error: \(error)")
-			}
+		if !FileManager.default.directoryExists(at: xcarchivePath) {
+			throw ValidationError("Archive path doesn't exist: \(xcarchivePath.filePath)")
 		}
 	}
 
@@ -102,14 +97,21 @@ struct IREmitterCommand: ParsableCommand {
 			project: projectPath,
 			log: logPath,
 			archive: xcarchivePath,
-			output: outputPath,
 			level: logger.logLevel,
-			dryRun: dryRun
+			dryRun: dryRun,
+			dumpDependencyGraph: dumpDependencyGraph
 		)
 	}
 
-	// swiftlint:disable function_parameter_count
-	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
+	mutating func run(
+		project: URL,
+		log: String,
+		archive: URL,
+		level: Logger.Level,
+		dryRun: Bool,
+		dumpDependencyGraph: Bool
+	) throws {
+		let output = archive.appendingPathComponent("IR")
 		let project = try ProjectParser(path: project, logLevel: level)
 		var targets = Targets(for: project)
 
@@ -119,7 +121,8 @@ struct IREmitterCommand: ParsableCommand {
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
 			buildSettings: log.settings,
-			archive: archive
+			archive: archive,
+			dryRun: dryRun
 		)
 
 		let runner = CompilerCommandRunner(
@@ -129,10 +132,14 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(targets: targets)
 
-		let postprocessor = try OutputPostprocessor(archive: archive, output: output)
+		let postprocessor = try OutputPostprocessor(
+			archive: archive,
+			output: output,
+			targets: targets,
+			dumpGraph: dumpDependencyGraph
+		)
 		try postprocessor.process(targets: &targets)
 	}
-	// swiftlint:enable function_parameter_count
 
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read

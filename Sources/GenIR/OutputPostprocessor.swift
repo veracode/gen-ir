@@ -8,28 +8,49 @@
 import Foundation
 import PBXProjParser
 
+private typealias SizeAndCreation = (Int, Date)
+
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
 /// The `OutputPostprocessor` attempts to remedy this by using the `ProjectParser` to detect dependencies between products AND
 /// parsing the `xcarchive` to determine if something was statically linked, and if so, copies the IR for that product into the linker's IR folder.
-struct OutputPostprocessor {
+class OutputPostprocessor {
 	/// The to the output IR folders that will be processed
 	let output: URL
+
+	/// The archive path, this should be the parent path of `output`
+	let archive: URL
 
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
-	init(archive: URL, output: URL) throws {
-		self.output = output
+	private let graph: DependencyGraph
 
-		dynamicDependencyToPath = dynamicDependencies(in: archive)
+	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
+
+	private let manager: FileManager = .default
+
+	init(archive: URL, output: URL, targets: Targets, dumpGraph: Bool) throws {
+		self.output = output
+		self.archive = archive
+
+		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
+
+		graph = DependencyGraphBuilder.build(targets: targets)
+		if dumpGraph {
+			do {
+				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
+			} catch {
+				logger.error("toDot error: \(error)")
+			}
+		}
 	}
 
 	/// Starts the OutputPostprocessor
 	/// - Parameter targets: the targets to operate on
 	func  process(targets: inout Targets) throws {
-		let targetsToPaths = try FileManager.default.directories(at: output, recursive: false)
-			.reduce(into: [Target: URL]()) { partialResult, path in
+		try manager.directories(at: output, recursive: false)
+			.forEach { path in
 				let product = path.lastPathComponent.deletingPathExtension()
 
 				guard let target = targets.target(for: product) else {
@@ -37,63 +58,152 @@ struct OutputPostprocessor {
 					return
 				}
 
-				partialResult[target] = path
+				target.irFolderPath = path
 			}
 
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		_ = try targets.flatMap { target in
-			guard let path = targetsToPaths[target] else {
-				logger.error("Couldn't find path for target: \(target)")
-				return Set<URL>()
-			}
+		_ = try manager.directories(at: output, recursive: false)
+			.flatMap { path in
+				let product = path.lastPathComponent.deletingPathExtension()
 
-			return try process(target: target, in: targets, at: path, with: targetsToPaths)
-		}
+				guard let target = targets.target(for: product) else {
+					logger.error("Failed to look up target for product: \(product)")
+					return Set<URL>()
+				}
+
+				return try process(target: target)
+			}
 	}
 
 	/// Processes an individual target
 	/// - Parameters:
 	///   - target: the target to process
-	///   - targets: a list of all targets
 	///   - path: the output path
-	///   - targetsToPaths: a map of targets to their IR folder paths
 	/// - Returns:
 	private func process(
-		target: Target,
-		in targets: Targets,
-		at path: URL,
-		with targetsToPaths: [Target: URL]
+		target: Target
 	) throws -> Set<URL> {
-		let dependencies = targets.calculateDependencies(for: target)
+		let chain = graph.chain(for: target)
 
-		let staticDependencies = dependencies
-			.filter { dynamicDependencyToPath[$0] == nil }
+		logger.debug("Chain for target: \(target.nameForOutput):\n")
+		chain.forEach { logger.debug("\($0)") }
 
-		let processedPaths = try staticDependencies
-			.compactMap { product -> URL? in
-				guard let dependencyTarget = targets.target(for: product) else {
-					logger.debug("Failed to lookup target for product: \(product)")
-					return nil
-				}
+		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
+		var processed = Set<URL>()
 
-				guard let dependencyPath = targetsToPaths[dependencyTarget] else {
-					logger.debug("Failed to lookup path for target: \(dependencyTarget.name)")
-					return nil
-				}
+		for node in chain {
+			logger.debug("Processing Node: \(node.name)")
+			// Ensure node is not a dynamic dependency
+			guard dynamicDependencyToPath[node.target.nameForOutput] == nil else { continue }
 
-				try FileManager.default.copyItemMerging(at: dependencyPath, to: path)
-				return dependencyPath
+			// Only care about moving dependencies into dependers - check this node's edges to dependent relationships
+			let dependers = node.edges
+				.filter { $0.relationship == .depender }
+				.map { $0.to }
+
+			// Move node's IR into depender's IR folder
+			guard let nodeFolderPath = node.target.irFolderPath else {
+				logger.debug("IR folder for node: \(node) is nil")
+				continue
 			}
 
-		return Set(processedPaths)
+			for depender in dependers {
+				guard let dependerFolderPath = depender.target.irFolderPath else {
+					logger.debug("IR folder for depender node \(depender) is nil")
+					continue
+				}
+
+				// Move the dependency IR (the node) to the depender (the thing depending on this node)
+				do {
+					try copyContentsOfDirectoryMergingDifferingFiles(at: nodeFolderPath, to: dependerFolderPath)
+				} catch {
+					logger.debug("Copy error: \(error)")
+				}
+				processed.insert(nodeFolderPath)
+			}
+		}
+
+		return processed
+	}
+
+	// TODO: Write tests for this.
+	/// Copies the contents of a directory from source to destination, merging files that share the same name but differ in attributes
+	/// - Parameters:
+	///   - source: the source directory to copy the contents of
+	///   - destination: the destination directory for the contents
+	func copyContentsOfDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
+		let files = try manager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
+
+		// Get two arrays of file paths of the source and destination file where:
+		//  1) destination already exists
+		//  2) destination doesn't already exist
+		typealias SourceAndDestination = (source: URL, destination: URL)
+		let (existing, nonexisting) = files
+			.map {
+				(
+					source: source.appendingPathComponent($0.lastPathComponent),
+					destination: destination.appendingPathComponent($0.lastPathComponent)
+				)
+			}
+			.reduce(into: (existing: [SourceAndDestination](), nonexisting: [SourceAndDestination]())) { (partialResult, sourceAndDestination) in
+				if manager.fileExists(atPath: sourceAndDestination.destination.filePath) {
+					partialResult.existing.append(sourceAndDestination)
+				} else {
+					partialResult.nonexisting.append(sourceAndDestination)
+				}
+			}
+
+		// Nonexisting files are easy - just move them
+		try nonexisting
+			.forEach { (source, destination) in
+				try manager.copyItem(at: source, to: destination)
+			}
+
+		// Existing files require some additional checks and renaming
+		try existing
+			.forEach {
+				try copyFileUniquingConflictingFiles(source: $0.source, destination: $0.destination)
+			}
+	}
+
+	/// Copies a file, uniquing the path if it conflicts, _if_ the files they conflict with aren't the same size
+	/// - Parameters:
+	///   - source: source file path
+	///   - destination: destination file path
+	private func copyFileUniquingConflictingFiles(source: URL, destination: URL) throws {
+		let destinationAttributes = try manager.attributesOfItem(atPath: destination.filePath)
+		let sourceAttributes = try manager.attributesOfItem(atPath: source.filePath)
+
+		guard
+			let destinationSize = destinationAttributes[.size] as? Int,
+			let sourceSize = sourceAttributes[.size] as? Int,
+			let destinationCreatedDate = destinationAttributes[.creationDate] as? Date,
+			let sourceCreatedDate = sourceAttributes[.creationDate] as? Date
+		else {
+			logger.debug("Failed to get attributes for source: \(source) & destination: \(destination)")
+			return
+		}
+
+		let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
+
+		if seenConflictingFiles[source] == nil {
+			seenConflictingFiles[source] = [(sourceSize, sourceCreatedDate)]
+		}
+
+		for (size, date) in seenConflictingFiles[source]! where size == destinationSize && date == destinationCreatedDate {
+			return
+		}
+
+		seenConflictingFiles[source]!.append((destinationSize, destinationCreatedDate))
+		logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
+		try manager.copyItem(at: source, to: uniqueDestinationURL)
 	}
 }
 
-// swiftlint:disable private_over_fileprivate
 /// Returns a map of dynamic objects in the provided path
 /// - Parameter xcarchive: the path to search through
 /// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
-fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
+private func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 	let searchPath = baseSearchPath(startingAt: xcarchive)
 	logger.debug("Using search path for dynamic dependencies: \(searchPath)")
 
@@ -112,7 +222,7 @@ fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 /// Returns the base URL to start searching inside an xcarchive
 /// - Parameter path: the original path, should be an xcarchive
 /// - Returns: the path to start a dependency search from
-fileprivate func baseSearchPath(startingAt path: URL) -> URL {
+private func baseSearchPath(startingAt path: URL) -> URL {
 	let productsPath = path.appendingPathComponent("Products")
 	let applicationsPath = productsPath.appendingPathComponent("Applications")
 	let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
@@ -142,4 +252,3 @@ fileprivate func baseSearchPath(startingAt path: URL) -> URL {
 	logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
 	return productsPath
 }
-// swiftlint:enable private_over_fileprivate

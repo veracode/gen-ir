@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 public struct Networking {
 	static public func get(_ url: URL) async throws -> Data {
 		let request = URLRequest(url: url)

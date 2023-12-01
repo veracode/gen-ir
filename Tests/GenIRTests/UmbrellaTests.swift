@@ -21,7 +21,7 @@ final class UmbrellaTests: XCTestCase {
 	func testUmbrellaTargets() throws {
 		let context = try TestContext()
 		let process = try context.build(test: Self.testPath, scheme: Self.scheme)
-		XCTAssertEqual(process.code, 0, "Failed to build test case")
+		XCTAssertEqual(process.code, 0, "Build returned non-zero exit code")
 
 		let projectParser = try ProjectParser(path: Self.testPath, logLevel: .info)
 		let targets = Targets(for: projectParser)
@@ -40,7 +40,8 @@ final class UmbrellaTests: XCTestCase {
 	func testSkipInstallNo() throws {
 		let context = try TestContext()
 		defer { try? FileManager.default.removeItem(at: context.temporaryDirectory) }
-		_ = try context.build(test: Self.testPath, scheme: Self.scheme, additionalArguments: ["SKIP_INSTALL=NO"])
+		let result = try context.build(test: Self.testPath, scheme: Self.scheme, additionalArguments: ["SKIP_INSTALL=NO"])
+		XCTAssertEqual(result.code, 0, "Build returned non-zero exit code")
 
 		let output = context.archive.appendingPathComponent("IR")
 
@@ -49,9 +50,9 @@ final class UmbrellaTests: XCTestCase {
 			project: Self.testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
-			output: output,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		let directories = try FileManager.default.directories(at: output, recursive: false)
@@ -71,7 +72,8 @@ final class UmbrellaTests: XCTestCase {
 	func testCustomDerivedDataAndSkipInstallNo() throws {
 		let context = try TestContext()
 		defer { try? FileManager.default.removeItem(at: context.temporaryDirectory) }
-		_ = try context.build(test: Self.testPath, scheme: Self.scheme, additionalArguments: ["SKIP_INSTALL=NO", "-derivedDataPath", "_build"])
+		let result = try context.build(test: Self.testPath, scheme: Self.scheme, additionalArguments: ["SKIP_INSTALL=NO", "-derivedDataPath", "_build"])
+		XCTAssertEqual(result.code, 0, "Build returned non-zero exit code")
 
 		let output = context.archive.appendingPathComponent("IR")
 
@@ -80,9 +82,9 @@ final class UmbrellaTests: XCTestCase {
 			project: Self.testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
-			output: output,
 			level: .debug,
-			dryRun: false
+			dryRun: false,
+			dumpDependencyGraph: false
 		)
 
 		let directories = try FileManager.default.directories(at: output, recursive: false)

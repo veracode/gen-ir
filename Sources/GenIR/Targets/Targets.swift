@@ -9,7 +9,7 @@ import Foundation
 import PBXProjParser
 
 /// Represents a collection of `Target`s
-struct Targets {
+class Targets {
 	/// The underlying storage of `Target`s
 	private(set) var targets: Set<Target> = []
 
@@ -34,7 +34,7 @@ struct Targets {
 	/// - Parameter target: the element to insert
 	/// - Returns: `(true, target)` if `target` wasn't in the container. `(false, existingElement)` if `target` is in the container.
 	@discardableResult
-	mutating func insert(native target: PBXNativeTarget) -> (inserted: Bool, memberAfterInsert: Element) {
+	func insert(native target: PBXNativeTarget) -> (inserted: Bool, memberAfterInsert: Element) {
 		let newTarget = Target(
 				name: target.name,
 				backingTarget: .native(target),
@@ -48,7 +48,7 @@ struct Targets {
 	/// - Parameter package: the element to insert
 	/// - Returns: `(true, target)` if `target` wasn't in the container. `(false, existingElement)` if `target` is in the container.
 	@discardableResult
-	mutating func insert(package target: XCSwiftPackageProductDependency) -> (inserted: Bool, memberAfterInsert: Element) {
+	func insert(package target: XCSwiftPackageProductDependency) -> (inserted: Bool, memberAfterInsert: Element) {
 		// TODO: when we can handle SPM transitive deps, should we look up the name here? Can we even do that?
 		let newTarget = Target(
 				name: target.productName,
@@ -63,22 +63,24 @@ struct Targets {
 	/// - Parameter target: the element to insert
 	/// - Returns: `(true, target)` if `target` wasn't in the container. `(false, existingElement)` if `target` is in the container.
 	@discardableResult
-	mutating func insert(target: Target) -> (inserted: Bool, memberAfterInsert: Element) {
+	func insert(target: Target) -> (inserted: Bool, memberAfterInsert: Element) {
 		targets.insert(target)
 	}
 
 	// TODO: maybe specialize a product vs name lookup for those sweet sweet milliseconds
 	func target(for key: String) -> Target? {
-		if let result = targets.filter({ $0.name == key }).first {
-			return result
+		for target in targets {
+			if target.name == key {
+				return target
+			} else if target.productName == key {
+				return target
+			} else if target.path == key {
+				return target
+			}
 		}
 
-		if let result = targets.filter({ $0.productName == key }).first {
-			return result
-		}
-
-		if let result = targets.filter({ $0.path == key }).first {
-			return result
+		for target in targets where target.nameForOutput.deletingPathExtension() == key {
+			return target
 		}
 
 		return nil
@@ -87,12 +89,14 @@ struct Targets {
 	// TODO: once we stabilize Targets, this should return a Set<Target> not [String]
 	func calculateDependencies(for target: Target) -> [String] {
 		// TODO: eventually we'd like to move some of the project dependencies calculations here
-		let dependencies = project.dependencies(for: target.name)
+		var dependencies = project.dependencies(for: target.name)
 
 		if dependencies.count == 0, let productName = target.productName {
 			// HACK: once we stabilize Targets to not use one of two potential names, this can be removed...
-			return project.dependencies(for: productName)
+			dependencies = project.dependencies(for: productName)
 		}
+
+		logger.debug("Calculated dependencies for target: \(target.name). Dependencies: \(dependencies)")
 
 		return dependencies
 	}

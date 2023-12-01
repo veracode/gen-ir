@@ -8,6 +8,8 @@ struct BuildCacheManipulator {
 	/// Build settings used as part of the build
 	private let buildSettings: [String: String]
 
+	private let dryRun: Bool
+
 	/// Should we run the SKIP_INSTALL hack?
 	private let shouldDeploySkipInstallHack: Bool
 
@@ -19,14 +21,17 @@ struct BuildCacheManipulator {
 		case tooManyDirectories(String)
 	}
 
-	init(buildCachePath: URL, buildSettings: [String: String], archive: URL) throws {
+	init(buildCachePath: URL, buildSettings: [String: String], archive: URL, dryRun: Bool) throws {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
+		self.dryRun = dryRun
 		buildProductsPath = archive
 		shouldDeploySkipInstallHack = self.buildSettings["SKIP_INSTALL"] == "NO"
 
-		guard FileManager.default.directoryExists(at: buildCachePath) else {
-			throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
+		if !self.dryRun {
+			guard FileManager.default.directoryExists(at: buildCachePath) else {
+				throw Error.directoryNotFound("Build cache path doesn't exist at expected path: \(buildCachePath)")
+			}
 		}
 	}
 
@@ -41,10 +46,13 @@ struct BuildCacheManipulator {
 			do {
 				intermediateFolders = try FileManager.default.directories(at: intermediatesPath, recursive: false)
 			} catch {
-				throw Error.directoryNotFound("No directories found at \(intermediatesPath), expected exactly one. Ensure you did an archive build.")
+				throw Error.directoryNotFound(
+					"No directories found at \(intermediatesPath), expected exactly one. Ensure you did an archive build."
+				)
 			}
 
-			// TODO: Can we determine the main target being built here (via scheme or something similar?). That way we don't require a cleaned derived data
+			// TODO: Can we determine the main target being built here (via scheme or something similar?).
+			// That way we don't require a cleaned derived data
 			guard intermediateFolders.count == 1 else {
 				throw Error.tooManyDirectories(
 					"""
@@ -58,8 +66,12 @@ struct BuildCacheManipulator {
 					.appendingPathComponent(intermediateFolders.first!.lastPathComponent)
 					.appendingPathComponent("BuildProductsPath")
 
-			guard let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath) else {
-				throw Error.directoryNotFound("Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))")
+			guard
+				let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath)
+			else {
+				throw Error.directoryNotFound(
+					"Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))"
+					)
 			}
 
 			try skipInstallHack(archivePath)

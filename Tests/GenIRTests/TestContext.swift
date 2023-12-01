@@ -4,6 +4,7 @@ import Foundation
 class TestContext {
 	enum Error: Swift.Error {
 		case commandFailed(Process.ReturnValue)
+		case invalidArgument(String)
 	}
 
 	static let baseTestingPath: URL = {
@@ -15,10 +16,21 @@ class TestContext {
 		baseTestingPath.appendingPathComponent("TestAssets")
 	}()
 
-	func clean(test path: URL) throws -> Process.ReturnValue {
+	func clean(test path: URL, scheme: String) throws -> Process.ReturnValue {
+		var arguments = ["clean"]
+
+		switch path.pathExtension {
+		case "xcodeproj":
+			arguments.append(contentsOf: ["-project", path.filePath])
+		case "xcworkspace":
+			arguments.append(contentsOf: ["-workspace", path.filePath, "-scheme", scheme])
+		default:
+			throw Error.invalidArgument("path passed to clean(test:scheme:) was not xcodeproj or xcworkspace")
+		}
+
 		return try Process.runShell(
 			"/usr/bin/xcodebuild",
-			arguments: ["clean"],
+			arguments: arguments,
 			runInDirectory: path.deletingLastPathComponent(),
 			joinPipes: true
 		)
@@ -29,7 +41,7 @@ class TestContext {
 		scheme: String,
 		additionalArguments: [String] = []
 	) throws -> Process.ReturnValue {
-		let clean = try clean(test: path)
+		let clean = try clean(test: path, scheme: scheme)
 
 		guard clean.code == 0 else {
 			throw Error.commandFailed(clean)

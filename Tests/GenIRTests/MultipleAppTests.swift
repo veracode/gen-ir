@@ -12,6 +12,7 @@ final class MultipleAppTests: XCTestCase {
 	func testExpectedTargetLookup() throws {
 		let context = try TestContext()
 		let result = try context.build(test: Self.testPath, scheme: "MultipleApp")
+		XCTAssertEqual(result.code, 0, "Build returned non-zero exit code")
 
 		let project: ProjectParser = try ProjectParser(path: Self.testPath, logLevel: .debug)
 		var targets = Targets(for: project)
