@@ -75,8 +75,10 @@ class XcodeLogParser {
 	private func parseBuildLog(lines: [String]) {
 		//var currentTarget: Target?
 		var currentTarget: GenTarget?
+		var currentProject: GenProject?
 		//var seenTargets = Set<String>()
 
+		logger.info("Parsing build log...")
 		for (index, line) in lines.enumerated() {
 			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -109,13 +111,15 @@ class XcodeLogParser {
 
 
 			// validate on guid??
-			if let target = target(from: line)/*, currentTarget?.name != target*/ {
-
-				currentTarget = target
-
+			let retVal = target(from: line)
+			//if let foo? = target(from: line)/*, currentTarget?.name != target*/ {
+			if retVal.target != nil {
+				currentTarget = retVal.target
+				currentProject = retVal.project
 
 			// 	if seenTargets.insert(target).inserted {
 			// 		logger.debug("Found target: \(target)")
+				//logger.debug("Found target: \(currentTarget!.name) \([currentTarget!.guid]) in project: \(currentProject!.name) [\(currentProject!.guid)]")
 			}
 
 			// 	if let targetObject = targets.target(for: target) {
@@ -137,7 +141,12 @@ class XcodeLogParser {
 				continue
 			}
 
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name) [\(currentTarget.guid)]")
+			logger.debug(
+				"""
+				Found \(compilerCommand.compiler.rawValue) compiler command \
+				for target: \(currentTarget.name) [\(currentTarget.guid)] \
+				in project: \(currentProject!.name) [\(currentProject!.guid)]
+				""")
 
 			currentTarget.commands.append(compilerCommand)
 		}
@@ -176,12 +185,14 @@ class XcodeLogParser {
 	/// Returns the target from the given line
 	/// - Parameter line: the line to parse
 	/// - Returns: the name of the target if one was found, otherwise nil
-	private func target(from line: String) -> GenTarget? {
-
-		// TODO: fix this case also
-
-
+	private func target(from line: String) -> (target: GenTarget?, project: GenProject?) {
+		
 		if line.contains("Build target ") {
+
+
+			// TODO: fix this case also
+
+
 			// var result = line.replacingOccurrences(of: "Build target ", with: "")
 
 			// if let bound = result.range(of: "of ")?.lowerBound {
@@ -199,38 +210,38 @@ class XcodeLogParser {
 			guard let pStartIndex = line.range(of: "from project '")?.upperBound,
 				let pEndIndex = line[endIndex...].range(of: "')")?.lowerBound else {
 					logger.error("Unable to find project name from build target")
-					return nil
+					return (nil, nil)
 				}
 			
 			// get the project name, find GenProject
 			let projectName = String(line[pStartIndex..<pEndIndex])
 
-			logger.debug("Found target named \(targetName) in project named \(projectName)")
+			//logger.debug("Found target named \(targetName) in project named \(projectName)")
 
 			for p in self.projects {
 				if projectName == p.name {
 					//logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
 					// walk the list of targets for this project, looking for a match
 					if p.targets == nil {
-						return nil
+						return (nil, nil)
 					}
 
 					for t in p.targets! {
 						if targetName == t.name{
 							//logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
-							return t
+							return (t, p)
 						}
 					}
 				}
 			}
 
 			logger.error("Unable to match project '\(projectName)' and target '\(targetName)' with an existing project/target!!")
-			return nil
+			return (nil, nil)
 
 			//return String(line[startIndex..<endIndex])
 		}
 
-		return nil
+		return (nil, nil)
 	}
 
 	/// Returns the compiler command from a line, if one exists
