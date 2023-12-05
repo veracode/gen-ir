@@ -27,6 +27,8 @@ struct CompilerCommandRunner {
 	enum Error: Swift.Error {
 		/// Command runner failed to parse the command for the required information
 		case failedToParse(String)
+		/// Something went wrong working with the file system
+		case fileError(String)
 	}
 
 	/// Initializes a runner
@@ -84,8 +86,18 @@ struct CompilerCommandRunner {
 					if commandsRun > 0 {
 						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
 						let dst = output.appendingPathComponent(target.nameForOutput)
-						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
 
+						// depending on various factors, like if the parent had any compiler commands, or just the order run,
+						// everything might not be setup correctly.  So, create directories if needed
+						if !fileManager.directoryExists(at: dst) {
+							do {
+								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+							} catch {
+								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+							}
+						}
+						
+						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
 						for file in files {
 
 							// prepend package name to filename
