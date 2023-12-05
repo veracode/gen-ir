@@ -55,6 +55,7 @@ public class GenTarget {
 		self.guid = guid
 		self.file = file
 		self.name = name
+		//self.name = prodRefName ?? name		// prodRef is the parent product?
 		self.type = Self.getType(typeName: typeName)
 		self.prodRefName = prodRefName
 		self.isDependency = false

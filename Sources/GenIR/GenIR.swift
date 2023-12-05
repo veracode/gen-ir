@@ -94,9 +94,9 @@ struct IREmitterCommand: ParsableCommand {
 				throw ValidationError("Unable to delete outputPath \(outputPath)  Error: \(error)")
 			}
 		}
-		//logger.debug("Output path doesn't exist, creating \(outputPath)")
 		do {
 			try FileManager.default.createDirectory(at: outputPath, withIntermediateDirectories: true)
+			logger.debug("Creating output/IR directory: \(outputPath)")
 		} catch {
 			throw ValidationError("Failed to create output directory with error: \(error)")
 		}
@@ -134,11 +134,10 @@ struct IREmitterCommand: ParsableCommand {
 		try pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
 		
 		// print the project/target tree
+		// (no need to think about recursion here, as the PIFCache data only shows direct dependencies)
 		logger.info("Project/Target tree:")
 		for p in genProjects {
 			logger.info("Project: \(p.name) [\(p.guid)]")
-
-			// TODO: handle recursion
 
 			for t in (p.targets ?? []) {
 				logger.info("  - Target: \(t.name) [\(t.type)] [\(t.guid)]")

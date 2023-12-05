@@ -70,18 +70,45 @@ struct CompilerCommandRunner {
 				logger.info("Operating on target:   \(target.name) [\(target.guid)]")
 
 
-				/*totalModulesRun +=*/ try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+				/*totalModulesRun +=*/ let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+
+				if commandsRun > 0 {
+					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
+				}
 
 
 				// handle dependencies of this target
 				for dep in (target.dependencyTargets ?? []) {
-					try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+
+					if commandsRun > 0 {
+						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+						let dst = output.appendingPathComponent(target.nameForOutput)
+						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+
+						for file in files {
+
+							// prepend package name to filename
+							// TODO: use guid instead of name?  (need to convert ':' in guid to something ele)
+							let dstFilename = dep.name + "-" + file.lastPathComponent
+
+							try fileManager.moveItem(at: file, 
+										to: dst.appendingPathComponent(dstFilename))
+						}
+					}
 				//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
 				}
 				
 				//do {
 					//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
-					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
+
+
+					// only need to do this if we actually ran any commands
+					//try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
+
+
+
+
 				// } catch {
 				// 	// TODO: Fix me!
 				// 	logger.info("File copy, skipping as duplicate: \(output.appendingPathComponent(target.nameForOutput))")
@@ -99,15 +126,18 @@ struct CompilerCommandRunner {
 		logger.info("Finished processing all projects")
 	}
 
-	private func runDependencies(target: GenTarget, tempDir: URL) throws {
+	private func runDependencies(target: GenTarget, tempDir: URL) throws -> Int{
 		logger.info("Running dependencies for: \(target.name) [\(target.guid)]")
 
 		// adjust ouptut dir to avoid clobbering existing files
-		try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
+		let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
+
+		// copy files and adjust names to be unique
+		// copy from tempDir/target.nameForOutput to output/target.NameForOutput
 
 		// recurse...
 
-
+		return commandsRun
 
 	}
 
