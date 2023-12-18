@@ -5,12 +5,9 @@
 //  Created by Kevin Rise on 23/10/2023.
 //
 
-// TODO: this should probably get merged with the Target class
-
 import Foundation
 
 public class GenTarget {
-	//let buildTarget: BuildTarget
 	var guid: String
 	var file: URL
 	var name: String
@@ -18,16 +15,20 @@ public class GenTarget {
 	var isDependency: Bool
 	var dependencyNames: [String]?		// guid of the dependent/child target(s) 
 	var dependencyTargets: [GenTarget]?
+	var productReference: ProductReference?			// defined in PifCacheHandler
 
 	// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
 
-	//var productReference: ProductReference?
-	var prodRefName: String?
-
-	// The name to use when writing IR to disk, prefer the product name if possible.
-	//lazy var nameForOutput: String = name + "." + self.getPathExtension()
-	lazy var nameForOutput: String = prodRefName ?? name + "." + self.getPathExtension()
+	// The name to use when writing IR to disk, 
+	// 	use the productRef name, as that handles renaming (like from .xcconfig files)
+	lazy var nameForOutput: String = {
+		if let prName = productReference?.name {
+			return prName
+		} else {
+			return self.name + "." + self.getPathExtension()
+		}
+	}()
 
 	public enum TargetType: CustomStringConvertible {
 		case Application
@@ -51,20 +52,15 @@ public class GenTarget {
 		}
 	}
 
-	public init(guid: String, file: URL, name: String, typeName: String, prodRefName: String?, dependencyNames: [String]?) {
+	public init(guid: String, file: URL, name: String, typeName: String, productReference: ProductReference?, dependencyNames: [String]?) {
 		self.guid = guid
 		self.file = file
 		self.name = name
-		//self.name = prodRefName ?? name		// prodRef is the parent product?
 		self.type = Self.getType(typeName: typeName)
-		self.prodRefName = prodRefName
+		self.productReference = productReference
 		self.isDependency = false
 		self.dependencyNames = dependencyNames
 	}
-
-	// public func addDependency(dependency: String) {
-
-	// }
 
 	private static func getType(typeName: String) -> TargetType {
 		switch typeName {

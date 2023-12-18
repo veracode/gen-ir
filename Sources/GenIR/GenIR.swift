@@ -87,6 +87,7 @@ struct IREmitterCommand: ParsableCommand {
 			throw ValidationError("xcarchive path must have an .xcarchive extension. Found \(xcarchivePath.lastPathComponent)")
 		}
 
+		// delete the old IR directory if it exists (mostly happens in testing) and create a new one
 		if FileManager.default.directoryExists(at: outputPath) {
 			do {
 				try FileManager.default.removeItem(at: outputPath)
@@ -140,7 +141,7 @@ struct IREmitterCommand: ParsableCommand {
 			logger.info("Project: \(p.name) [\(p.guid)]")
 
 			for t in (p.targets ?? []) {
-				logger.info("  - Target: \(t.name) [\(t.type)] [\(t.guid)]")
+				logger.info("  - Target: \(t.name) [\(t.productReference?.name ?? String())] [\(t.type)] [\(t.guid)]")
 
 				for d in (t.dependencyTargets ?? []) {
 					logger.info("    - Dependency: \(d.name) [\(d.guid)]")
@@ -152,6 +153,7 @@ struct IREmitterCommand: ParsableCommand {
 		//let project = try ProjectParser(path: project, logLevel: level)
 		//var targets = Targets(for: project)
 
+		// parse the build log to get the compiler commands 
 		let log = try logParser(for: log, targets: genTargets, projects: genProjects)
 		//try log.parse(&targets)
 		try log.parse()
@@ -162,6 +164,7 @@ struct IREmitterCommand: ParsableCommand {
 			archive: archive
 		)
 
+		// run (modified) compiler commands to output bitcode
 		let runner = CompilerCommandRunner(
 			output: output,
 			buildCacheManipulator: buildCacheManipulator,

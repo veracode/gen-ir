@@ -69,7 +69,7 @@ struct CompilerCommandRunner {
 
 			//for (key, target) in targets {
 				//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
-				logger.info("Operating on target:   \(target.name) [\(target.guid)]")
+				logger.info("Operating on target:   \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)]")
 
 
 				/*totalModulesRun +=*/ let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
@@ -80,36 +80,36 @@ struct CompilerCommandRunner {
 
 
 				// handle dependencies of this target
-				for dep in (target.dependencyTargets ?? []) {
-					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+				// for dep in (target.dependencyTargets ?? []) {
+				// 	let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
 
-					if commandsRun > 0 {
-						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-						let dst = output.appendingPathComponent(target.nameForOutput)
+				// 	if commandsRun > 0 {
+				// 		let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+				// 		let dst = output.appendingPathComponent(target.nameForOutput)
 
-						// depending on various factors, like if the parent had any compiler commands, or just the order run,
-						// everything might not be setup correctly.  So, create directories if needed
-						if !fileManager.directoryExists(at: dst) {
-							do {
-								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-							} catch {
-								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-							}
-						}
+				// 		// depending on various factors, like if the parent had any compiler commands, or just the order run,
+				// 		// everything might not be setup correctly.  So, create directories if needed
+				// 		if !fileManager.directoryExists(at: dst) {
+				// 			do {
+				// 				try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+				// 			} catch {
+				// 				throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+				// 			}
+				// 		}
 						
-						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-						for file in files {
+				// 		let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+				// 		for file in files {
 
-							// prepend package name to filename
-							// TODO: use guid instead of name?  (need to convert ':' in guid to something ele)
-							let dstFilename = dep.name + "-" + file.lastPathComponent
+				// 			// prepend package name to filename
+				// 			// TODO: use guid instead of name?  (need to convert ':' in guid to something ele)
+				// 			let dstFilename = dep.name + "-" + file.lastPathComponent
 
-							try fileManager.moveItem(at: file, 
-										to: dst.appendingPathComponent(dstFilename))
-						}
-					}
-				//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
-				}
+				// 			try fileManager.moveItem(at: file, 
+				// 						to: dst.appendingPathComponent(dstFilename))
+				// 		}
+				// 	}
+						//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
+				// }
 				
 				//do {
 					//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)

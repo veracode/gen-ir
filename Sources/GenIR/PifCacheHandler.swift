@@ -18,7 +18,6 @@ public struct PifCacheHandler {
 		case processingError(_ msg: String)
 	}
 
-	// TODO: is project needed?
 	public init(project: URL) throws {
 		// find the PIFCache folder
 		let manifestFinder = ManifestFinder()
@@ -59,11 +58,6 @@ public struct PifCacheHandler {
 					let pifTarget = try targetParser.process(file)
 					logger.debug("PifTarget: \(pifTarget)")
 
-					var prName: String? = nil
-					if pifTarget.productReference != nil {
-						prName = pifTarget.productReference!.name
-					}
-
 					var typeName: String
 					if pifTarget.productTypeIdentifier != nil {
 						typeName = pifTarget.productTypeIdentifier!
@@ -73,15 +67,8 @@ public struct PifCacheHandler {
 
 					// add this target to the list
 					let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
-									typeName: typeName, prodRefName: prName, dependencyNames: pifTarget.dependencies)
+									typeName: typeName, productReference: pifTarget.productReference, dependencyNames: pifTarget.dependencies)
 					targets[file.lastPathComponent] = g
-					// } else {
-					// 	logger.debug("non-standard file")
-					// 	let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
-					// 					typeName: pifTarget.type, 
-					// 					productRef: pifTarget.productReference, dependencyNames: pifTarget.dependencies)
-					// 	targets[file.lastPathComponent] = g
-					// }
 				} catch {
 					throw PifError.processingError("Error parsing PifTarget [\(error)]")
 				}
@@ -99,44 +86,6 @@ public struct PifCacheHandler {
 					}
 				}
 			}
-
-
-
-			// TODO: use in-memory vs. re-read from disk
-			// for file in files {
-			// 	logger.debug("Working on file: \(file)")
-
-			// 	do {
-			// 		let pifTarget = try targetParser.process(file)
-			// 		logger.debug("PifTarget: \(pifTarget)")
-
-			// 		// check for dependencies
-			// 		if pifTarget.dependencies != nil {
-			// 			var foundDependency: Bool = false
-			// 			for d in pifTarget.dependencies! {
-			// 				logger.debug("found dependency: \(d)")
-
-			// 				// find the dependency, and mark it as such
-			// 				// (also serves as a check that the dependent target exists)
-			// 				for (key, value) in targets {
-			// 					if value.guid == d {
-			// 						// mark the child
-			// 						value.isDependency = true
-
-			// 						foundDependency = true
-			// 						//break			// only single dependency allowed?
-			// 					}	
-			// 				}
-
-			// 				if foundDependency == false {
-			// 						logger.error("Cound not match dependency!")
-			// 				}
-			// 			}
-			// 		}
-			// 	} catch {
-			// 		throw PifError.processingError("Error parsing PifTarget [\(error)]")
-			// 	}
-			// }
 		} catch {
 				throw PifError.processingError("Error finding Target files [\(error)]")
 		}
@@ -168,7 +117,6 @@ public struct PifCacheHandler {
 				do {
 					let pifProject = try projectParser.process(file)
 					logger.debug("PifProject: \(pifProject)")
-
 
 					// create the project data struct
 					let p = GenProject(guid: pifProject.guid, filename: file, name: pifProject.name)
@@ -215,7 +163,7 @@ private struct Dependencies: Codable {
 }
 
 // TODO: same as one in GenTarget - clean-up/combine
-struct ProductReference: Codable {
+public struct ProductReference: Codable {
 	let guid: String
 	let name: String
 	let type: String
@@ -228,6 +176,7 @@ struct ProductReference: Codable {
 }
 
 // Raw target direct from the JSON file(s)
+// TODO: do I really need this raw to normal conversion?
 private struct PifTargetRaw: Codable {
 	let guid: String
 	let name: String
@@ -235,8 +184,6 @@ private struct PifTargetRaw: Codable {
 	let productReference: ProductReference?
 	let productTypeIdentifier: String?
 	let dependencies: [Dependencies]?
-	// ?? also need productReference.name, for cases where the ProductName != target name (xcconfig renaming)
-	//		or for outputPostProcessing?
 
 	public init(
 		guid: String,
@@ -278,12 +225,6 @@ private struct PifTarget {
 		self.productTypeIdentifier = rawTarget.productTypeIdentifier
 		self.productReference = rawTarget.productReference
 
-		// if rawTarget.productReference != nil {
-		// 	self.name = rawTarget.productReference!.name
-		// } else {
-		// 	self.name = rawTarget.name
-		// }
-
 		if rawTarget.dependencies != nil {
 			for d in rawTarget.dependencies! {
 				if(self.dependencies?.append(d.guid)) == nil {
@@ -307,7 +248,6 @@ private class PifTargetParser {
 
 	public func process(_ url: URL) throws -> PifTarget {
 		let data = try Data(contentsOf: url)
-		//return try decoder.decode(PifTargetRaw.self, from: data)
 		let rawTarget = try decoder.decode(PifTargetRaw.self, from: data)
 		let t = PifTarget(rawTarget: rawTarget)
 		return t
@@ -331,7 +271,6 @@ private struct PifProjectRaw: Codable {
 	let groupTree: GroupTree
 	let projectName: String?
 	let targets: [String]		// Optional?
-	//var name: String?			// bit of an override as we derive this field
 
 	public init(
 		guid: String,
@@ -343,12 +282,6 @@ private struct PifProjectRaw: Codable {
 		self.groupTree = groupTree
 		self.projectName = projectName
 		self.targets = targets
-
-		// if projectName != nil {
-		// 	self.name = projectName!
-		// } else {
-		// 	self.name = self.groupTree.name
-		// }
 	}
 }
 
