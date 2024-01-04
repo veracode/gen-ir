@@ -124,6 +124,7 @@ struct IREmitterCommand: ParsableCommand {
 	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
 		logger.debug("running...")
 
+		// TODO: use GUID as dict key instead of filename?
 		var genTargets = [String: GenTarget]()		// dict of all the targets, using filename as the key
 		var genProjects: [GenProject] = [GenProject]()
 
@@ -136,7 +137,7 @@ struct IREmitterCommand: ParsableCommand {
 		
 		// print the project/target tree
 		// (no need to think about recursion here, as the PIFCache data only shows direct dependencies)
-		logger.info("Project/Target tree:")
+		logger.info("\nProject/Target tree:")
 		for p in genProjects {
 			logger.info("Project: \(p.name) [\(p.guid)]")
 
@@ -148,10 +149,43 @@ struct IREmitterCommand: ParsableCommand {
 				}
 			}
 		}
-		
 
-		//let project = try ProjectParser(path: project, logLevel: level)
-		//var targets = Targets(for: project)
+		logger.info("\nRoot Targets:")
+		for t in genTargets {
+			if t.value.isDependency == false {
+				logger.info("\(t.value.name) [\(t.value.type)] [\(t.value.guid)]")
+			}
+		}
+
+
+		// we start at the root targets, and build the full graph from there
+		// and we already have the first level dependencies so we could determine if this target is a root
+		logger.info("\nBuilding Dependency Graph")
+		for t in genTargets {
+			if t.value.isDependency == false {
+				logger.info("Starting at root: \(t.value.name) [\(t.value.type)] [\(t.value.guid)]")
+
+				for childTarget in (t.value.dependencyTargets ?? []) {
+					self.findDependencies(root: t.value, child: childTarget)
+				}
+
+			}
+		}
+
+		logger.info("\nDependency Graph:")
+		for t in genTargets {
+			if t.value.isDependency == false {
+				logger.info("  Root target: \(t.value.name) [\(t.value.type)] [\(t.value.guid)]")
+
+				for d in t.value.dependencyTargets ?? [] {
+					logger.info("    - \(d.name) [\(d.type)] [\(d.guid)]")
+				}
+			}
+		}
+
+
+
+
 
 		// parse the build log to get the compiler commands 
 		let log = try logParser(for: log, targets: genTargets, projects: genProjects)
@@ -170,7 +204,6 @@ struct IREmitterCommand: ParsableCommand {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		//try runner.run(targets: genTargets)
 		try runner.run(projects: genProjects)
 
 		//let postprocessor = try OutputPostprocessor(archive: archive, output: output)
@@ -218,6 +251,20 @@ struct IREmitterCommand: ParsableCommand {
 		logger.info("Finished reading from pipe")
 
 		return results
+	}
+
+	//
+	//
+	private func findDependencies(root: GenTarget, child: GenTarget) {
+		logger.debug("Finding dependencies for \(child.guid) for root \(root.guid)")
+
+		for dependency in child.dependencyTargets ?? [] {
+			// add this to the root
+			root.dependencyTargets?.append(dependency)
+
+			// recurse
+			self.findDependencies(root: root, child: dependency)
+		}
 	}
 }
 

@@ -68,7 +68,8 @@ public struct PifCacheHandler {
 					// add this target to the list
 					let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
 									typeName: typeName, productReference: pifTarget.productReference, dependencyNames: pifTarget.dependencies)
-					targets[file.lastPathComponent] = g
+					//targets[file.lastPathComponent] = g
+					targets[g.guid] = g
 				} catch {
 					throw PifError.processingError("Error parsing PifTarget [\(error)]")
 				}
@@ -77,13 +78,22 @@ public struct PifCacheHandler {
 			logger.info("Pass 2: resolving dependencies")
 			for t in targets {
 				for depName in (t.value.dependencyNames ?? []) {
-					for search in targets {
-						if depName == search.value.guid {
-							if(t.value.dependencyTargets?.append(search.value)) == nil {
-								t.value.dependencyTargets = [search.value]
-							}
-						}
+					// for search in targets {
+					// 	if depName == search.value.guid {
+					// 		if(t.value.dependencyTargets?.append(search.value)) == nil {
+					// 			t.value.dependencyTargets = [search.value]
+					// 		}
+
+					// 		// flag this target as a dependency (aka not a root target)
+					// 		search.value.isDependency = true
+					// 	}
+					// }
+
+					if(t.value.dependencyTargets?.append(targets[depName]!)) == nil {
+						t.value.dependencyTargets = [targets[depName]!]
 					}
+
+					targets[depName]?.isDependency = true
 				}
 			}
 		} catch {
@@ -123,11 +133,25 @@ public struct PifCacheHandler {
 
 					// add targets to this project
 					for t in pifProject.targets {
-						if let tt = targets[t + jsonFileExtension] { 
-							p.addTarget(target: tt)
-						} else {
+						// if let tt = targets[t + jsonFileExtension] { 
+						// 	p.addTarget(target: tt)
+						// } else {
+						// 	logger.info("Unable to find target \(t) in target list")
+						// }
+
+						var found = false
+						for search in targets {
+							if t + jsonFileExtension == search.value.file.lastPathComponent {
+								p.addTarget(target: targets[search.value.guid]!)
+								found = true
+								break // allow multiples ??
+							}
+						}
+
+						if !found {
 							logger.info("Unable to find target \(t) in target list")
 						}
+
 					}
 
 					// add this project to the list
