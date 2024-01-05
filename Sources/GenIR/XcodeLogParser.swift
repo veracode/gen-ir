@@ -13,8 +13,10 @@ class XcodeLogParser {
 
 	/// The Xcode build log contents
 	private let log: [String]
+
 	/// Any CLI Settings found in the build log
 	private(set) var settings: [String: String] = [:]
+	
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 

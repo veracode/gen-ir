@@ -65,6 +65,12 @@ public struct PifCacheHandler {
 						typeName = pifTarget.type
 					}
 
+					// skip Playground targets
+					// (what we want for root targets become children of Playgrounds)
+					if pifTarget.guid.hasPrefix("PLAYGROUND") {
+						continue
+					}
+
 					// add this target to the list
 					let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
 									typeName: typeName, productReference: pifTarget.productReference, dependencyNames: pifTarget.dependencies)
@@ -89,7 +95,7 @@ public struct PifCacheHandler {
 					// 	}
 					// }
 
-					if(t.value.dependencyTargets?.append(targets[depName]!)) == nil {
+					if(t.value.dependencyTargets?.insert(targets[depName]!)) == nil {
 						t.value.dependencyTargets = [targets[depName]!]
 					}
 
@@ -97,7 +103,7 @@ public struct PifCacheHandler {
 				}
 			}
 		} catch {
-				throw PifError.processingError("Error finding Target files [\(error)]")
+			throw PifError.processingError("Error finding Target files [\(error)]")
 		}
 	}
 
@@ -122,7 +128,7 @@ public struct PifCacheHandler {
 			let files = try fm.contentsOfDirectory(at: projectDir, includingPropertiesForKeys: nil)
 
 			for file in files {
-				logger.debug("Found file: \(file)")
+				logger.info("Found file: \(file)")
 
 				do {
 					let pifProject = try projectParser.process(file)
@@ -133,12 +139,6 @@ public struct PifCacheHandler {
 
 					// add targets to this project
 					for t in pifProject.targets {
-						// if let tt = targets[t + jsonFileExtension] { 
-						// 	p.addTarget(target: tt)
-						// } else {
-						// 	logger.info("Unable to find target \(t) in target list")
-						// }
-
 						var found = false
 						for search in targets {
 							if t + jsonFileExtension == search.value.file.lastPathComponent {
@@ -149,9 +149,8 @@ public struct PifCacheHandler {
 						}
 
 						if !found {
-							logger.info("Unable to find target \(t) in target list")
+							logger.info("Unable to find target \(t) in target list (ignored Playground target?)")
 						}
-
 					}
 
 					// add this project to the list
@@ -161,7 +160,7 @@ public struct PifCacheHandler {
 				}
 			}
 		} catch {
-				throw PifError.processingError("Error finding Project files [\(error)]")
+			throw PifError.processingError("Error finding Project files [\(error)]")
 		}
 
 

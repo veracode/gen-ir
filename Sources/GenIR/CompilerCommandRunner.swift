@@ -65,12 +65,15 @@ struct CompilerCommandRunner {
 				// prefer productRef.name, else fall back to name
 				//let nameToUse = target.productRef
 
-
-
 			//for (key, target) in targets {
 				//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
 				logger.info("Operating on target:   \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)]")
 
+				// if this is not a target we need to build, skip it
+				if(target.archiveTarget != true) {
+					logger.info("  Not a build target, skipping")
+					continue
+				}
 
 				/*totalModulesRun +=*/ let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 
