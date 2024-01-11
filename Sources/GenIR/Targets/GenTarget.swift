@@ -13,9 +13,11 @@ public class GenTarget: Hashable {
 	var name: String
 	var type: TargetType
 	var isDependency: Bool
-	var dependencyNames: [String]?		// guid of the dependent/child target(s) 
+	var dependencyGuids: [String]?		// guid of the dependent/child target(s) 
 	//var dependencyTargets: [GenTarget]?
 	var dependencyTargets: Set<GenTarget>?
+	var frameworkGuids: [String]?
+	var frameworkTargets: Set<GenTarget>?					// special (?) case of dependencies
 	var productReference: ProductReference?			// defined in PifCacheHandler
 	var archiveTarget: Bool
 
@@ -58,14 +60,15 @@ public class GenTarget: Hashable {
 		}
 	}
 
-	public init(guid: String, file: URL, name: String, typeName: String, productReference: ProductReference?, dependencyNames: [String]?) {
+	public init(guid: String, file: URL, name: String, typeName: String, productReference: ProductReference?, dependencyGuids: [String]?, frameworkGuids: [String]?) {
 		self.guid = guid
 		self.file = file
 		self.name = name
 		self.type = Self.getType(typeName: typeName)
 		self.productReference = productReference
 		self.isDependency = false
-		self.dependencyNames = dependencyNames
+		self.dependencyGuids = dependencyGuids
+		self.frameworkGuids = frameworkGuids
 		self.archiveTarget = false
 	}
 

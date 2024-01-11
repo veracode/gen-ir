@@ -71,10 +71,24 @@ public struct PifCacheHandler {
 						continue
 					}
 
+					// frameworks that get pulled into this target
+					var frameworkGuids: [String]?
+					for phase in pifTarget.buildPhases ?? [] {
+						if phase.type == "com.apple.buildphase.frameworks" {
+							for buildFile in phase.buildFiles ?? [] {
+								if let ref = buildFile.targetReference {
+								if(frameworkGuids?.append(ref)) == nil {
+									frameworkGuids = [ref]
+								}
+								}
+							}
+						}
+					}
+
 					// add this target to the list
 					let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
-									typeName: typeName, productReference: pifTarget.productReference, dependencyNames: pifTarget.dependencies)
-					//targets[file.lastPathComponent] = g
+									typeName: typeName, productReference: pifTarget.productReference, 
+									dependencyGuids: pifTarget.dependencies, frameworkGuids: frameworkGuids)
 					targets[g.guid] = g
 				} catch {
 					throw PifError.processingError("Error parsing PifTarget [\(error)]")
@@ -83,27 +97,27 @@ public struct PifCacheHandler {
 
 			logger.info("Pass 2: resolving dependencies")
 			for t in targets {
-				for depName in (t.value.dependencyNames ?? []) {
-					// for search in targets {
-					// 	if depName == search.value.guid {
-					// 		if(t.value.dependencyTargets?.append(search.value)) == nil {
-					// 			t.value.dependencyTargets = [search.value]
-					// 		}
+				for depGuid in (t.value.dependencyGuids ?? []) {
 
-					// 		// flag this target as a dependency (aka not a root target)
-					// 		search.value.isDependency = true
-					// 	}
-					// }
-
-					if(t.value.dependencyTargets?.insert(targets[depName]!)) == nil {
-						t.value.dependencyTargets = [targets[depName]!]
+					if(t.value.dependencyTargets?.insert(targets[depGuid]!)) == nil {
+						t.value.dependencyTargets = [targets[depGuid]!]
 					}
 
-					targets[depName]?.isDependency = true
+					targets[depGuid]?.isDependency = true
+				}
+			}
+
+			logger.info("Pass 3: resolving frameworks")
+			for t in targets {
+				for frGuid in (t.value.frameworkGuids ?? []) {
+
+					if(t.value.frameworkTargets?.insert(targets[frGuid]!)) == nil {
+						t.value.frameworkTargets = [targets[frGuid]!]
+					}
 				}
 			}
 		} catch {
-			throw PifError.processingError("Error finding Target files [\(error)]")
+			throw PifError.processingError("Error finding/resolving Target files [\(error)]")
 		}
 	}
 
@@ -177,6 +191,28 @@ public struct PifCacheHandler {
 /*
  * PIFCache Target files
  */
+private struct buildFile: Codable {
+	let guid: String
+	let targetReference: String?
+
+	public init(guid: String, targetReference: String?) {
+		self.guid = guid
+		self.targetReference = targetReference
+	}
+}
+
+private struct buildPhase: Codable {
+	let buildFiles: [buildFile]?
+	let guid: String
+	let type: String
+
+	public init(buildFiles: [buildFile]?, guid: String, type: String) {
+		self.buildFiles = buildFiles
+		self.guid = guid
+		self.type = type
+	}
+}
+
 private struct Dependencies: Codable {
 	let guid: String
 
@@ -207,6 +243,7 @@ private struct PifTargetRaw: Codable {
 	let productReference: ProductReference?
 	let productTypeIdentifier: String?
 	let dependencies: [Dependencies]?
+	let buildPhases: [buildPhase]?
 
 	public init(
 		guid: String,
@@ -214,7 +251,8 @@ private struct PifTargetRaw: Codable {
 		type: String,
 		productReference: ProductReference?,
 		productTypeIdentifier: String? ,
-		dependencies: [Dependencies]?
+		dependencies: [Dependencies]?,
+		buildPhases: [buildPhase]?
 	) {
 		self.guid = guid
 		self.name = name
@@ -229,6 +267,7 @@ private struct PifTargetRaw: Codable {
 		}
 
 		self.dependencies = dependencies
+		self.buildPhases = buildPhases
 	}
 }
 
@@ -240,6 +279,7 @@ private struct PifTarget {
 	let productTypeIdentifier: String?
 	let productReference: ProductReference?
 	var dependencies: [String]?
+	let buildPhases: [buildPhase]?
 
 	public init(rawTarget: PifTargetRaw) {
 		self.guid = rawTarget.guid
@@ -247,6 +287,7 @@ private struct PifTarget {
 		self.type = rawTarget.type
 		self.productTypeIdentifier = rawTarget.productTypeIdentifier
 		self.productReference = rawTarget.productReference
+		self.buildPhases = rawTarget.buildPhases
 
 		if rawTarget.dependencies != nil {
 			for d in rawTarget.dependencies! {

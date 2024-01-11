@@ -157,34 +157,49 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
-		logger.info("\nRoot Targets:")
-		for t in genTargets {
-			if t.value.isDependency == false {
-				logger.info("\(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
-			}
-		}
+		// logger.info("\nRoot Targets:")
+		// for t in genTargets {
+		// 	if t.value.isDependency == false {
+		// 		logger.info("\(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
+		// 	}
+		// }
 
 		// we start at the root targets, and build the full graph from there
 		// and we already have the first level dependencies so we could determine if this target is a root
 		logger.info("\nBuilding Dependency Graph")
 		for t in genTargets {
-			if t.value.isDependency == false {
+			//if t.value.isDependency == false {
+			if t.value.archiveTarget == true {
 				logger.info("Starting at root: \(t.value.nameForOutput) [\(t.value.type)] [\(t.value.guid)]")
 
-				for childTarget in (t.value.dependencyTargets ?? []) {
-					self.findDependencies(root: t.value, child: childTarget)
+				// this will handle all the direct/static (non-framework dependencies)
+				for depTarget in (t.value.dependencyTargets ?? []) {
+					if t.value.frameworkTargets?.contains(depTarget) == false {
+						self.findDependencies(root: t.value, child: depTarget, depth: 1)
+					}
 				}
 
+				// handle the frameworks
+				for frTarget in (t.value.frameworkTargets ?? []) {
+					self.findDependencies(root: frTarget, child: frTarget, depth: 1)
+				}
 			}
 		}
 
 		logger.info("\nDependency Graph:")
 		for t in genTargets {
-			if t.value.isDependency == false {
+			if t.value.archiveTarget == true {
 				logger.info("  Root target: \(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
 
 				for d in t.value.dependencyTargets ?? [] {
 					logger.info("    - \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
+				}
+
+				for f in t.value.frameworkTargets ?? [] {
+					logger.info("    - \(f.nameForOutput) [\(f.type)] [\(f.guid)]")
+					for d in f.dependencyTargets ?? [] {
+						logger.info("      - \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
+					}
 				}
 			}
 		}
@@ -257,15 +272,17 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
-	private func findDependencies(root: GenTarget, child: GenTarget) {
+	private func findDependencies(root: GenTarget, child: GenTarget, depth: Int) {
 		//logger.debug("Finding dependencies for \(child.guid) for root \(root.guid)")
 
+		//let indent = String(repeating: "  ", count: depth)
+		//logger.info("\(indent)- \(child.nameForOutput) [\(child.type)] [\(child.guid)]")
 		for dependency in child.dependencyTargets ?? [] {
-			// add this to the root
+
 			root.dependencyTargets?.insert(dependency)
 
 			// recurse
-			self.findDependencies(root: root, child: dependency)
+			self.findDependencies(root: root, child: dependency, depth: depth + 1)
 		}
 	}
 
