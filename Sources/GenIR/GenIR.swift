@@ -172,17 +172,29 @@ struct IREmitterCommand: ParsableCommand {
 			if t.value.archiveTarget == true {
 				logger.info("Starting at root: \(t.value.nameForOutput) [\(t.value.type)] [\(t.value.guid)]")
 
+				// handle the frameworks
+				// all this funky processing to handle nested frameworks and re-locating them up to the app
+				var moreToProcess: Bool
+				repeat {
+					moreToProcess = false
+					for frTarget in (t.value.frameworkTargets ?? []) {
+						if self.findDependencies(root: frTarget, child: frTarget, app: t.value) == true {
+							moreToProcess = true
+						} else {
+							frTarget.dependenciesProcessed = true
+						}
+					}
+				} while (moreToProcess == true)
+
 				// this will handle all the direct/static (non-framework dependencies)
 				for depTarget in (t.value.dependencyTargets ?? []) {
+					// don't re-do frameworks
 					if t.value.frameworkTargets?.contains(depTarget) == false {
-						self.findDependencies(root: t.value, child: depTarget, depth: 1)
+						self.findDependencies(root: t.value, child: depTarget, app: t.value)
 					}
 				}
 
-				// handle the frameworks
-				for frTarget in (t.value.frameworkTargets ?? []) {
-					self.findDependencies(root: frTarget, child: frTarget, depth: 1)
-				}
+
 			}
 		}
 
@@ -192,13 +204,13 @@ struct IREmitterCommand: ParsableCommand {
 				logger.info("  Root target: \(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
 
 				for d in t.value.dependencyTargets ?? [] {
-					logger.info("    - \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
+					logger.info("    (d) \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
 				}
 
 				for f in t.value.frameworkTargets ?? [] {
-					logger.info("    - \(f.nameForOutput) [\(f.type)] [\(f.guid)]")
+					logger.info("    (f) \(f.nameForOutput) [\(f.type)] [\(f.guid)]")
 					for d in f.dependencyTargets ?? [] {
-						logger.info("      - \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
+						logger.info("        - \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
 					}
 				}
 			}
@@ -272,18 +284,27 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
-	private func findDependencies(root: GenTarget, child: GenTarget, depth: Int) {
-		//logger.debug("Finding dependencies for \(child.guid) for root \(root.guid)")
-
-		//let indent = String(repeating: "  ", count: depth)
-		//logger.info("\(indent)- \(child.nameForOutput) [\(child.type)] [\(child.guid)]")
+	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool{
+		//var newFramework = false
 		for dependency in child.dependencyTargets ?? [] {
 
-			root.dependencyTargets?.insert(dependency)
+			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
+			// move them to be children of the app itself
+			if(dependency.type == GenTarget.TargetType.Framework) {
+				app.frameworkTargets?.insert(dependency)
+				child.dependencyTargets?.remove(dependency)
+				//newFramework = true
+				return true
+			} else {
+				root.dependencyTargets?.insert(dependency)
+			}
 
 			// recurse
-			self.findDependencies(root: root, child: dependency, depth: depth + 1)
+			self.findDependencies(root: root, child: dependency, app: app)
 		}
+
+		//return newFramework
+		return false
 	}
 
 	//

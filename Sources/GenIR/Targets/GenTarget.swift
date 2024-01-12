@@ -20,6 +20,7 @@ public class GenTarget: Hashable {
 	var frameworkTargets: Set<GenTarget>?					// special (?) case of dependencies
 	var productReference: ProductReference?			// defined in PifCacheHandler
 	var archiveTarget: Bool
+	var dependenciesProcessed: Bool
 
 	// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
@@ -70,6 +71,7 @@ public class GenTarget: Hashable {
 		self.dependencyGuids = dependencyGuids
 		self.frameworkGuids = frameworkGuids
 		self.archiveTarget = false
+		self.dependenciesProcessed = false
 	}
 
 	public func hash(into hasher: inout Hasher) {
