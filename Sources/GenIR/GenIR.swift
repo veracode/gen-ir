@@ -188,9 +188,11 @@ struct IREmitterCommand: ParsableCommand {
 
 				// this will handle all the direct/static (non-framework dependencies)
 				for depTarget in (t.value.dependencyTargets ?? []) {
-					// don't re-do frameworks
+					// if something exists as both a framework and a dep, prefer the framework
 					if t.value.frameworkTargets?.contains(depTarget) == false {
 						self.findDependencies(root: t.value, child: depTarget, app: t.value)
+					} else {
+						t.value.dependencyTargets?.remove(depTarget)
 					}
 				}
 

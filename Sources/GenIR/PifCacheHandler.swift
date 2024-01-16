@@ -98,7 +98,6 @@ public struct PifCacheHandler {
 			logger.info("Pass 2: resolving dependencies")
 			for t in targets {
 				for depGuid in (t.value.dependencyGuids ?? []) {
-
 					if(t.value.dependencyTargets?.insert(targets[depGuid]!)) == nil {
 						t.value.dependencyTargets = [targets[depGuid]!]
 					}
@@ -110,7 +109,6 @@ public struct PifCacheHandler {
 			logger.info("Pass 3: resolving frameworks")
 			for t in targets {
 				for frGuid in (t.value.frameworkGuids ?? []) {
-
 					if(t.value.frameworkTargets?.insert(targets[frGuid]!)) == nil {
 						t.value.frameworkTargets = [targets[frGuid]!]
 					}
