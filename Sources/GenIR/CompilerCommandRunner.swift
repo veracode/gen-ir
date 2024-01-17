@@ -62,57 +62,96 @@ struct CompilerCommandRunner {
 
 			for target in (currentProject.targets ?? []) {
 
-				// prefer productRef.name, else fall back to name
-				//let nameToUse = target.productRef
-
 			//for (key, target) in targets {
 				//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
-				logger.info("Operating on target:   \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)]")
 
 				// if this is not a target we need to build, skip it
 				if(target.archiveTarget != true) {
-					logger.info("  Not a build target, skipping")
+					logger.info("Skipping target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)] - not an archive target")
 					continue
 				}
+
+				logger.info("Operating on target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)]")
 
 				/*totalModulesRun +=*/ let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 
 				if commandsRun > 0 {
-					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
+					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
 				}
 
+				/* handle frameworks and dependencies of this target 
+				 * these need to be handled seperately since:
+				 * - frameworks are treated as stand-alone entities when scanned
+				 * - static dependencies are scanned with the app
+				 */
 
-				// handle dependencies of this target
-				// for dep in (target.dependencyTargets ?? []) {
-				// 	let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+				// frameworks
+				logger.info("Building IR for Frameworks")
+				for dep in (target.frameworkTargets ?? []) {
+					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
 
-				// 	if commandsRun > 0 {
-				// 		let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-				// 		let dst = output.appendingPathComponent(target.nameForOutput)
+					if commandsRun > 0 {
 
-				// 		// depending on various factors, like if the parent had any compiler commands, or just the order run,
-				// 		// everything might not be setup correctly.  So, create directories if needed
-				// 		if !fileManager.directoryExists(at: dst) {
-				// 			do {
-				// 				try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-				// 			} catch {
-				// 				throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-				// 			}
-				// 		}
+						/***  this is the big diff between a dependency and a framework - the dst folder ***/
+						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+						let dst = output.appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+
+						// depending on various factors, like if the parent had any compiler commands, or just the order run,
+						// everything might not be setup correctly.  So, create directories if needed
+						if !fileManager.directoryExists(at: dst) {
+							do {
+								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+							} catch {
+								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+							}
+						}
 						
-				// 		let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-				// 		for file in files {
+						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+						for file in files {
 
-				// 			// prepend package name to filename
-				// 			// TODO: use guid instead of name?  (need to convert ':' in guid to something ele)
-				// 			let dstFilename = dep.name + "-" + file.lastPathComponent
+							// prepend package name to filename
+							let dstFilename = dep.name + "-" + file.lastPathComponent
 
-				// 			try fileManager.moveItem(at: file, 
-				// 						to: dst.appendingPathComponent(dstFilename))
-				// 		}
-				// 	}
+							try fileManager.moveItem(at: file, 
+										to: dst.appendingPathComponent(dstFilename))
+						}
+					}
 						//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
-				// }
+				}
+
+				// denendencies
+				logger.info("Building IR for other dependencies")
+				for dep in (target.dependencyTargets ?? []) {
+					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+
+					if commandsRun > 0 {
+
+						/***  this is the big diff between a dependency and a framework - the dst folder ***/
+						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+						let dst = output.appendingPathComponent(target.nameForOutput.deletingPathExtension()).appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+
+						// depending on various factors, like if the parent had any compiler commands, or just the order run,
+						// everything might not be setup correctly.  So, create directories if needed
+						if !fileManager.directoryExists(at: dst) {
+							do {
+								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+							} catch {
+								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+							}
+						}
+						
+						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+						for file in files {
+
+							// prepend package name to filename
+							let dstFilename = dep.name + "-" + file.lastPathComponent
+
+							try fileManager.moveItem(at: file, 
+										to: dst.appendingPathComponent(dstFilename))
+						}
+					}
+						//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
+				}
 				
 				//do {
 					//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
@@ -149,8 +188,6 @@ struct CompilerCommandRunner {
 
 		// copy files and adjust names to be unique
 		// copy from tempDir/target.nameForOutput to output/target.NameForOutput
-
-		// recurse...
 
 		return commandsRun
 

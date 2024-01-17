@@ -168,7 +168,6 @@ struct IREmitterCommand: ParsableCommand {
 		// and we already have the first level dependencies so we could determine if this target is a root
 		logger.info("\nBuilding Dependency Graph")
 		for t in genTargets {
-			//if t.value.isDependency == false {
 			if t.value.archiveTarget == true {
 				logger.info("Starting at root: \(t.value.nameForOutput) [\(t.value.type)] [\(t.value.guid)]")
 
@@ -195,8 +194,6 @@ struct IREmitterCommand: ParsableCommand {
 						t.value.dependencyTargets?.remove(depTarget)
 					}
 				}
-
-
 			}
 		}
 
@@ -287,15 +284,12 @@ struct IREmitterCommand: ParsableCommand {
 	//
 	//
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool{
-		//var newFramework = false
 		for dependency in child.dependencyTargets ?? [] {
-
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
 			// move them to be children of the app itself
 			if(dependency.type == GenTarget.TargetType.Framework) {
 				app.frameworkTargets?.insert(dependency)
 				child.dependencyTargets?.remove(dependency)
-				//newFramework = true
 				return true
 			} else {
 				root.dependencyTargets?.insert(dependency)
@@ -305,7 +299,6 @@ struct IREmitterCommand: ParsableCommand {
 			self.findDependencies(root: root, child: dependency, app: app)
 		}
 
-		//return newFramework
 		return false
 	}
 
