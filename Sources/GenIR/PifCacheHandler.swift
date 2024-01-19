@@ -74,7 +74,7 @@ public struct PifCacheHandler {
 					// frameworks that get pulled into this target
 					var frameworkGuids: [String]?
 					for phase in pifTarget.buildPhases ?? [] {
-						if phase.type == "com.apple.buildphase.frameworks" {
+						if phase.type == "com.apple.buildphase.copy-files" {		// TODO: also need to verify this is going into the Frameworks folder?
 							for buildFile in phase.buildFiles ?? [] {
 								if let ref = buildFile.targetReference {
 								if(frameworkGuids?.append(ref)) == nil {
