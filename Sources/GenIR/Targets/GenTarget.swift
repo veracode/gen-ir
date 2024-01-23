@@ -12,14 +12,14 @@ public class GenTarget: Hashable {
 	var file: URL
 	var name: String
 	var type: TargetType
-	var isDependency: Bool
-	var dependencyGuids: [String]?		// guid of the dependent/child target(s) 
+	var isDependency: Bool							// is this is root, or a child?
+	var dependencyGuids: [String]?					// guid of the static dependent/child target(s) 
 	//var dependencyTargets: [GenTarget]?
-	var dependencyTargets: Set<GenTarget>?
-	var frameworkGuids: [String]?
-	var frameworkTargets: Set<GenTarget>?					// special (?) case of dependencies
+	var dependencyTargets: Set<GenTarget>?			// static dependencies
+	var frameworkGuids: [String]?					// guid of the dynamic dependencies
+	var frameworkTargets: Set<GenTarget>?			// dynamic dependencies
 	var productReference: ProductReference?			// defined in PifCacheHandler
-	var archiveTarget: Bool
+	var archiveTarget: Bool							// is this target is the archive?  (we need to build for this target)
 	var dependenciesProcessed: Bool
 
 	// A list of CompilerCommands relating to this target

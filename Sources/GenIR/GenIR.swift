@@ -149,7 +149,7 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
-		var archiveTargetList: [String] = getArchiveTargets(archivePath: archive)
+		let archiveTargetList: [String] = try getArchiveTargets(archivePath: archive)
 		for t in genTargets {
 			if archiveTargetList.contains(t.value.nameForOutput) {
 				t.value.archiveTarget = true
@@ -157,6 +157,11 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
+
+
+
+
+		
 		// logger.info("\nRoot Targets:")
 		// for t in genTargets {
 		// 	if t.value.isDependency == false {
@@ -194,6 +199,13 @@ struct IREmitterCommand: ParsableCommand {
 						t.value.dependencyTargets?.remove(depTarget)
 					}
 				}
+			}
+		}
+
+		logger.info("\nHandling special-case frameworks")
+		for t in genTargets {
+			if t.value.archiveTarget == true {
+				try getArchiveFrameworks(archivePath: archive, target: t.value)
 			}
 		}
 
@@ -304,14 +316,13 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
-	private func getArchiveTargets(archivePath: URL) -> [String] {
+	private func getArchiveTargets(archivePath: URL) throws -> [String] {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
 		// Frameworks??
 		// other ??
 
 		var roots: [String] = []
-
 		let fm = FileManager.default
 
 		do {
@@ -321,11 +332,53 @@ struct IREmitterCommand: ParsableCommand {
 				roots.append(file.lastPathComponent)
 			}
 		} catch {
-			logger.error("Error getting target list from archive")
-			// Error handling
+			throw "Error getting target list from archive"
 		}
 
 		return roots
+	}
+
+	//
+	//
+	private func getArchiveFrameworks(archivePath: URL, target: GenTarget) throws {
+		let productPath = archivePath.appendingPathComponent("Products")
+		let applicationPath = productPath.appendingPathComponent("Applications")
+		// other ??
+
+		var frameworks: [String] = []
+		let fm = FileManager.default
+
+		do {
+			let apps = try fm.contentsOfDirectory(at: applicationPath, includingPropertiesForKeys: nil)
+
+			for app in apps {
+				if(app.lastPathComponent == target.nameForOutput) {
+					logger.info(" for \(app.lastPathComponent)")
+					let frameworkPath = app.appendingPathComponent("Frameworks")
+					let appFrameworks = try fm.contentsOfDirectory(at: frameworkPath, includingPropertiesForKeys: nil)
+
+					for fr in appFrameworks {
+						if fr.pathExtension == "framework" {
+
+							// make sure this exits as a framework of the app, not a static dependency
+							let frBasename = fr.lastPathComponent.deletingPathExtension()
+
+							// TODO: can I trust the name, or better to use the 
+							// 'dynamicTargetVariantGuid' from the PifCache Target files
+							for d in target.dependencyTargets ?? [] {
+								if frBasename == d.name && d.type == .Package{
+									logger.info("  moving \(d.nameForOutput) [\(d.type)] [\(d.guid)] to the framework list")
+									target.frameworkTargets?.insert(d)
+									target.dependencyTargets?.remove(d)
+								}
+							}
+						}
+					}
+				}
+			}
+		} catch {
+			throw "Error haddling special frameworks list for \(target.nameForOutput)"
+		}
 	}
 }
 
@@ -361,4 +414,8 @@ extension URL: ExpressibleByArgument {
 	public init?(argument: String) {
 		self = argument.fileURL.absoluteURL
 	}
+}
+
+extension String: LocalizedError {
+	public var errorDescription: String? { return self }
 }
