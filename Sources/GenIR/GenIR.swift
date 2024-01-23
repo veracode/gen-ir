@@ -62,6 +62,8 @@ struct IREmitterCommand: ParsableCommand {
 	/// Path to write IR to
 	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
 
+	private let startTime = Date()
+
 	mutating func validate() throws {
 		if debug {
 			logger.logLevel = .debug
@@ -118,6 +120,14 @@ struct IREmitterCommand: ParsableCommand {
 		} catch {
 			print("FAILED, \(error)")
 		}
+
+		let endTime = Date()
+		let dateFormatter = DateFormatter()
+		dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+		logger.info("Start: \(dateFormatter.string(from: startTime))")
+		logger.info("End:   \(dateFormatter.string(from: endTime))")
+		let runtime = String(format: "%.3f", endTime.timeIntervalSince(startTime))
+		logger.info("Runtime: \(runtime) seconds")
 	}
 
 	// swiftlint:disable function_parameter_count
