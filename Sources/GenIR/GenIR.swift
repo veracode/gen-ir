@@ -62,8 +62,6 @@ struct IREmitterCommand: ParsableCommand {
 	/// Path to write IR to
 	private lazy var outputPath: URL = xcarchivePath.appendingPathComponent("IR")
 
-	private let startTime = Date()
-
 	mutating func validate() throws {
 		if debug {
 			logger.logLevel = .debug
@@ -106,6 +104,8 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	mutating func run() throws {
+		let  startTime = Date()
+
 		do {
 			try run(
 				project: projectPath,
@@ -138,7 +138,8 @@ struct IREmitterCommand: ParsableCommand {
 		var genProjects: [GenProject] = [GenProject]()
 
 		// find the PIFCache location
-		let pifCacheHandler = try PifCacheHandler(project: project)
+		let pifCacheLocation = try findPifCache(logFile: log)
+		let pifCacheHandler = PifCacheHandler(pifCache: pifCacheLocation)
 
 		// parse the PIF cache files and create a list of projects and targets
 		try pifCacheHandler.getTargets(targets: &genTargets)
@@ -304,6 +305,49 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	//
+	// TODO: merge with the logParser, as it's doing the same thing to find the buildCache
+	private func findPifCache(logFile: String) throws -> URL {
+		var input: [String] = []
+		var pifCacheDir: URL
+
+		if logFile == "-" {
+			input = try readStdin()			
+		} else {
+			input = try String(contentsOf: logFile.fileURL).components(separatedBy: .newlines)
+		}
+
+		for line in input {
+			if line.contains("Build description path: ") {
+				guard let startIndex = line.firstIndex(of: ":") else { continue }
+
+				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+
+				let derivedDataDir = String(stripped).fileURL
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+					.deletingLastPathComponent()
+
+				pifCacheDir = derivedDataDir.appendingPathComponent("Build/Intermediates.noindex/XCBuildData/PIFCache")
+
+				// validate PIF Cache dir exists
+				if !FileManager.default.fileExists(atPath: pifCacheDir.path) {
+					throw ValidationError("PIF Cache doesn't exist at: \(pifCacheDir)")
+				}
+
+				logger.info("Found PIFCache at: \(pifCacheDir)")
+
+				return pifCacheDir
+			}
+		}
+
+		throw ValidationError("Unable to find PIF Cache")
+	}
+
+	//
 	//
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool{
 		for dependency in child.dependencyTargets ?? [] {
@@ -426,6 +470,7 @@ extension URL: ExpressibleByArgument {
 	}
 }
 
+// allows us to throw errors with just strings
 extension String: LocalizedError {
 	public var errorDescription: String? { return self }
 }

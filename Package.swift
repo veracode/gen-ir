@@ -8,18 +8,12 @@ let package = Package(
 	platforms: [
 		.macOS(.v13)
 	],
-	products: [
-		.library(
-			name: "XcodeHasher", 
-			targets: ["XcodeHasher"])
-	],
 	dependencies: [
 		// Dependencies declare other packages that this package depends on.
 		// .package(url: /* package url */, from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
-		.package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "1.8.0"), 
 		.package(path: "PBXProjParser")
 	],
 	targets: [
@@ -30,8 +24,7 @@ let package = Package(
 			dependencies: [
 				.product(name: "ArgumentParser", package: "swift-argument-parser"),
 				.product(name: "Logging", package: "swift-log"),
-				.product(name: "PBXProjParser", package: "PBXProjParser"),
-				"XcodeHasher"
+				.product(name: "PBXProjParser", package: "PBXProjParser")
 			],
 			path: "Sources/GenIR"
 		),
@@ -39,11 +32,6 @@ let package = Package(
 			name: "GenIRTests",
 			dependencies: ["gen-ir"],
 			path: "Tests/GenIRTests"
-		),
-		.target(
-			name: "XcodeHasher",
-			dependencies: ["CryptoSwift"],
-			path: "Sources/XcodeHasher"
 		)
 	]
 )

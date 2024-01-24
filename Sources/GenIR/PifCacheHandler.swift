@@ -10,7 +10,7 @@
 import Foundation
 
 public struct PifCacheHandler {
-	private var manifestLocation: ManifestLocation?
+	private var pifCacheLocation: URL
 	private let jsonFileExtension = "-json"
 
 	enum PifError: Error {
@@ -18,34 +18,18 @@ public struct PifCacheHandler {
 		case processingError(_ msg: String)
 	}
 
-	public init(project: URL) throws {
-		// find the PIFCache folder
-		let manifestFinder = ManifestFinder()
-
-		do {
-			manifestLocation = try manifestFinder.findLatestManifest(options: .build(project: project))
-			logger.info("Found PIFCache \(manifestLocation!.pifCache!)")
-		} catch let error as ManifestFinderError {
-			throw PifError.setupError("Unable to find PIFCache - \(error.errorDescription!), \(error.recoverySuggestion!)")
-		}
+	public init(pifCache: URL) {
+		self.pifCacheLocation = pifCache
 	}
 
 	// parse the Target files in the PIFCache directory
 	public func getTargets(targets: inout [String: GenTarget]) throws {
 		logger.info("Parsing PIFCache Target files")
 
-		guard self.manifestLocation != nil else {
-			throw PifError.processingError("PifCache, manifest location unknown")
-		}
-
-		guard self.manifestLocation!.pifCache != nil else {
-			throw PifError.processingError("PifCache, PIFCache lcation unknown")
-		}
-
 		// pass 1: get all the files
 		let fm = FileManager.default
 		let targetParser = PifTargetParser()
-		let targetDir = manifestLocation!.pifCache!.appendingPathComponent("target", isDirectory: true)
+		let targetDir = pifCacheLocation.appendingPathComponent("target", isDirectory: true)
 
 		do {
 			let files = try fm.contentsOfDirectory(at: targetDir, includingPropertiesForKeys: nil)
@@ -123,18 +107,10 @@ public struct PifCacheHandler {
 	public func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) throws {
 		logger.info("Parsing PIFCache Project files")
 
-		guard self.manifestLocation != nil else {
-			throw PifError.processingError("PifCache, manifest location unknown")
-		}
-
-		guard self.manifestLocation!.pifCache != nil else {
-			throw PifError.processingError("PifCache, PIFCache lcation unknown")
-		}
-
 		// pass 1: get all the files
 		let fm = FileManager.default
 		let projectParser = PifProjectParser()
-		let projectDir = manifestLocation!.pifCache!.appendingPathComponent("project", isDirectory: true)
+		let projectDir = pifCacheLocation.appendingPathComponent("project", isDirectory: true)
 
 		do {
 			let files = try fm.contentsOfDirectory(at: projectDir, includingPropertiesForKeys: nil)
