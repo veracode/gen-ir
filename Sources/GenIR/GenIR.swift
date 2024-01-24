@@ -160,6 +160,7 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
+		// archiveTargets are read from the .xcarchive - tells us what we're building
 		let archiveTargetList: [String] = try getArchiveTargets(archivePath: archive)
 		for t in genTargets {
 			if archiveTargetList.contains(t.value.nameForOutput) {
@@ -167,18 +168,6 @@ struct IREmitterCommand: ParsableCommand {
 				logger.info("\nArchive Target(s): \(t.value.nameForOutput)")
 			}
 		}
-
-
-
-
-
-		
-		// logger.info("\nRoot Targets:")
-		// for t in genTargets {
-		// 	if t.value.isDependency == false {
-		// 		logger.info("\(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
-		// 	}
-		// }
 
 		// we start at the root targets, and build the full graph from there
 		// and we already have the first level dependencies so we could determine if this target is a root
@@ -256,9 +245,6 @@ struct IREmitterCommand: ParsableCommand {
 			dryRun: dryRun
 		)
 		try runner.run(projects: genProjects)
-
-		//let postprocessor = try OutputPostprocessor(archive: archive, output: output)
-		//try postprocessor.process(targets: &targets)
 	}
 	// swiftlint:enable function_parameter_count
 
@@ -349,6 +335,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
+	@discardableResult
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool{
 		for dependency in child.dependencyTargets ?? [] {
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
@@ -399,7 +386,6 @@ struct IREmitterCommand: ParsableCommand {
 		let applicationPath = productPath.appendingPathComponent("Applications")
 		// other ??
 
-		var frameworks: [String] = []
 		let fm = FileManager.default
 
 		do {
