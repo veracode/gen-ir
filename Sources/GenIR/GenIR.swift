@@ -229,7 +229,6 @@ struct IREmitterCommand: ParsableCommand {
 
 		// parse the build log to get the compiler commands 
 		let log = try logParser(for: log, targets: genTargets, projects: genProjects)
-		//try log.parse(&targets)
 		try log.parse()
 
 		let buildCacheManipulator = try BuildCacheManipulator(

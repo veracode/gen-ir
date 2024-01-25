@@ -38,31 +38,8 @@ class XcodeLogParser {
 	}
 
 	/// Start parsing the build log
-	/// - Parameter targets: The global list of targets
-	//func parse(_ targets: inout Targets) throws {
 	func parse() throws {
-		//parseBuildLog(log, &targets)
 		parseBuildLog(lines: log)
-
-		// if targets.isEmpty {
-		// 	logger.debug("Found no targets in log: \(log)")
-
-		// 	throw Error.noTargetsFound(
-		// 		"""
-		// 		No targets were parsed from the build log, if there are targets in the log file please report this as a bug
-		// 		"""
-		// 	)
-		// }
-
-		// if targets.totalCommandCount == 0 {
-		// 	logger.debug("Found no commands in log: \(log)")
-
-		// 	throw Error.noCommandsFound(
-		// 		"""
-		// 		No commands were parsed from the build log, if there are commands in the log file please report this as a bug
-		// 		"""
-		// 	)
-		// }
 
 		if buildCachePath == nil {
 			throw Error.noBuildCachePathFound("No build cache was found from the build log. Please report this as a bug.")
@@ -72,13 +49,9 @@ class XcodeLogParser {
 	/// Parses  an array representing the contents of an Xcode build log
 	/// - Parameters:
 	///   - lines: contents of the Xcode build log lines
-	///   - targets: the container to add found targets to
-	//private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
 	private func parseBuildLog(lines: [String]) {
-		//var currentTarget: Target?
 		var currentTarget: GenTarget?
 		var currentProject: GenProject?
-		//var seenTargets = Set<String>()
 
 		logger.info("Parsing build log...")
 		for (index, line) in lines.enumerated() {
@@ -110,27 +83,12 @@ class XcodeLogParser {
 					.deletingLastPathComponent()
 			}
 
-
-
-			// validate on guid??
+			// TODO: validate on guid??
 			let retVal = target(from: line)
-			//if let foo? = target(from: line)/*, currentTarget?.name != target*/ {
 			if retVal.target != nil {
 				currentTarget = retVal.target
 				currentProject = retVal.project
-
-			// 	if seenTargets.insert(target).inserted {
-			// 		logger.debug("Found target: \(target)")
-				//logger.debug("Found target: \(currentTarget!.name) \([currentTarget!.guid]) in project: \(currentProject!.name) [\(currentProject!.guid)]")
 			}
-
-			// 	if let targetObject = targets.target(for: target) {
-			// 		currentTarget = targetObject
-			// 	} else {
-			// 		currentTarget = .init(name: target)
-			// 		targets.insert(target: currentTarget!)
-			// 	}
-			// }
 
 			guard let currentTarget else {
 				continue
@@ -188,24 +146,7 @@ class XcodeLogParser {
 	/// - Parameter line: the line to parse
 	/// - Returns: the name of the target if one was found, otherwise nil
 	private func target(from line: String) -> (target: GenTarget?, project: GenProject?) {
-		
-		if line.contains("Build target ") {
-
-
-			// TODO: fix this case also
-
-
-			// var result = line.replacingOccurrences(of: "Build target ", with: "")
-
-			// if let bound = result.range(of: "of ")?.lowerBound {
-			// 	result = String(result[result.startIndex..<bound])
-			// } else if let bound = result.range(of: "with configuration ")?.lowerBound {
-			// 	result = String(result[result.startIndex..<bound])
-			// }
-
-			// return result.trimmingCharacters(in: .whitespacesAndNewlines)
-		} else if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
-			// sometimes (seemingly for archives) build logs follow a different format for targets
+		if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
 			let targetName = String(line[startIndex..<endIndex])
 
 			// get the project name
@@ -215,11 +156,10 @@ class XcodeLogParser {
 					return (nil, nil)
 				}
 			
-			// get the project name, find GenProject
 			let projectName = String(line[pStartIndex..<pEndIndex])
-
 			//logger.debug("Found target named \(targetName) in project named \(projectName)")
-
+						
+			// given the project name, find GenProject
 			for p in self.projects {
 				if projectName == p.name {
 					//logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
@@ -239,8 +179,6 @@ class XcodeLogParser {
 
 			logger.error("Unable to match project '\(projectName)' and target '\(targetName)' with an existing project/target!!")
 			return (nil, nil)
-
-			//return String(line[startIndex..<endIndex])
 		}
 
 		return (nil, nil)
