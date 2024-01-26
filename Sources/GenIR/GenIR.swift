@@ -394,6 +394,12 @@ struct IREmitterCommand: ParsableCommand {
 				if(app.lastPathComponent == target.nameForOutput) {
 					logger.info(" for \(app.lastPathComponent)")
 					let frameworkPath = app.appendingPathComponent("Frameworks")
+
+					if !fm.fileExists(atPath: frameworkPath.absoluteString) {
+						logger.info("  no frameworks found")
+						return
+					}
+
 					let appFrameworks = try fm.contentsOfDirectory(at: frameworkPath, includingPropertiesForKeys: nil)
 
 					for fr in appFrameworks {
