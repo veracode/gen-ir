@@ -51,20 +51,11 @@ struct CompilerCommandRunner {
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		//let totalCommands = targets.totalCommandCount
-		//logger.info("Total commands to run: \(totalCommands)")
-
-		//var totalModulesRun = 0
-
 		// loop through all of the projects and create IR for each target
 		for currentProject in projects {
 			logger.info("Operating on project: \(currentProject.name) [\(currentProject.guid)]")
 
 			for target in (currentProject.targets ?? []) {
-
-			//for (key, target) in targets {
-				//logger.info("Operating on target: \(target.name) [\(target.guid)].  Total modules processed: \(totalModulesRun)")
-
 				// if this is not a target we need to build, skip it
 				if(target.archiveTarget != true) {
 					logger.info("Skipping target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)] - not an archive target")
@@ -73,7 +64,7 @@ struct CompilerCommandRunner {
 
 				logger.info("Operating on target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)]")
 
-				/*totalModulesRun +=*/ let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+				let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 
 				if commandsRun > 0 {
 					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
@@ -110,17 +101,16 @@ struct CompilerCommandRunner {
 						for file in files {
 
 							// prepend package name to filename
-							let dstFilename = dep.name + "-" + file.lastPathComponent
+							//let dstFilename = dep.name + "-" + file.lastPathComponent
 
 							try fileManager.moveItem(at: file, 
-										to: dst.appendingPathComponent(dstFilename))
+										to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
 						}
 					}
-						//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
 				}
 
-				// denendencies
-				logger.info("Building IR for other dependencies")
+				// static dependencies
+				logger.info("Building IR for static dependencies")
 				for dep in (target.dependencyTargets ?? []) {
 					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
 
@@ -144,33 +134,14 @@ struct CompilerCommandRunner {
 						for file in files {
 
 							// prepend package name to filename
-							let dstFilename = dep.name + "-" + file.lastPathComponent
+							//let dstFilename = dep.name + "-" + file.lastPathComponent
 
 							try fileManager.moveItem(at: file, 
-										to: dst.appendingPathComponent(dstFilename))
+										to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
 						}
 					}
-						//try run(commands: (new)target.commands, for: (parent)target.nameForOutput, at: (new)tempDirectory)
 				}
-				
-				//do {
-					//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
-
-
-					// only need to do this if we actually ran any commands
-					//try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput))
-
-
-
-
-				// } catch {
-				// 	// TODO: Fix me!
-				// 	logger.info("File copy, skipping as duplicate: \(output.appendingPathComponent(target.nameForOutput))")
-				// }
-
 			}
-
-			//try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
 
 			//let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
 			//logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
@@ -186,11 +157,7 @@ struct CompilerCommandRunner {
 		// adjust ouptut dir to avoid clobbering existing files
 		let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
 
-		// copy files and adjust names to be unique
-		// copy from tempDir/target.nameForOutput to output/target.NameForOutput
-
 		return commandsRun
-
 	}
 
 	/// Runs all commands for a given target
