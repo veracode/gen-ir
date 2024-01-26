@@ -395,7 +395,7 @@ struct IREmitterCommand: ParsableCommand {
 					logger.info(" for \(app.lastPathComponent)")
 					let frameworkPath = app.appendingPathComponent("Frameworks")
 
-					if !fm.fileExists(atPath: frameworkPath.absoluteString) {
+					if !fm.directoryExists(at: frameworkPath) {
 						logger.info("  no frameworks found")
 						return
 					}
