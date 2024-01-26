@@ -20,7 +20,6 @@ public class GenProject {
 	}
 
 	public func addTarget(target: GenTarget) {
-		//self.targets.append(target)
 		if (self.targets?.append(target)) == nil {
 			self.targets = [target]
 		}

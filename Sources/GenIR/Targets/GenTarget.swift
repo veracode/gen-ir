@@ -14,7 +14,6 @@ public class GenTarget: Hashable {
 	var type: TargetType
 	var isDependency: Bool							// is this is root, or a child?
 	var dependencyGuids: [String]?					// guid of the static dependent/child target(s) 
-	//var dependencyTargets: [GenTarget]?
 	var dependencyTargets: Set<GenTarget>?			// static dependencies
 	var frameworkGuids: [String]?					// guid of the dynamic dependencies
 	var frameworkTargets: Set<GenTarget>?			// dynamic dependencies
