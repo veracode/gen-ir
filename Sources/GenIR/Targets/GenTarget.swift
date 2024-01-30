@@ -74,11 +74,14 @@ public class GenTarget: Hashable {
 	}
 
 	public func hash(into hasher: inout Hasher) {
-		hasher.combine(ObjectIdentifier(self))
+		hasher.combine(guid)
+		hasher.combine(file)
 	}
 
 	public static func ==(lhs: GenTarget, rhs: GenTarget) -> Bool {
-		return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+		// should be OK, as Xcode (should) assign unique GUIDs to each object
+		// after all, that's what a 'guid' is, right?
+		return lhs.guid == rhs.guid
 	}
 
 	private static func getType(typeName: String) -> TargetType {
@@ -91,7 +94,7 @@ public class GenTarget: Hashable {
 				return TargetType.Bundle
 			case "wrapper.app-extension":						// TODO: fix
 				return TargetType.Extension
-			case "packageProduct":								
+			case "packageProduct":
 				return TargetType.Package
 			case "com.apple.product-type.objfile":
 				return TargetType.ObjFile
@@ -108,7 +111,7 @@ public class GenTarget: Hashable {
 		switch type {
 			case .Application: return "app"
 			case .Framework: return "framework"
-			case .Package: return "package"													
+			case .Package: return "package"
 			case .ObjFile: return "obj"
 																// TODO: more
 			default: return "unknown"
