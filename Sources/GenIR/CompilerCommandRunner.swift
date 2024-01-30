@@ -76,70 +76,78 @@ struct CompilerCommandRunner {
 				 * - static dependencies are scanned with the app
 				 */
 
-				// frameworks
 				logger.info("Building IR for Frameworks")
 				for dep in (target.frameworkTargets ?? []) {
-					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+					//let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+					
+					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: true)
 
-					if commandsRun > 0 {
 
-						/***  this is the big diff between a dependency and a framework - the dst folder ***/
-						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-						let dst = output.appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+					//processDependencies(tempDir: tempDirectory, root: target, me: dep, isFramework: true)
 
-						// depending on various factors, like if the parent had any compiler commands, or just the order run,
-						// everything might not be setup correctly.  So, create directories if needed
-						if !fileManager.directoryExists(at: dst) {
-							do {
-								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-							} catch {
-								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-							}
-						}
+					// try runDependencies(tempDir: tempDirectory, root: target, me: dep, framework: true)
+
+					// if commandsRun > 0 {
+
+					// 	/***  this is the big diff between a dependency and a framework - the dst folder ***/
+					// 	let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+					// 	let dst = output.appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+
+					// 	// depending on various factors, like if the parent had any compiler commands, or just the order run,
+					// 	// everything might not be setup correctly.  So, create directories if needed
+					// 	if !fileManager.directoryExists(at: dst) {
+					// 		do {
+					// 			try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+					// 		} catch {
+					// 			throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+					// 		}
+					// 	}
 						
-						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-						for file in files {
+					// 	let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+					// 	for file in files {
 
-							// prepend package name to filename
-							//let dstFilename = dep.name + "-" + file.lastPathComponent
+					// 		// prepend package name to filename
+					// 		//let dstFilename = dep.name + "-" + file.lastPathComponent
 
-							try fileManager.moveItem(at: file, 
-										to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
-						}
-					}
+					// 		try fileManager.moveItem(at: file, 
+					// 					to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
+					// 	}
+					// }
 				}
 
-				// static dependencies
 				logger.info("Building IR for static dependencies")
 				for dep in (target.dependencyTargets ?? []) {
-					let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
+				// 	let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
 
-					if commandsRun > 0 {
 
-						/***  this is the big diff between a dependency and a framework - the dst folder ***/
-						let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-						let dst = output.appendingPathComponent(target.nameForOutput.deletingPathExtension()).appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: false)
 
-						// depending on various factors, like if the parent had any compiler commands, or just the order run,
-						// everything might not be setup correctly.  So, create directories if needed
-						if !fileManager.directoryExists(at: dst) {
-							do {
-								try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-							} catch {
-								throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-							}
-						}
+				// 	if commandsRun > 0 {
+
+				// 		/***  this is the big diff between a dependency and a framework - the dst folder ***/
+				// 		let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
+				// 		let dst = output.appendingPathComponent(target.nameForOutput.deletingPathExtension()).appendingPathComponent(dep.nameForOutput.deletingPathExtension())
+
+				// 		// depending on various factors, like if the parent had any compiler commands, or just the order run,
+				// 		// everything might not be setup correctly.  So, create directories if needed
+				// 		if !fileManager.directoryExists(at: dst) {
+				// 			do {
+				// 				try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+				// 			} catch {
+				// 				throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+				// 			}
+				// 		}
 						
-						let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-						for file in files {
+				// 		let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+				// 		for file in files {
 
-							// prepend package name to filename
-							//let dstFilename = dep.name + "-" + file.lastPathComponent
+				// 			// prepend package name to filename
+				// 			//let dstFilename = dep.name + "-" + file.lastPathComponent
 
-							try fileManager.moveItem(at: file, 
-										to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
-						}
-					}
+				// 			try fileManager.moveItem(at: file, 
+				// 						to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
+				// 		}
+				// 	}
 				}
 			}
 
@@ -151,13 +159,70 @@ struct CompilerCommandRunner {
 		logger.info("Finished processing all projects")
 	}
 
-	private func runDependencies(target: GenTarget, tempDir: URL) throws -> Int{
-		logger.info("Running dependencies for: \(target.name) [\(target.guid)]")
+	// private func runDependencies(target: GenTarget, tempDir: URL) throws -> Int {
+	// 	logger.info("Running dependencies for: \(target.name) [\(target.guid)]")
 
-		// adjust ouptut dir to avoid clobbering existing files
-		let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
+	// 	// adjust ouptut dir to avoid clobbering existing files
+	// 	let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
 
-		return commandsRun
+	// 	return commandsRun
+	// }
+
+	//
+	// build myself, and copy my files to the right place
+	private func buildLibrary(tempDir: URL, root: GenTarget, library: GenTarget, isFramework: Bool) throws {
+		// build my files
+		let commandsRun = try run(commands: library.commands, for: library.nameForOutput, at: tempDir)
+
+		// copy my files to the right place
+		if commandsRun > 0 {
+			let src = tempDir/*.appendingPathComponent(target.nameForOutput)*/.appendingPathComponent(library.nameForOutput)
+
+			/* this is the big diff between a dependency and a framework - the dst folder 
+			 *	frameworks are considered stand-alone modules, so they go into the IR folder directly
+			 *	while static dependencies go inside the object that they link into 
+			 */
+			var dst: URL
+			if isFramework {
+				dst = output.appendingPathComponent(library.nameForOutput.deletingPathExtension())
+			} else {
+				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension()).appendingPathComponent(library.nameForOutput.deletingPathExtension())
+			}
+
+			// depending on various factors, like if the parent had any compiler commands, or just the order run,
+			// everything might not be setup correctly.  So, create directories if needed
+			if !fileManager.directoryExists(at: dst) {
+				do {
+					try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
+				} catch {
+					throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
+				}
+			}
+			
+			let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
+			for file in files {
+
+				// prepend package name to filename
+				//let dstFilename = dep.name + "-" + file.lastPathComponent
+
+				try fileManager.moveItem(at: file, 
+							to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
+			}
+		}
+
+		// handle my dependencies
+		// runDeps (temp, me=root, dep, framework T/F)
+
+	}
+
+	private func runDependencies(tempDir: URL, root: GenTarget, me: GenTarget, framework: Bool) {
+		logger.info("Running dependencies, root: \(root.nameForOutput), dep: \(me.nameForOutput), framework: \(framework)")
+
+		// buildSelf()
+
+
+		// runDeps () --> processDeps()
+
 	}
 
 	/// Runs all commands for a given target
