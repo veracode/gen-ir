@@ -16,7 +16,7 @@ class XcodeLogParser {
 
 	/// Any CLI Settings found in the build log
 	private(set) var settings: [String: String] = [:]
-	
+
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 
@@ -155,10 +155,10 @@ class XcodeLogParser {
 					logger.error("Unable to find project name from build target")
 					return (nil, nil)
 				}
-			
+
 			let projectName = String(line[pStartIndex..<pEndIndex])
 			//logger.debug("Found target named \(targetName) in project named \(projectName)")
-						
+
 			// given the project name, find GenProject
 			for p in self.projects {
 				if projectName == p.name {

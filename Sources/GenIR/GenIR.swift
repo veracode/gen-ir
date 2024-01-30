@@ -144,7 +144,7 @@ struct IREmitterCommand: ParsableCommand {
 		// parse the PIF cache files and create a list of projects and targets
 		try pifCacheHandler.getTargets(targets: &genTargets)
 		try pifCacheHandler.getProjects(targets: genTargets, projects: &genProjects)
-		
+
 		// print the project/target tree
 		// (no need to think about recursion here, as the PIFCache data only shows direct dependencies)
 		logger.info("\nProject/Target tree:")
@@ -296,7 +296,7 @@ struct IREmitterCommand: ParsableCommand {
 		var pifCacheDir: URL
 
 		if logFile == "-" {
-			input = try readStdin()			
+			input = try readStdin()
 		} else {
 			input = try String(contentsOf: logFile.fileURL).components(separatedBy: .newlines)
 		}
