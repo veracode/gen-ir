@@ -12,4 +12,8 @@ extension URL {
 	var filePath: String {
 		return self.path
 	}
+
+	var fileExists: Bool {
+		return FileManager().fileExists(atPath: self.filePath)
+	}
 }

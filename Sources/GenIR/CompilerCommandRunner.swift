@@ -171,11 +171,21 @@ struct CompilerCommandRunner {
 	//
 	// build myself, and copy my files to the right place
 	private func buildLibrary(tempDir: URL, root: GenTarget, library: GenTarget, isFramework: Bool) throws {
-		// build my files
-		let commandsRun = try run(commands: library.commands, for: library.nameForOutput, at: tempDir)
+		logger.debug("Build library \(library.nameForOutput), with root \(root.nameForOutput)")
+
+		// if the build directory already exists we built this once, so just copy the files
+		// often happens for nested libraries
+		var justCopy = false
+		var commandsRun = 0
+		if fileManager.directoryExists(at: tempDir.appendingPathComponent(library.nameForOutput)) {
+			justCopy = true
+		} else {
+			// build my files
+			commandsRun = try run(commands: library.commands, for: library.nameForOutput, at: tempDir)
+		}
 
 		// copy my files to the right place
-		if commandsRun > 0 {
+		if commandsRun > 0 || justCopy == true {
 			let src = tempDir/*.appendingPathComponent(target.nameForOutput)*/.appendingPathComponent(library.nameForOutput)
 
 			/* this is the big diff between a dependency and a framework - the dst folder 
@@ -186,11 +196,11 @@ struct CompilerCommandRunner {
 			if isFramework {
 				dst = output.appendingPathComponent(library.nameForOutput.deletingPathExtension())
 			} else {
-				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension()).appendingPathComponent(library.nameForOutput.deletingPathExtension())
+				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension())/*.appendingPathComponent(library.nameForOutput.deletingPathExtension())*/
 			}
 
 			// depending on various factors, like if the parent had any compiler commands, or just the order run,
-			// everything might not be setup correctly.  So, create directories if needed
+			// everything might not be setup correctly.  So create directories if needed
 			if !fileManager.directoryExists(at: dst) {
 				do {
 					try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
@@ -203,25 +213,25 @@ struct CompilerCommandRunner {
 			for file in files {
 
 				// prepend package name to filename
-				//let dstFilename = dep.name + "-" + file.lastPathComponent
+				//let dstFilename = library.name + "-" + file.lastPathComponent
+				let dstFilename = dst.appendingPathComponent(library.name + "-" + file.lastPathComponent)
 
-				try fileManager.moveItem(at: file, 
-							to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
+				if !dstFilename.fileExists {
+					try fileManager.copyItem(at: file, 
+							to: dstFilename /*dst.appendingPathComponent(/*file.lastPathComponent*/ dstFilename)*/)
+				}
 			}
 		}
 
 		// handle my dependencies
-		// runDeps (temp, me=root, dep, framework T/F)
-
-	}
-
-	private func runDependencies(tempDir: URL, root: GenTarget, me: GenTarget, framework: Bool) {
-		logger.info("Running dependencies, root: \(root.nameForOutput), dep: \(me.nameForOutput), framework: \(framework)")
-
-		// buildSelf()
-
-
-		// runDeps () --> processDeps()
+		for dep in (library.dependencyTargets ?? []) {
+			// can't have nested frameworks, so isFramework is always false
+			if isFramework {
+				try buildLibrary(tempDir: tempDir, root: library, library: dep, isFramework: false)
+			} else {
+				try buildLibrary(tempDir: tempDir, root: root, library: dep, isFramework: false)
+			}
+		}
 
 	}
 
