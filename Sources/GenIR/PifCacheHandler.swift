@@ -40,7 +40,7 @@ public struct PifCacheHandler {
 
 				do {
 					let pifTarget = try targetParser.process(file)
-					logger.debug("PifTarget: \(pifTarget)")
+					logger.debug("PifTarget: \(pifTarget.name) [\(pifTarget.guid)]")
 
 					var typeName: String
 					if pifTarget.productTypeIdentifier != nil {
@@ -120,7 +120,7 @@ public struct PifCacheHandler {
 
 				do {
 					let pifProject = try projectParser.process(file)
-					logger.debug("PifProject: \(pifProject)")
+					logger.debug("PifProject: \(pifProject.name) [\(pifProject.guid)]")
 
 					// create the project data struct
 					let p = GenProject(guid: pifProject.guid, filename: file, name: pifProject.name)

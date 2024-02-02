@@ -92,7 +92,7 @@ public class GenTarget: Hashable {
 				return TargetType.Framework
 			case "com.apple.product-type.bundle":
 				return TargetType.Bundle
-			case "wrapper.app-extension":						// TODO: fix
+			case "com.apple.product-type.app-extension":
 				return TargetType.Extension
 			case "packageProduct":
 				return TargetType.Package

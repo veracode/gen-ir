@@ -73,81 +73,17 @@ struct CompilerCommandRunner {
 				/* handle frameworks and dependencies of this target 
 				 * these need to be handled seperately since:
 				 * - frameworks are treated as stand-alone entities when scanned
-				 * - static dependencies are scanned with the app
+				 * - static dependencies are scanned with the app/framework that they are linked into
 				 */
 
 				logger.info("Building IR for Frameworks")
-				for dep in (target.frameworkTargets ?? []) {
-					//let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
-					
+				for dep in (target.frameworkTargets ?? []) {					
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: true)
-
-
-					//processDependencies(tempDir: tempDirectory, root: target, me: dep, isFramework: true)
-
-					// try runDependencies(tempDir: tempDirectory, root: target, me: dep, framework: true)
-
-					// if commandsRun > 0 {
-
-					// 	/***  this is the big diff between a dependency and a framework - the dst folder ***/
-					// 	let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-					// 	let dst = output.appendingPathComponent(dep.nameForOutput.deletingPathExtension())
-
-					// 	// depending on various factors, like if the parent had any compiler commands, or just the order run,
-					// 	// everything might not be setup correctly.  So, create directories if needed
-					// 	if !fileManager.directoryExists(at: dst) {
-					// 		do {
-					// 			try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-					// 		} catch {
-					// 			throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-					// 		}
-					// 	}
-						
-					// 	let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-					// 	for file in files {
-
-					// 		// prepend package name to filename
-					// 		//let dstFilename = dep.name + "-" + file.lastPathComponent
-
-					// 		try fileManager.moveItem(at: file, 
-					// 					to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
-					// 	}
-					// }
 				}
 
 				logger.info("Building IR for static dependencies")
 				for dep in (target.dependencyTargets ?? []) {
-				// 	let commandsRun = try runDependencies(target: dep, tempDir: tempDirectory.appendingPathComponent(target.nameForOutput))
-
-
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: false)
-
-				// 	if commandsRun > 0 {
-
-				// 		/***  this is the big diff between a dependency and a framework - the dst folder ***/
-				// 		let src = tempDirectory.appendingPathComponent(target.nameForOutput).appendingPathComponent(dep.nameForOutput)
-				// 		let dst = output.appendingPathComponent(target.nameForOutput.deletingPathExtension()).appendingPathComponent(dep.nameForOutput.deletingPathExtension())
-
-				// 		// depending on various factors, like if the parent had any compiler commands, or just the order run,
-				// 		// everything might not be setup correctly.  So, create directories if needed
-				// 		if !fileManager.directoryExists(at: dst) {
-				// 			do {
-				// 				try fileManager.createDirectory(at: dst, withIntermediateDirectories: true)
-				// 			} catch {
-				// 				throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
-				// 			}
-				// 		}
-						
-				// 		let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
-				// 		for file in files {
-
-				// 			// prepend package name to filename
-				// 			//let dstFilename = dep.name + "-" + file.lastPathComponent
-
-				// 			try fileManager.moveItem(at: file, 
-				// 						to: dst.appendingPathComponent(file.lastPathComponent /*dstFilename*/))
-				// 		}
-				// 	}
 				}
 			}
 
@@ -158,15 +94,6 @@ struct CompilerCommandRunner {
 
 		logger.info("Finished processing all projects")
 	}
-
-	// private func runDependencies(target: GenTarget, tempDir: URL) throws -> Int {
-	// 	logger.info("Running dependencies for: \(target.name) [\(target.guid)]")
-
-	// 	// adjust ouptut dir to avoid clobbering existing files
-	// 	let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDir)
-
-	// 	return commandsRun
-	// }
 
 	//
 	// build myself, and copy my files to the right place
@@ -232,7 +159,6 @@ struct CompilerCommandRunner {
 				try buildLibrary(tempDir: tempDir, root: root, library: dep, isFramework: false)
 			}
 		}
-
 	}
 
 	/// Runs all commands for a given target
