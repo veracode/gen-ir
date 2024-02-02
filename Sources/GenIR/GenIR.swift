@@ -169,6 +169,17 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
+
+
+		logger.info("\nHandling special-case frameworks")
+		for t in genTargets {
+			if t.value.archiveTarget == true {
+				try getArchiveFrameworks(archivePath: archive, target: t.value, allTargets: genTargets)
+			}
+		}
+
+
+
 		// we start at the root targets, and build the full graph from there
 		// and we already have the first level dependencies so we could determine if this target is a root
 		logger.info("\nBuilding Dependency Graph")
@@ -202,12 +213,12 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
-		logger.info("\nHandling special-case frameworks")
-		for t in genTargets {
-			if t.value.archiveTarget == true {
-				try getArchiveFrameworks(archivePath: archive, target: t.value)
-			}
-		}
+		// logger.info("\nHandling special-case frameworks")
+		// for t in genTargets {
+		// 	if t.value.archiveTarget == true {
+		// 		try getArchiveFrameworks(archivePath: archive, target: t.value, allTargets: genTargets)
+		// 	}
+		// }
 
 		logger.info("\nDependency Graph:")
 		for t in genTargets {
@@ -380,7 +391,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
-	private func getArchiveFrameworks(archivePath: URL, target: GenTarget) throws {
+	private func getArchiveFrameworks(archivePath: URL, target: GenTarget, allTargets: [String : GenTarget ]) throws {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
 		// other ??
@@ -406,7 +417,10 @@ struct IREmitterCommand: ParsableCommand {
 						if fr.pathExtension == "framework" {
 
 							// make sure this exits as a framework of the app, not a static dependency
+							let frName = fr.lastPathComponent
 							let frBasename = fr.lastPathComponent.deletingPathExtension()
+
+							/* this first case handles Swift Packages that are linked as frameworks */
 
 							// TODO: can I trust the name, or better to use the 
 							// 'dynamicTargetVariantGuid' from the PifCache Target files
@@ -415,6 +429,15 @@ struct IREmitterCommand: ParsableCommand {
 									logger.info("  moving \(d.nameForOutput) [\(d.type)] [\(d.guid)] to the framework list")
 									target.frameworkTargets?.insert(d)
 									target.dependencyTargets?.remove(d)
+								}
+							}
+
+							/* this second case handles frameworks that don't show up as dependencies (usually CocoaPods) */
+							for tgt in allTargets {
+								if tgt.value.nameForOutput == frName {
+									if target.frameworkTargets?.insert(tgt.value).inserted ?? false {
+										logger.info("  adding \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] to the framework list")
+									}
 								}
 							}
 						}
