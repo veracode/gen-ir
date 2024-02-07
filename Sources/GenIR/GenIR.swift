@@ -169,16 +169,12 @@ struct IREmitterCommand: ParsableCommand {
 			}
 		}
 
-
-
 		logger.info("\nHandling special-case frameworks")
 		for t in genTargets {
 			if t.value.archiveTarget == true {
 				try getArchiveFrameworks(archivePath: archive, target: t.value, allTargets: genTargets)
 			}
 		}
-
-
 
 		// we start at the root targets, and build the full graph from there
 		// and we already have the first level dependencies so we could determine if this target is a root
@@ -223,7 +219,7 @@ struct IREmitterCommand: ParsableCommand {
 		logger.info("\nDependency Graph:")
 		for t in genTargets {
 			if t.value.archiveTarget == true {
-				logger.info("  Root target: \(t.value.nameForOutput) [\(t.value.type)] [build=\(t.value.archiveTarget)] [\(t.value.guid)]")
+				logger.info("  Root target: \(t.value.nameForOutput) [\(t.value.type)] [\(t.value.guid)]")
 
 				for d in t.value.dependencyTargets ?? [] {
 					logger.info("    (d) \(d.nameForOutput) [\(d.type)] [\(d.guid)]")
