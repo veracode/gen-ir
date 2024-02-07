@@ -52,6 +52,14 @@ public struct PifCacheHandler {
 					// skip Playground targets
 					// (what we want for root targets become children of Playgrounds)
 					if pifTarget.guid.hasPrefix("PLAYGROUND") {
+						logger.debug("skipping Playground target \(pifTarget.name) [\(pifTarget.guid)]")
+						continue
+					}
+
+					// skip macosx targets
+					// (using [0] is fine, as we don't expect Debug for iPhone and Release for MacOSX)
+					if pifTarget.buildConfigurations?[0].buildSettings.MACOSX_DEPLOYMENT_TARGET != nil {
+						logger.debug("skipping macosx target \(pifTarget.name) [\(pifTarget.guid)]")
 						continue
 					}
 
@@ -81,8 +89,17 @@ public struct PifCacheHandler {
 
 			logger.info("Pass 2: resolving dependencies")
 			for t in targets {
+				logger.debug("t = \(t.value.guid)")
 				for depGuid in (t.value.dependencyGuids ?? []) {
+					logger.debug("depGuid = \(depGuid)")
+
+					// target might not exist, like an iOS app hard-wired to use swiftlint (a macosx tool)
+					if targets[depGuid] == nil {
+						continue
+					}
+					
 					if(t.value.dependencyTargets?.insert(targets[depGuid]!)) == nil {
+						logger.debug("depGuid = \(depGuid)")
 						t.value.dependencyTargets = [targets[depGuid]!]
 					}
 
@@ -137,7 +154,7 @@ public struct PifCacheHandler {
 						}
 
 						if !found {
-							logger.info("Unable to find target \(t) in target list (ignored Playground target?)")
+							logger.info("Unable to find target \(t) in target list (ignored Playground or MacOSX target?)")
 						}
 					}
 
@@ -165,6 +182,29 @@ public struct PifCacheHandler {
 /*
  * PIFCache Target files
  */
+
+private struct buildSetting: Codable {
+	//let SDKROOT: String?
+	let MACOSX_DEPLOYMENT_TARGET: String?
+
+	public init(/*SDKROOT: String,*/ MACOSX_DEPLOYMENT_TARGET: String) {
+		//self.SDKROOT = SDKROOT
+		self.MACOSX_DEPLOYMENT_TARGET = MACOSX_DEPLOYMENT_TARGET
+	}
+}
+
+private struct buildConfiguration: Codable {
+	let buildSettings: buildSetting
+	let name: String
+	let guid: String
+
+	public init(name: String, guid: String, buildSettings: buildSetting) {
+		self.name = name
+		self.guid = guid
+		self.buildSettings = buildSettings
+	}
+}
+
 private struct buildFile: Codable {
 	let guid: String
 	let targetReference: String?
@@ -218,6 +258,7 @@ private struct PifTargetRaw: Codable {
 	let productTypeIdentifier: String?
 	let dependencies: [Dependencies]?
 	let buildPhases: [buildPhase]?
+	let buildConfigurations: [buildConfiguration]?
 
 	public init(
 		guid: String,
@@ -226,7 +267,8 @@ private struct PifTargetRaw: Codable {
 		productReference: ProductReference?,
 		productTypeIdentifier: String? ,
 		dependencies: [Dependencies]?,
-		buildPhases: [buildPhase]?
+		buildPhases: [buildPhase]?,
+		buildConfigurations: [buildConfiguration]?
 	) {
 		self.guid = guid
 		self.name = name
@@ -242,6 +284,7 @@ private struct PifTargetRaw: Codable {
 
 		self.dependencies = dependencies
 		self.buildPhases = buildPhases
+		self.buildConfigurations = buildConfigurations
 	}
 }
 
@@ -254,6 +297,7 @@ private struct PifTarget {
 	let productReference: ProductReference?
 	var dependencies: [String]?
 	let buildPhases: [buildPhase]?
+	let buildConfigurations: [buildConfiguration]?
 
 	public init(rawTarget: PifTargetRaw) {
 		self.guid = rawTarget.guid
@@ -262,6 +306,7 @@ private struct PifTarget {
 		self.productTypeIdentifier = rawTarget.productTypeIdentifier
 		self.productReference = rawTarget.productReference
 		self.buildPhases = rawTarget.buildPhases
+		self.buildConfigurations = rawTarget.buildConfigurations
 
 		if rawTarget.dependencies != nil {
 			for d in rawTarget.dependencies! {
