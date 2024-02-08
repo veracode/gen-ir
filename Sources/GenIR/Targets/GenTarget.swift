@@ -35,31 +35,32 @@ public class GenTarget: Hashable {
 	}()
 
 	public enum TargetType: CustomStringConvertible {
-		case Application
-		case Framework
-		case Bundle
-		case Extension
-		case Package
-		case ObjFile
-		case Test
-		case Tool
-		case Unknown
+		case applicationTarget
+		case frameworkTarget
+		case bundleTarget
+		case extensionTarget
+		case packageTarget
+		case objfileTarget
+		case testTarget
+		case toolTarget
+		case unknownTarget
 
 		public var description: String {
 			switch self {
-				case .Application: return "Application"
-				case .Framework: return "Framework"
-				case .Bundle: return "Bundle"
-				case .Extension: return "Extension"
-				case .Package: return "Package"
-				case .ObjFile: return "ObjectFile"
-				case .Test: return "Test"
-				case .Tool: return "Tool"
+				case .applicationTarget: return "Application"
+				case .frameworkTarget: return "Framework"
+				case .bundleTarget: return "Bundle"
+				case .extensionTarget: return "Extension"
+				case .packageTarget: return "Package"
+				case .objfileTarget: return "ObjectFile"
+				case .testTarget: return "Test"
+				case .toolTarget: return "Tool"
 				default: return "Unknown"
-			}
+				}
 		}
 	}
 
+	// swiftlint:disable:next line_length
 	public init(guid: String, file: URL, name: String, typeName: String, productReference: ProductReference?, dependencyGuids: [String]?, frameworkGuids: [String]?) {
 		self.guid = guid
 		self.file = file
@@ -78,6 +79,7 @@ public class GenTarget: Hashable {
 		hasher.combine(file)
 	}
 
+	// swiftlint:disable:next operator_whitespace
 	public static func ==(lhs: GenTarget, rhs: GenTarget) -> Bool {
 		// should be OK, as Xcode (should) assign unique GUIDs to each object
 		// after all, that's what a 'guid' is, right?
@@ -87,35 +89,34 @@ public class GenTarget: Hashable {
 	private static func getType(typeName: String) -> TargetType {
 		switch typeName {
 			case "com.apple.product-type.application":
-				return TargetType.Application
+				return TargetType.applicationTarget
 			case "com.apple.product-type.framework":
-				return TargetType.Framework
+				return TargetType.frameworkTarget
 			case "com.apple.product-type.bundle":
-				return TargetType.Bundle
+				return TargetType.bundleTarget
 			case "com.apple.product-type.app-extension":
-				return TargetType.Extension
+				return TargetType.extensionTarget
 			case "packageProduct":
-				return TargetType.Package
+				return TargetType.packageTarget
 			case "com.apple.product-type.objfile":
-				return TargetType.ObjFile
+				return TargetType.objfileTarget
 			case "com.apple.product-type.bundle.unit-test":
-				return TargetType.Test
+				return TargetType.testTarget
 			case "com.apple.product-type.tool":
-				return TargetType.Tool
+				return TargetType.toolTarget
 			default:
-				return TargetType.Unknown
-		}
+				return TargetType.unknownTarget
+			}
 	}
 
 	private func getPathExtension() -> String {
 		switch type {
-			case .Application: return "app"
-			case .Framework: return "framework"
-			case .Package: return "package"
-			case .ObjFile: return "obj"
-																// TODO: more
+			case .applicationTarget: return "app"
+			case .frameworkTarget: return "framework"
+			case .packageTarget: return "package"
+			case .objfileTarget: return "obj"
+																// TODO: more?
 			default: return "unknown"
-		}
+			}
 	}
-
 }

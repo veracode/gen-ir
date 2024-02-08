@@ -7,7 +7,6 @@
 
 import Foundation
 import Logging
-//import PBXProjParser
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -18,7 +17,6 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	
 	private let output: URL				/// The directory to place the LLVM BC output
 	private let buildCacheManipulator: BuildCacheManipulator
 	private let fileManager = FileManager.default
@@ -41,7 +39,6 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	//func run(targets: [String: GenTarget]) throws {
 	func run(projects: [GenProject]) throws {
 		logger.info("Building bitcode files")
 		// Quick, do a hack!
@@ -57,7 +54,7 @@ struct CompilerCommandRunner {
 
 			for target in (currentProject.targets ?? []) {
 				// if this is not a target we need to build, skip it
-				if(target.archiveTarget != true) {
+				if target.archiveTarget != true {
 					logger.info("Skipping target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)] - not an archive target")
 					continue
 				}
@@ -67,7 +64,8 @@ struct CompilerCommandRunner {
 				let commandsRun = try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
 
 				if commandsRun > 0 {
-					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput), to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
+					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput),
+						to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
 				}
 
 				/* handle frameworks and dependencies of this target 
@@ -77,7 +75,7 @@ struct CompilerCommandRunner {
 				 */
 
 				logger.info("Building IR for Frameworks")
-				for dep in (target.frameworkTargets ?? []) {					
+				for dep in (target.frameworkTargets ?? []) {
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: true)
 				}
 
@@ -87,8 +85,6 @@ struct CompilerCommandRunner {
 				}
 			}
 
-			//let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
-			//logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 			logger.info("Finished compiling all targets for project: \(currentProject.name) [\(currentProject.guid)]")
 		}
 
@@ -123,7 +119,7 @@ struct CompilerCommandRunner {
 			if isFramework {
 				dst = output.appendingPathComponent(library.nameForOutput.deletingPathExtension())
 			} else {
-				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension())/*.appendingPathComponent(library.nameForOutput.deletingPathExtension())*/
+				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension())
 			}
 
 			// depending on various factors, like if the parent had any compiler commands, or just the order run,
@@ -135,17 +131,15 @@ struct CompilerCommandRunner {
 					throw Error.fileError("Error creating IR file directory: \(dst).  Error: \(error)")
 				}
 			}
-			
+
 			let files = try fileManager.contentsOfDirectory(at: src, includingPropertiesForKeys: nil)
 			for file in files {
 
 				// prepend package name to filename
-				//let dstFilename = library.name + "-" + file.lastPathComponent
 				let dstFilename = dst.appendingPathComponent(library.name + "-" + file.lastPathComponent)
 
 				if !dstFilename.fileExists {
-					try fileManager.copyItem(at: file, 
-							to: dstFilename /*dst.appendingPathComponent(/*file.lastPathComponent*/ dstFilename)*/)
+					try fileManager.copyItem(at: file, to: dstFilename)
 				}
 			}
 		}
@@ -161,6 +155,7 @@ struct CompilerCommandRunner {
 		}
 	}
 
+	// swiftlint:disable function_body_length
 	/// Runs all commands for a given target
 	/// - Parameters:
 	///   - commands: The commands to run
@@ -253,6 +248,7 @@ struct CompilerCommandRunner {
 
 		return targetModulesRun
 	}
+	// swiftlint:enable function_body_length
 
 	/// Parses, and corrects, the executable name and arguments for a given command.
 	/// - Parameter command: The command to parse and correct
@@ -408,4 +404,5 @@ extension CompilerCommandRunner {
 
 		return files.count
 	}
+// swiftlint:disable:next file_length
 }

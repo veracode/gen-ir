@@ -45,7 +45,7 @@ struct OutputPostprocessor {
 			}
 
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		let _ = try targets.flatMap { target in
+		_ = try targets.flatMap { target in
 			guard let path = targetsToPaths[target] else {
 				logger.error("Couldn't find path for target: \(target)")
 				return Set<URL>()

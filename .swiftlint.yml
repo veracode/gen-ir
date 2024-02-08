@@ -8,3 +8,6 @@ excluded:
 line_length:
   warning: 150
   ignores_comments: true
+
+disabled_rules:
+  - todo

@@ -27,12 +27,12 @@ public struct PifCacheHandler {
 		logger.info("Parsing PIFCache Target files")
 
 		// pass 1: get all the files
-		let fm = FileManager.default
+		let fmgr = FileManager.default
 		let targetParser = PifTargetParser()
 		let targetDir = pifCacheLocation.appendingPathComponent("target", isDirectory: true)
 
 		do {
-			let files = try fm.contentsOfDirectory(at: targetDir, includingPropertiesForKeys: nil)
+			let files = try fmgr.contentsOfDirectory(at: targetDir, includingPropertiesForKeys: nil)
 
 			logger.info("Pass 1: loading all target files")
 			for file in files {
@@ -69,38 +69,38 @@ public struct PifCacheHandler {
 						if phase.type == "com.apple.buildphase.copy-files" {		// TODO: also need to verify this is going into the Frameworks folder?
 							for buildFile in phase.buildFiles ?? [] {
 								if let ref = buildFile.targetReference {
-								if(frameworkGuids?.append(ref)) == nil {
-									frameworkGuids = [ref]
-								}
+									if(frameworkGuids?.append(ref)) == nil {
+										frameworkGuids = [ref]
+									}
 								}
 							}
 						}
 					}
 
 					// add this target to the list
-					let g = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name, 
-									typeName: typeName, productReference: pifTarget.productReference, 
+					let gen = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name,
+									typeName: typeName, productReference: pifTarget.productReference,
 									dependencyGuids: pifTarget.dependencies, frameworkGuids: frameworkGuids)
-					targets[g.guid] = g
+					targets[gen.guid] = gen
 				} catch {
 					throw PifError.processingError("Error parsing PifTarget [\(error)]")
 				}
 			}
 
 			logger.info("Pass 2: resolving dependencies")
-			for t in targets {
-				logger.debug("t = \(t.value.guid)")
-				for depGuid in (t.value.dependencyGuids ?? []) {
+			for tgt in targets {
+				logger.debug("tgt = \(tgt.value.guid)")
+				for depGuid in (tgt.value.dependencyGuids ?? []) {
 					logger.debug("depGuid = \(depGuid)")
 
 					// target might not exist, like an iOS app hard-wired to use swiftlint (a macosx tool)
 					if targets[depGuid] == nil {
 						continue
 					}
-					
-					if(t.value.dependencyTargets?.insert(targets[depGuid]!)) == nil {
+
+					if(tgt.value.dependencyTargets?.insert(targets[depGuid]!)) == nil {
 						logger.debug("depGuid = \(depGuid)")
-						t.value.dependencyTargets = [targets[depGuid]!]
+						tgt.value.dependencyTargets = [targets[depGuid]!]
 					}
 
 					targets[depGuid]?.isDependency = true
@@ -108,10 +108,11 @@ public struct PifCacheHandler {
 			}
 
 			logger.info("Pass 3: resolving frameworks")
-			for t in targets {
-				for frGuid in (t.value.frameworkGuids ?? []) {
-					if(t.value.frameworkTargets?.insert(targets[frGuid]!)) == nil {
-						t.value.frameworkTargets = [targets[frGuid]!]
+			for tgt in targets {
+				for frGuid in (tgt.value.frameworkGuids ?? []) {
+					// swiftlint:disable:next for_where
+					if(tgt.value.frameworkTargets?.insert(targets[frGuid]!)) == nil {
+						tgt.value.frameworkTargets = [targets[frGuid]!]
 					}
 				}
 			}
@@ -125,12 +126,12 @@ public struct PifCacheHandler {
 		logger.info("Parsing PIFCache Project files")
 
 		// pass 1: get all the files
-		let fm = FileManager.default
+		let fmgr = FileManager.default
 		let projectParser = PifProjectParser()
 		let projectDir = pifCacheLocation.appendingPathComponent("project", isDirectory: true)
 
 		do {
-			let files = try fm.contentsOfDirectory(at: projectDir, includingPropertiesForKeys: nil)
+			let files = try fmgr.contentsOfDirectory(at: projectDir, includingPropertiesForKeys: nil)
 
 			for file in files {
 				logger.info("Found file: \(file)")
@@ -140,26 +141,27 @@ public struct PifCacheHandler {
 					logger.debug("PifProject: \(pifProject.name) [\(pifProject.guid)]")
 
 					// create the project data struct
-					let p = GenProject(guid: pifProject.guid, filename: file, name: pifProject.name)
+					let prj = GenProject(guid: pifProject.guid, filename: file, name: pifProject.name)
 
 					// add targets to this project
-					for t in pifProject.targets {
+					for tgt in pifProject.targets {
 						var found = false
 						for search in targets {
-							if t + jsonFileExtension == search.value.file.lastPathComponent {
-								p.addTarget(target: targets[search.value.guid]!)
+							// swiftlint:disable:next for_where
+							if tgt + jsonFileExtension == search.value.file.lastPathComponent {
+								prj.addTarget(target: targets[search.value.guid]!)
 								found = true
 								break // allow multiples ??
 							}
 						}
 
 						if !found {
-							logger.info("Unable to find target \(t) in target list (ignored Playground or MacOSX target?)")
+							logger.info("Unable to find target \(tgt) in target list (ignored Playground or MacOSX target?)")
 						}
 					}
 
 					// add this project to the list
-					projects.append(p)
+					projects.append(prj)
 				} catch {
 					throw PifError.processingError("Error parsing PifProject [\(error)]")
 				}
@@ -168,44 +170,39 @@ public struct PifCacheHandler {
 			throw PifError.processingError("Error finding Project files [\(error)]")
 		}
 
-
-		// ?? pass 2: work out any inter-project dependencies
-
-
 		// check for a workspace file
 		// do I need to?   The workspace is just a list of projects
 
 	}
-
 }
 
 /*
  * PIFCache Target files
  */
 
-private struct buildSetting: Codable {
-	//let SDKROOT: String?
+// swiftlint:disable identifier_name
+private struct BuildSetting: Codable {
 	let MACOSX_DEPLOYMENT_TARGET: String?
 
-	public init(/*SDKROOT: String,*/ MACOSX_DEPLOYMENT_TARGET: String) {
-		//self.SDKROOT = SDKROOT
+	public init(MACOSX_DEPLOYMENT_TARGET: String) {
 		self.MACOSX_DEPLOYMENT_TARGET = MACOSX_DEPLOYMENT_TARGET
 	}
 }
+// swiftlint:enable identifier_name
 
-private struct buildConfiguration: Codable {
-	let buildSettings: buildSetting
+private struct BuildConfiguration: Codable {
+	let buildSettings: BuildSetting
 	let name: String
 	let guid: String
 
-	public init(name: String, guid: String, buildSettings: buildSetting) {
+	public init(name: String, guid: String, buildSettings: BuildSetting) {
 		self.name = name
 		self.guid = guid
 		self.buildSettings = buildSettings
 	}
 }
 
-private struct buildFile: Codable {
+private struct BuildFile: Codable {
 	let guid: String
 	let targetReference: String?
 
@@ -215,12 +212,12 @@ private struct buildFile: Codable {
 	}
 }
 
-private struct buildPhase: Codable {
-	let buildFiles: [buildFile]?
+private struct BuildPhase: Codable {
+	let buildFiles: [BuildFile]?
 	let guid: String
 	let type: String
 
-	public init(buildFiles: [buildFile]?, guid: String, type: String) {
+	public init(buildFiles: [BuildFile]?, guid: String, type: String) {
 		self.buildFiles = buildFiles
 		self.guid = guid
 		self.type = type
@@ -257,18 +254,18 @@ private struct PifTargetRaw: Codable {
 	let productReference: ProductReference?
 	let productTypeIdentifier: String?
 	let dependencies: [Dependencies]?
-	let buildPhases: [buildPhase]?
-	let buildConfigurations: [buildConfiguration]?
+	let buildPhases: [BuildPhase]?
+	let buildConfigurations: [BuildConfiguration]?
 
 	public init(
 		guid: String,
 		name: String,
 		type: String,
 		productReference: ProductReference?,
-		productTypeIdentifier: String? ,
+		productTypeIdentifier: String?,
 		dependencies: [Dependencies]?,
-		buildPhases: [buildPhase]?,
-		buildConfigurations: [buildConfiguration]?
+		buildPhases: [BuildPhase]?,
+		buildConfigurations: [BuildConfiguration]?
 	) {
 		self.guid = guid
 		self.name = name
@@ -296,8 +293,8 @@ private struct PifTarget {
 	let productTypeIdentifier: String?
 	let productReference: ProductReference?
 	var dependencies: [String]?
-	let buildPhases: [buildPhase]?
-	let buildConfigurations: [buildConfiguration]?
+	let buildPhases: [BuildPhase]?
+	let buildConfigurations: [BuildConfiguration]?
 
 	public init(rawTarget: PifTargetRaw) {
 		self.guid = rawTarget.guid
@@ -309,9 +306,10 @@ private struct PifTarget {
 		self.buildConfigurations = rawTarget.buildConfigurations
 
 		if rawTarget.dependencies != nil {
-			for d in rawTarget.dependencies! {
-				if(self.dependencies?.append(d.guid)) == nil {
-					self.dependencies = [d.guid]
+			for dep in rawTarget.dependencies! {
+				// swiftlint:disable:next for_where
+				if(self.dependencies?.append(dep.guid)) == nil {
+					self.dependencies = [dep.guid]
 				}
 			}
 		}
@@ -332,8 +330,8 @@ private class PifTargetParser {
 	public func process(_ url: URL) throws -> PifTarget {
 		let data = try Data(contentsOf: url)
 		let rawTarget = try decoder.decode(PifTargetRaw.self, from: data)
-		let t = PifTarget(rawTarget: rawTarget)
-		return t
+		let tgt = PifTarget(rawTarget: rawTarget)
+		return tgt
 	}
 }
 
@@ -358,7 +356,7 @@ private struct PifProjectRaw: Codable {
 	public init(
 		guid: String,
 		groupTree: GroupTree,
-		projectName: String? ,
+		projectName: String?,
 		targets: [String]
 	) {
 		self.guid = guid
@@ -383,7 +381,7 @@ private struct PifProject {
 			self.name = rawProject.groupTree.name
 		}
 
-		self.targets = rawProject.targets	
+		self.targets = rawProject.targets
 	}
 }
 
@@ -401,7 +399,8 @@ private class PifProjectParser {
 	public func process(_ url: URL) throws -> PifProject {
 		let data = try Data(contentsOf: url)
 		let rawProject = try decoder.decode(PifProjectRaw.self, from: data)
-		let p = PifProject(rawProject: rawProject)
-		return p
+		let prj = PifProject(rawProject: rawProject)
+		return prj
 	}
+// swiftlint:disable:next file_length
 }

@@ -12,7 +12,7 @@ public class GenProject {
 	var filename: URL
 	var name: String
 	var targets: [GenTarget]?
-	
+
 	public init(guid: String, filename: URL, name: String) {
 		self.guid = guid
 		self.filename = filename

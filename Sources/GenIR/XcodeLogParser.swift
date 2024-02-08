@@ -157,21 +157,23 @@ class XcodeLogParser {
 				}
 
 			let projectName = String(line[pStartIndex..<pEndIndex])
-			//logger.debug("Found target named \(targetName) in project named \(projectName)")
+			// logger.debug("Found target named \(targetName) in project named \(projectName)")
 
 			// given the project name, find GenProject
-			for p in self.projects {
-				if projectName == p.name {
-					//logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
+			for prj in self.projects {
+				// swiftlint:disable:next for_where
+				if projectName == prj.name {
+					// logger.debug("Matched with project \(p.name) [guid: \(p.guid)]")
 					// walk the list of targets for this project, looking for a match
-					if p.targets == nil {
+					if prj.targets == nil {
 						return (nil, nil)
 					}
 
-					for t in p.targets! {
-						if targetName == t.name{
-							//logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
-							return (t, p)
+					for tgt in prj.targets! {
+						// swiftlint:disable:next for_where
+						if targetName == tgt.name {
+							// logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
+							return (tgt, prj)
 						}
 					}
 				}
