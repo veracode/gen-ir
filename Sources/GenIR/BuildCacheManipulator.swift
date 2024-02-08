@@ -1,3 +1,10 @@
+//
+//  BuildCacheManipulator.swift
+//
+//
+//  Created by Thomas Hedderwick on 06/09/2022.
+//
+
 import Foundation
 
 /// Manipulates the build cache, if and when needed, to fix up potential invalidations
