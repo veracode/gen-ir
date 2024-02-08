@@ -127,3 +127,8 @@ extension [String] {
 		return nil
 	}
 }
+
+// allows us to throw errors with just strings
+extension String: LocalizedError {
+	public var errorDescription: String? { return self }
+}

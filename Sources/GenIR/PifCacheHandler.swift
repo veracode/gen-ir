@@ -23,6 +23,7 @@ public struct PifCacheHandler {
 	}
 
 	// parse the Target files in the PIFCache directory
+	// swiftlint:disable:next cyclomatic_complexity function_body_length
 	public func getTargets(targets: inout [String: GenTarget]) throws {
 		logger.info("Parsing PIFCache Target files")
 
@@ -65,13 +66,12 @@ public struct PifCacheHandler {
 
 					// frameworks that get pulled into this target
 					var frameworkGuids: [String]?
-					for phase in pifTarget.buildPhases ?? [] {
-						if phase.type == "com.apple.buildphase.copy-files" {		// TODO: also need to verify this is going into the Frameworks folder?
-							for buildFile in phase.buildFiles ?? [] {
-								if let ref = buildFile.targetReference {
-									if(frameworkGuids?.append(ref)) == nil {
-										frameworkGuids = [ref]
-									}
+					for phase in pifTarget.buildPhases ?? [] where phase.type == "com.apple.buildphase.copy-files" {
+						// TODO: also need to verify this is going into the Frameworks folder?
+						for buildFile in phase.buildFiles ?? [] {
+							if let ref = buildFile.targetReference {
+								if(frameworkGuids?.append(ref)) == nil {
+									frameworkGuids = [ref]
 								}
 							}
 						}

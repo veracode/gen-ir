@@ -147,6 +147,7 @@ extension FileManager {
 		return path
 	}
 
+	// swiftlint:disable identifier_name
 	/// Returns a Boolean value indicating the existence of a symlink destination
 	/// - Parameter path: the path to a symlink to check
 	/// - Returns: true if the symlink's destination exists, false if it doesn't or `path` is not a symlink
@@ -161,4 +162,5 @@ extension FileManager {
 
 		return false
 	}
+	// swiftlint:enable identifier_name
 }

@@ -140,7 +140,7 @@ struct IREmitterCommand: ParsableCommand {
 		print("Runtime: \(runtime) seconds")
 	}
 
-	// swiftlint:disable function_parameter_count
+	// swiftlint:disable:next function_parameter_count function_body_length cyclomatic_complexity
 	mutating func run(project: URL, log: String, archive: URL, output: URL, level: Logger.Level, dryRun: Bool) throws {
 		var genTargets = [String: GenTarget]()		// dict of all the targets, using guid as the key
 		var genProjects: [GenProject] = [GenProject]()
@@ -170,67 +170,59 @@ struct IREmitterCommand: ParsableCommand {
 
 		// archiveTargets are read from the .xcarchive - tells us what we're building
 		let archiveTargetList: [String] = try getArchiveTargets(archivePath: archive)
-		for tgt in genTargets {
-			if archiveTargetList.contains(tgt.value.nameForOutput) {
-				tgt.value.archiveTarget = true
-				logger.info("\nArchive Target(s): \(tgt.value.nameForOutput)")
-			}
+		for tgt in genTargets where archiveTargetList.contains(tgt.value.nameForOutput) {
+			tgt.value.archiveTarget = true
+			logger.info("\nArchive Target(s): \(tgt.value.nameForOutput)")
 		}
 
 		logger.info("\nHandling special-case frameworks")
-		for tgt in genTargets {
-			if tgt.value.archiveTarget == true {
-				try getArchiveFrameworks(archivePath: archive, target: tgt.value, allTargets: genTargets)
-			}
+		for tgt in genTargets where tgt.value.archiveTarget == true {
+			try getArchiveFrameworks(archivePath: archive, target: tgt.value, allTargets: genTargets)
 		}
 
 		// we start at the root targets, and build the full graph from there
 		// and we already have the first level dependencies so we could determine if this target is a root
 		logger.info("\nBuilding Dependency Graph")
-		for tgt in genTargets {
-			if tgt.value.archiveTarget == true {
-				logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
+		for tgt in genTargets where tgt.value.archiveTarget == true {
+			logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
 
-				// handle the frameworks
-				// all this funky processing to handle nested frameworks and re-locating them up to the app
-				var moreToProcess: Bool
-				repeat {
-					moreToProcess = false
-					for frTarget in (tgt.value.frameworkTargets ?? []) {
-						if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
-							moreToProcess = true
-						} else {
-							frTarget.dependenciesProcessed = true
-						}
-					}
-				} while (moreToProcess == true)
-
-				// this will handle all the direct/static (non-framework dependencies)
-				for depTarget in (tgt.value.dependencyTargets ?? []) {
-					// if something exists as both a framework and a dep, prefer the framework
-					if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
-						self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
+			// handle the frameworks
+			// all this funky processing to handle nested frameworks and re-locating them up to the app
+			var moreToProcess: Bool
+			repeat {
+				moreToProcess = false
+				for frTarget in (tgt.value.frameworkTargets ?? []) {
+					if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
+						moreToProcess = true
 					} else {
-						tgt.value.dependencyTargets?.remove(depTarget)
+						frTarget.dependenciesProcessed = true
 					}
+				}
+			} while (moreToProcess == true)
+
+			// this will handle all the direct/static (non-framework dependencies)
+			for depTarget in (tgt.value.dependencyTargets ?? []) {
+				// if something exists as both a framework and a dep, prefer the framework
+				if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
+					self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
+				} else {
+					tgt.value.dependencyTargets?.remove(depTarget)
 				}
 			}
 		}
 
 		logger.info("\nDependency Graph:")
-		for tgt in genTargets {
-			if tgt.value.archiveTarget == true {
-				logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
+		for tgt in genTargets where tgt.value.archiveTarget == true {
+			logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
 
-				for dep in tgt.value.dependencyTargets ?? [] {
-					logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
-				}
+			for dep in tgt.value.dependencyTargets ?? [] {
+				logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
+			}
 
-				for frm in tgt.value.frameworkTargets ?? [] {
-					logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)]")
-					for dep in frm.dependencyTargets ?? [] {
-						logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
-					}
+			for frm in tgt.value.frameworkTargets ?? [] {
+				logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)]")
+				for dep in frm.dependencyTargets ?? [] {
+					logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
 				}
 			}
 		}
@@ -253,7 +245,6 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(projects: genProjects)
 	}
-	// swiftlint:enable function_parameter_count
 
 	/// Gets an `XcodeLogParser` for a path
 	/// - Parameter path: The path to a file on disk containing an Xcode build log, or `-` if stdin should be read
@@ -309,7 +300,7 @@ struct IREmitterCommand: ParsableCommand {
 			input = try String(contentsOf: logFile.fileURL).components(separatedBy: .newlines)
 		}
 
-		for line in input {
+		for line in input where line.contains("Build description path: ") {
 			if line.contains("Build description path: ") {
 				guard let startIndex = line.firstIndex(of: ":") else { continue }
 
@@ -343,11 +334,11 @@ struct IREmitterCommand: ParsableCommand {
 	//
 	//
 	@discardableResult
-	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool{
+	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool {
 		for dependency in child.dependencyTargets ?? [] {
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
 			// move them to be children of the app itself
-			if(dependency.type == GenTarget.TargetType.frameworkTarget) {
+			if dependency.type == GenTarget.TargetType.frameworkTarget {
 				app.frameworkTargets?.insert(dependency)
 				child.dependencyTargets?.remove(dependency)
 				return true
@@ -388,7 +379,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
-	private func getArchiveFrameworks(archivePath: URL, target: GenTarget, allTargets: [String : GenTarget ]) throws {
+	private func getArchiveFrameworks(archivePath: URL, target: GenTarget, allTargets: [String: GenTarget ]) throws {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
 		// other ??
@@ -398,45 +389,38 @@ struct IREmitterCommand: ParsableCommand {
 		do {
 			let apps = try fmgr.contentsOfDirectory(at: applicationPath, includingPropertiesForKeys: nil)
 
-			for app in apps {
-				if(app.lastPathComponent == target.nameForOutput) {
-					logger.info(" for \(app.lastPathComponent)")
-					let frameworkPath = app.appendingPathComponent("Frameworks")
+			for app in apps where app.lastPathComponent == target.nameForOutput {
+				logger.info(" for \(app.lastPathComponent)")
+				let frameworkPath = app.appendingPathComponent("Frameworks")
 
-					if !fmgr.directoryExists(at: frameworkPath) {
-						logger.info("  no frameworks found")
-						return
+				if !fmgr.directoryExists(at: frameworkPath) {
+					logger.info("  no frameworks found")
+					return
+				}
+
+				let appFrameworks = try fmgr.contentsOfDirectory(at: frameworkPath, includingPropertiesForKeys: nil)
+
+				for frm in appFrameworks where frm.pathExtension == "framework" {
+					// make sure this exits as a framework of the app, not a static dependency
+					let frName = frm.lastPathComponent
+					let frBasename = frm.lastPathComponent.deletingPathExtension()
+
+					/* this first case handles Swift Packages that are linked as frameworks */
+
+					// TODO: can I trust the name, or better to use the 
+					// 'dynamicTargetVariantGuid' from the PifCache Target files
+					for dep in target.dependencyTargets ?? [] {
+						if frBasename == dep.name && dep.type == .packageTarget {
+							logger.info("  moving \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] to the framework list")
+							target.frameworkTargets?.insert(dep)
+							target.dependencyTargets?.remove(dep)
+						}
 					}
 
-					let appFrameworks = try fmgr.contentsOfDirectory(at: frameworkPath, includingPropertiesForKeys: nil)
-
-					for frm in appFrameworks {
-						if frm.pathExtension == "framework" {
-
-							// make sure this exits as a framework of the app, not a static dependency
-							let frName = frm.lastPathComponent
-							let frBasename = frm.lastPathComponent.deletingPathExtension()
-
-							/* this first case handles Swift Packages that are linked as frameworks */
-
-							// TODO: can I trust the name, or better to use the 
-							// 'dynamicTargetVariantGuid' from the PifCache Target files
-							for dep in target.dependencyTargets ?? [] {
-								if frBasename == dep.name && dep.type == .packageTarget{
-									logger.info("  moving \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] to the framework list")
-									target.frameworkTargets?.insert(dep)
-									target.dependencyTargets?.remove(dep)
-								}
-							}
-
-							/* this second case handles frameworks that don't show up as dependencies (usually CocoaPods) */
-							for tgt in allTargets {
-								if tgt.value.nameForOutput == frName {
-									if target.frameworkTargets?.insert(tgt.value).inserted ?? false {
-										logger.info("  adding \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] to the framework list")
-									}
-								}
-							}
+					/* this second case handles frameworks that don't show up as dependencies (usually CocoaPods) */
+					for tgt in allTargets where tgt.value.nameForOutput == frName {
+						if target.frameworkTargets?.insert(tgt.value).inserted ?? false {
+							logger.info("  adding \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] to the framework list")
 						}
 					}
 				}
@@ -473,15 +457,5 @@ extension IREmitterCommand {
 			"""
 		)
 	}
-}
-
-extension URL: ExpressibleByArgument {
-	public init?(argument: String) {
-		self = argument.fileURL.absoluteURL
-	}
-}
-
-// allows us to throw errors with just strings
-extension String: LocalizedError {
-	public var errorDescription: String? { return self }
+// swiftlint:disable:next file_length
 }
