@@ -46,16 +46,16 @@ struct CompilerCommandRunner {
 
 		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? fileManager.removeItem(at: tempDirectory) }
-		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
+		logger.info("Using temp directory as working directory: \(tempDirectory.filePath)")
 
 		// loop through all of the projects and create IR for each target
 		for currentProject in projects {
-			logger.info("Operating on project: \(currentProject.name) [\(currentProject.guid)]")
+			logger.debug("Operating on project: \(currentProject.name) [\(currentProject.guid)]")
 
 			for target in (currentProject.targets ?? []) {
 				// if this is not a target we need to build, skip it
 				if target.archiveTarget != true {
-					logger.info("Skipping target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)] - not an archive target")
+					logger.debug("Skipping target: \(target.name) [renamed to: \(target.nameForOutput)] [\(target.guid)] - not an archive target")
 					continue
 				}
 
@@ -76,19 +76,21 @@ struct CompilerCommandRunner {
 
 				logger.info("Building IR for Frameworks")
 				for dep in (target.frameworkTargets ?? []) {
+					logger.info("Building Framework \(dep.nameForOutput)")
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: true)
 				}
 
 				logger.info("Building IR for static dependencies")
 				for dep in (target.dependencyTargets ?? []) {
+					logger.info("Building Library \(dep.nameForOutput)")
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: false)
 				}
 			}
 
-			logger.info("Finished compiling all targets for project: \(currentProject.name) [\(currentProject.guid)]")
+			logger.debug("Finished compiling all targets for project: \(currentProject.name) [\(currentProject.guid)]")
 		}
 
-		logger.info("Finished processing all projects")
+		logger.debug("Finished processing all projects")
 	}
 
 	//
