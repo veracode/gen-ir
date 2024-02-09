@@ -12,14 +12,12 @@ public class GenTarget: Hashable {
 	var file: URL
 	var name: String
 	var type: TargetType
-	var isDependency: Bool							// is this is root, or a child?
 	var dependencyGuids: [String]?					// guid of the static dependent/child target(s) 
 	var dependencyTargets: Set<GenTarget>?			// static dependencies
 	var frameworkGuids: [String]?					// guid of the dynamic dependencies
 	var frameworkTargets: Set<GenTarget>?			// dynamic dependencies
 	var productReference: ProductReference?			// defined in PifCacheHandler
 	var archiveTarget: Bool							// is this target is the archive?  (we need to build for this target)
-	var dependenciesProcessed: Bool
 
 	// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
@@ -67,11 +65,9 @@ public class GenTarget: Hashable {
 		self.name = name
 		self.type = Self.getType(typeName: typeName)
 		self.productReference = productReference
-		self.isDependency = false
 		self.dependencyGuids = dependencyGuids
 		self.frameworkGuids = frameworkGuids
 		self.archiveTarget = false
-		self.dependenciesProcessed = false
 	}
 
 	public func hash(into hasher: inout Hasher) {

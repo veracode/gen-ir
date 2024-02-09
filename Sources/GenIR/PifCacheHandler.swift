@@ -9,22 +9,21 @@
 
 import Foundation
 
-public struct PifCacheHandler {
+struct PifCacheHandler {
 	private var pifCacheLocation: URL
 	private let jsonFileExtension = "-json"
 
 	enum PifError: Error {
-		case setupError(_ msg: String)
 		case processingError(_ msg: String)
 	}
 
-	public init(pifCache: URL) {
+	init(pifCache: URL) {
 		self.pifCacheLocation = pifCache
 	}
 
 	// parse the Target files in the PIFCache directory
 	// swiftlint:disable:next cyclomatic_complexity function_body_length
-	public func getTargets(targets: inout [String: GenTarget]) throws {
+	func getTargets(targets: inout [String: GenTarget]) throws {
 		logger.info("Parsing PIFCache Target files")
 
 		// pass 1: get all the files
@@ -102,8 +101,6 @@ public struct PifCacheHandler {
 						logger.debug("depGuid = \(depGuid)")
 						tgt.value.dependencyTargets = [targets[depGuid]!]
 					}
-
-					targets[depGuid]?.isDependency = true
 				}
 			}
 
@@ -122,7 +119,7 @@ public struct PifCacheHandler {
 	}
 
 	// parse the Project files in the PIFCache directory
-	public func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) throws {
+	func getProjects(targets: [String: GenTarget], projects: inout [GenProject]) throws {
 		logger.info("Parsing PIFCache Project files")
 
 		// pass 1: get all the files
@@ -183,66 +180,35 @@ public struct PifCacheHandler {
 // swiftlint:disable identifier_name
 private struct BuildSetting: Codable {
 	let MACOSX_DEPLOYMENT_TARGET: String?
-
-	public init(MACOSX_DEPLOYMENT_TARGET: String) {
-		self.MACOSX_DEPLOYMENT_TARGET = MACOSX_DEPLOYMENT_TARGET
-	}
 }
 // swiftlint:enable identifier_name
 
 private struct BuildConfiguration: Codable {
 	let buildSettings: BuildSetting
-	let name: String
-	let guid: String
-
-	public init(name: String, guid: String, buildSettings: BuildSetting) {
-		self.name = name
-		self.guid = guid
-		self.buildSettings = buildSettings
-	}
+	// let name: String
+	// let guid: String
 }
 
 private struct BuildFile: Codable {
-	let guid: String
+	// let guid: String
 	let targetReference: String?
-
-	public init(guid: String, targetReference: String?) {
-		self.guid = guid
-		self.targetReference = targetReference
-	}
 }
 
 private struct BuildPhase: Codable {
 	let buildFiles: [BuildFile]?
-	let guid: String
+	// let guid: String
 	let type: String
-
-	public init(buildFiles: [BuildFile]?, guid: String, type: String) {
-		self.buildFiles = buildFiles
-		self.guid = guid
-		self.type = type
-	}
 }
 
 private struct Dependencies: Codable {
 	let guid: String
-
-	public init(guid: String) {
-		self.guid = guid
-	}
 }
 
 // TODO: same as one in GenTarget - clean-up/combine
 public struct ProductReference: Codable {
-	let guid: String
+	// let guid: String
 	let name: String
-	let type: String
-
-	public init(guid: String, name: String, type: String) {
-		self.guid = guid
-		self.name = name
-		self.type = type
-	}
+	// let type: String
 }
 
 // Raw target direct from the JSON file(s)
@@ -256,33 +222,6 @@ private struct PifTargetRaw: Codable {
 	let dependencies: [Dependencies]?
 	let buildPhases: [BuildPhase]?
 	let buildConfigurations: [BuildConfiguration]?
-
-	public init(
-		guid: String,
-		name: String,
-		type: String,
-		productReference: ProductReference?,
-		productTypeIdentifier: String?,
-		dependencies: [Dependencies]?,
-		buildPhases: [BuildPhase]?,
-		buildConfigurations: [BuildConfiguration]?
-	) {
-		self.guid = guid
-		self.name = name
-		self.type = type
-		self.productReference = productReference
-
-		// typeIdentifier is only valid when type=="standard"
-		if type == "standard" {
-			self.productTypeIdentifier = productTypeIdentifier
-		} else {
-			self.productTypeIdentifier = nil
-		}
-
-		self.dependencies = dependencies
-		self.buildPhases = buildPhases
-		self.buildConfigurations = buildConfigurations
-	}
 }
 
 // converted various RawTargets into a common format
@@ -296,7 +235,7 @@ private struct PifTarget {
 	let buildPhases: [BuildPhase]?
 	let buildConfigurations: [BuildConfiguration]?
 
-	public init(rawTarget: PifTargetRaw) {
+	init(rawTarget: PifTargetRaw) {
 		self.guid = rawTarget.guid
 		self.name = rawTarget.name
 		self.type = rawTarget.type
@@ -319,15 +258,15 @@ private struct PifTarget {
 private class PifTargetParser {
 	private let decoder: JSONDecoder
 
-	public init() {
+	init() {
 		decoder = JSONDecoder()
 	}
 
-	public func process(_ path: String) throws -> PifTarget {
-		return try process(URL(fileURLWithPath: path))
-	}
+	// public func process(_ path: String) throws -> PifTarget {
+	// 	return try process(URL(fileURLWithPath: path))
+	// }
 
-	public func process(_ url: URL) throws -> PifTarget {
+	func process(_ url: URL) throws -> PifTarget {
 		let data = try Data(contentsOf: url)
 		let rawTarget = try decoder.decode(PifTargetRaw.self, from: data)
 		let tgt = PifTarget(rawTarget: rawTarget)
@@ -340,10 +279,6 @@ private class PifTargetParser {
  */
 private struct GroupTree: Codable {
 	let name: String
-
-	public init(name: String) {
-		self.name = name
-	}
 }
 
 // Raw project direct from the JSON file(s)
@@ -352,18 +287,6 @@ private struct PifProjectRaw: Codable {
 	let groupTree: GroupTree
 	let projectName: String?
 	let targets: [String]		// Optional?
-
-	public init(
-		guid: String,
-		groupTree: GroupTree,
-		projectName: String?,
-		targets: [String]
-	) {
-		self.guid = guid
-		self.groupTree = groupTree
-		self.projectName = projectName
-		self.targets = targets
-	}
 }
 
 // converted various RawProjects into a common format
@@ -372,7 +295,7 @@ private struct PifProject {
 	let name: String
 	let targets: [String]   	// Optional?
 
-	public init(rawProject: PifProjectRaw) {
+	init(rawProject: PifProjectRaw) {
 		self.guid = rawProject.guid
 
 		if rawProject.projectName != nil {
@@ -388,19 +311,18 @@ private struct PifProject {
 private class PifProjectParser {
 	private let decoder: JSONDecoder
 
-	public init() {
+	init() {
 		decoder = JSONDecoder()
 	}
 
-	public func process(_ path: String) throws -> PifProject {
-		return try process(URL(fileURLWithPath: path))
-	}
+	// public func process(_ path: String) throws -> PifProject {
+	// 	return try process(URL(fileURLWithPath: path))
+	// }
 
-	public func process(_ url: URL) throws -> PifProject {
+	func process(_ url: URL) throws -> PifProject {
 		let data = try Data(contentsOf: url)
 		let rawProject = try decoder.decode(PifProjectRaw.self, from: data)
 		let prj = PifProject(rawProject: rawProject)
 		return prj
 	}
-// swiftlint:disable:next file_length
 }

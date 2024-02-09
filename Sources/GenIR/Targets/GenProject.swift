@@ -7,19 +7,20 @@
 
 import Foundation
 
-public class GenProject {
+class GenProject {
 	var guid: String
+	// periphery:ignore - filename can be handy for debugging
 	var filename: URL
 	var name: String
 	var targets: [GenTarget]?
 
-	public init(guid: String, filename: URL, name: String) {
+	init(guid: String, filename: URL, name: String) {
 		self.guid = guid
 		self.filename = filename
 		self.name = name
 	}
 
-	public func addTarget(target: GenTarget) {
+	func addTarget(target: GenTarget) {
 		if (self.targets?.append(target)) == nil {
 			self.targets = [target]
 		}

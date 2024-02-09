@@ -12,9 +12,6 @@ struct BuildCacheManipulator {
 	/// Path to the build cache
 	private let buildCachePath: URL
 
-	/// Build settings used as part of the build
-	private let buildSettings: [String: String]
-
 	/// Should we run the SKIP_INSTALL hack?
 	private let shouldDeploySkipInstallHack: Bool
 
@@ -28,7 +25,6 @@ struct BuildCacheManipulator {
 
 	init(buildCachePath: URL, buildSettings: [String: String], archive: URL) throws {
 		self.buildCachePath = buildCachePath
-		self.buildSettings = buildSettings
 		buildProductsPath = archive
 		shouldDeploySkipInstallHack = buildSettings["SKIP_INSTALL"] == "NO"
 

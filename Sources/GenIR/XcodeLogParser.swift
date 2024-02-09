@@ -8,7 +8,7 @@
 import Foundation
 import Logging
 
-/// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
+/// An XcodeLogParser extracts compiler commands from a given Xcode build log and assigns them to build targets
 class XcodeLogParser {
 
 	/// The Xcode build log contents
@@ -20,20 +20,16 @@ class XcodeLogParser {
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
 
-	private var targets: [String: GenTarget]
 	private var projects: [GenProject]
 
 	enum Error: Swift.Error {
-		case noCommandsFound(String)
-		case noTargetsFound(String)
 		case noBuildCachePathFound(String)
 	}
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
-	init(log: [String], targets: [String: GenTarget], projects: [GenProject]) {
+	init(log: [String], projects: [GenProject]) {
 		self.log = log
-		self.targets = targets
 		self.projects = projects
 	}
 
