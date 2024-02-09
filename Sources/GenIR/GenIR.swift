@@ -377,6 +377,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
+	// swiftlint:disable:next function_body_length cyclomatic_complexity
 	private func getArchiveFrameworks(archivePath: URL, target: GenTarget, allTargets: [String: GenTarget ]) throws {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
@@ -389,6 +390,8 @@ struct IREmitterCommand: ParsableCommand {
 
 			for app in apps where app.lastPathComponent == target.nameForOutput {
 				logger.info(" for \(app.lastPathComponent)")
+
+				logger.info("  checking for frameworks")
 				let frameworkPath = app.appendingPathComponent("Frameworks")
 
 				if !fmgr.directoryExists(at: frameworkPath) {
@@ -419,6 +422,32 @@ struct IREmitterCommand: ParsableCommand {
 					for tgt in allTargets where tgt.value.nameForOutput == frName {
 						if target.frameworkTargets?.insert(tgt.value).inserted ?? false {
 							logger.info("  adding \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] to the framework list")
+						}
+					}
+				}
+
+				logger.info("  checking for plugins")
+				let pluginPath = app.appendingPathComponent("Plugins")
+
+				if !fmgr.directoryExists(at: pluginPath) {
+					logger.info("  no plugins found")
+					return
+				}
+
+				let appPlugins = try fmgr.contentsOfDirectory(at: pluginPath, includingPropertiesForKeys: nil)
+
+				for plg in appPlugins where plg.pathExtension == "appex" {
+					// make sure this exits as a framework of the app, not a static dependency
+					// let plgName = plg.lastPathComponent
+					let plgBasename = plg.lastPathComponent.deletingPathExtension()
+
+					// TODO: can I trust the name, or better to use the 
+					// 'dynamicTargetVariantGuid' from the PifCache Target files
+					for dep in target.dependencyTargets ?? [] {
+						if plgBasename == dep.name && dep.type == .extensionTarget {
+							logger.info("  moving \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] to the framework list")
+							target.frameworkTargets?.insert(dep)
+							target.dependencyTargets?.remove(dep)
 						}
 					}
 				}
