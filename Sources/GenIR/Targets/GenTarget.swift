@@ -18,6 +18,7 @@ public class GenTarget: Hashable {
 	var frameworkTargets: Set<GenTarget>?			// dynamic dependencies
 	var productReference: ProductReference?			// defined in PifCacheHandler
 	var archiveTarget: Bool							// is this target is the archive?  (we need to build for this target)
+	var hasSource: Bool								// this target has compilable source code
 
 	// A list of CompilerCommands relating to this target
 	var commands: [CompilerCommand] = []
@@ -58,8 +59,9 @@ public class GenTarget: Hashable {
 		}
 	}
 
-	// swiftlint:disable:next line_length
-	public init(guid: String, file: URL, name: String, typeName: String, productReference: ProductReference?, dependencyGuids: [String]?, frameworkGuids: [String]?) {
+	// swiftlint:disable vertical_parameter_alignment - swiftlint bug?
+	public init(guid: String, file: URL, name: String, typeName: String,
+				productReference: ProductReference?, dependencyGuids: [String]?, frameworkGuids: [String]?, hasSource: Bool) {
 		self.guid = guid
 		self.file = file
 		self.name = name
@@ -68,7 +70,9 @@ public class GenTarget: Hashable {
 		self.dependencyGuids = dependencyGuids
 		self.frameworkGuids = frameworkGuids
 		self.archiveTarget = false
+		self.hasSource = hasSource
 	}
+	// swiftlint:enable vertical_parameter_alignment
 
 	public func hash(into hasher: inout Hasher) {
 		hasher.combine(guid)

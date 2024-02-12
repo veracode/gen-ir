@@ -166,8 +166,7 @@ class XcodeLogParser {
 					}
 
 					for tgt in prj.targets! {
-						// swiftlint:disable:next for_where
-						if targetName == tgt.name {
+						if targetName == tgt.name && tgt.hasSource == true {
 							// logger.debug("Matched with target \(t.name) [guid: \(t.guid)]")
 							return (tgt, prj)
 						}

@@ -57,11 +57,12 @@ struct PifCacheHandler {
 					}
 
 					// skip macosx targets
+					// ** this does not always seem to be valid - (unless the dev is really careful?)
 					// (using [0] is fine, as we don't expect Debug for iPhone and Release for MacOSX)
-					if pifTarget.buildConfigurations?[0].buildSettings.MACOSX_DEPLOYMENT_TARGET != nil {
-						logger.debug("skipping macosx target \(pifTarget.name) [\(pifTarget.guid)]")
-						continue
-					}
+					// if pifTarget.buildConfigurations?[0].buildSettings.IPHONEOS_DEPLOYMENT_TARGET == nil {
+					// 	logger.debug("skipping target, no iOS build settings \(pifTarget.name) [\(pifTarget.guid)]")
+					// 	continue
+					// }
 
 					// frameworks that get pulled into this target
 					var frameworkGuids: [String]?
@@ -76,10 +77,19 @@ struct PifCacheHandler {
 						}
 					}
 
+					// does this target have source files associated with it?
+					var hasSource = false
+					for phase in pifTarget.buildPhases ?? [] where phase.type == "com.apple.buildphase.sources" {
+						if phase.buildFiles?.count ?? 0 > 0 {
+							hasSource = true
+						}
+					}
+
 					// add this target to the list
 					let gen = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name,
 									typeName: typeName, productReference: pifTarget.productReference,
-									dependencyGuids: pifTarget.dependencies, frameworkGuids: frameworkGuids)
+									dependencyGuids: pifTarget.dependencies, frameworkGuids: frameworkGuids,
+									hasSource: hasSource)
 					targets[gen.guid] = gen
 				} catch {
 					throw PifError.processingError("Error parsing PifTarget [\(error)]")
@@ -180,6 +190,7 @@ struct PifCacheHandler {
 // swiftlint:disable identifier_name
 private struct BuildSetting: Codable {
 	let MACOSX_DEPLOYMENT_TARGET: String?
+	let IPHONEOS_DEPLOYMENT_TARGET: String?
 }
 // swiftlint:enable identifier_name
 

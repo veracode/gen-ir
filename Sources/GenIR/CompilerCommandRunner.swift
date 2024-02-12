@@ -65,7 +65,7 @@ struct CompilerCommandRunner {
 
 				if commandsRun > 0 {
 					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput),
-						to: output.appendingPathComponent(target.nameForOutput/*.deletingPathExtension()*/))
+						to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
 				}
 
 				/* handle frameworks and dependencies of this target 

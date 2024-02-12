@@ -211,16 +211,16 @@ struct IREmitterCommand: ParsableCommand {
 
 		logger.info("\nDependency Graph:")
 		for tgt in genTargets where tgt.value.archiveTarget == true {
-			logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
+			logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] [src: \(tgt.value.hasSource)]")
 
 			for dep in tgt.value.dependencyTargets ?? [] {
-				logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
+				logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
 			}
 
 			for frm in tgt.value.frameworkTargets ?? [] {
-				logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)]")
+				logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)] [src: \(frm.hasSource)]")
 				for dep in frm.dependencyTargets ?? [] {
-					logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)]")
+					logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
 				}
 			}
 		}
