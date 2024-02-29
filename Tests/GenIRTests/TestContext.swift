@@ -29,10 +29,14 @@ class TestContext {
 		print("tempDir = \(temporaryDirectory)")
 	}
 
-	func clean(test path: URL) throws -> Process.ReturnValue {
+	func clean(test path: URL, project: URL, scheme: String) throws -> Process.ReturnValue {
 		return try Process.runShell(
 			"/usr/bin/xcodebuild",
-			arguments: ["clean"],
+			arguments: [
+				"clean",
+				project.pathExtension == "xcworkspace" ? "-workspace" : "-project",
+				project.filePath,
+				"-scheme", scheme],
 			runInDirectory: path/*.deletingLastPathComponent()*/,
 			joinPipes: true
 		)
@@ -45,7 +49,7 @@ class TestContext {
 		additionalArguments: [String] = []
 	) throws -> Process.ReturnValue {
 		print("cleaning \(project)")
-		let clean = try clean(test: path)
+		let clean = try clean(test: path, project: project, scheme: scheme)
 
 		guard clean.code == 0 else {
 			throw Error.commandFailed(clean)

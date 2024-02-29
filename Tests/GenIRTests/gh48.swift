@@ -25,11 +25,18 @@ class GH48Tests: XCTestCase {
 		let files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory, includingPropertiesForKeys: nil)
 
 		XCTAssertEqual(files.count, 1, "Wrong number directories in IR folder")
-		XCTAssert(files[0].lastPathComponent == "MyApp", "Folder 'MyApp' not in IR folder")
+		XCTAssert(files[0].lastPathComponent == "MyApp.app", "Folder 'MyApp.app' not in IR folder")
 	}
 
 	func testVerifyBitcodeFiles() throws {
-		let files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory.appendingPathComponent("MyApp"), includingPropertiesForKeys: nil)
+		continueAfterFailure = false
+		var files: [URL] = []
+
+		do {
+			files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory.appendingPathComponent("MyApp.app"), includingPropertiesForKeys: nil)
+		} catch {
+			XCTFail("Directory MyApp.app does not exist")
+		}
 
 		XCTAssertEqual(files.count, 4, "Wrong number files in App folder")
 
