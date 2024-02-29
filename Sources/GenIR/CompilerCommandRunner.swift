@@ -65,7 +65,7 @@ struct CompilerCommandRunner {
 
 				if commandsRun > 0 {
 					try fileManager.moveItem(at: tempDirectory.appendingPathComponent(target.nameForOutput),
-						to: output.appendingPathComponent(target.nameForOutput.deletingPathExtension()))
+						to: output.appendingPathComponent(target.nameForOutput/*.deletingPathExtension()*/))
 				}
 
 				/* handle frameworks and dependencies of this target 
@@ -119,9 +119,9 @@ struct CompilerCommandRunner {
 			 */
 			var dst: URL
 			if isFramework {
-				dst = output.appendingPathComponent(library.nameForOutput.deletingPathExtension())
+				dst = output.appendingPathComponent(library.nameForOutput/*.deletingPathExtension()*/)
 			} else {
-				dst = output.appendingPathComponent(root.nameForOutput.deletingPathExtension())
+				dst = output.appendingPathComponent(root.nameForOutput/*.deletingPathExtension()*/)
 			}
 
 			// depending on various factors, like if the parent had any compiler commands, or just the order run,
