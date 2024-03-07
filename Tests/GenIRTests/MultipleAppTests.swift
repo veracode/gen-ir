@@ -1,29 +1,90 @@
 import XCTest
 @testable import gen_ir
-import PBXProjParser
 
 final class MultipleAppTests: XCTestCase {
 	static private var testPath: URL = {
-		TestContext.testAssetPath
-			.appendingPathComponent("MultipleApp")
-			.appendingPathComponent("MultipleApp.xcodeproj")
-	}()
+			TestContext.testAssetPath
+				.appendingPathComponent("MultipleApp")
+		}()
+	static private var project = testPath.appendingPathComponent("MultipleApp.xcodeproj")
+	static private var scheme = "MultipleApp"
+	static private var context: TestContext = try! TestContext()		// dangerous, but this is unit testing
+	static private var buildSucceeded = true
 
-	func testExpectedTargetLookup() throws {
-		let context = try TestContext()
-		let result = try context.build(test: Self.testPath, scheme: "MultipleApp")
+	// this is called once before this suite of tests
+	override class func setUp() {
+		do {
+			let process = try context.cleanAndBuild(test: Self.testPath, project: Self.project, scheme: Self.scheme)
+			XCTAssertEqual(process.code, 0, "Failed to build test case")
 
-		let project: ProjectParser = try ProjectParser(path: Self.testPath, logLevel: .debug)
-		var targets = Targets(for: project)
+			try Self.context.runGenIR()
+		} catch {
+			XCTFail("Failed to setup test case")
+			Self.buildSucceeded = false
+		}
+	}
 
-		let logContents = try String(contentsOf: context.buildLog).components(separatedBy: .newlines)
-		let log = XcodeLogParser(log: logContents)
-		try log.parse(&targets)
+	// this is called before each test
+	override func setUp() {
+		continueAfterFailure = false
+		XCTAssertTrue(Self.buildSucceeded, "Failed to build test case, aborting")
+	}
 
-		let app = try XCTUnwrap(targets.target(for: "MultipleApp"))
-		let copy = try XCTUnwrap(targets.target(for: "MultipleApp Copy"))
+	func testVerifyIRDirectory() throws {
+		let files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory, includingPropertiesForKeys: nil)
 
-		XCTAssertEqual(app.commands.count, 3)
-		XCTAssertEqual(copy.commands.count, 3)
+		XCTAssertEqual(files.count, 2, "Wrong number directories in IR folder")
+	}
+
+	func testVerifyAppBitcodeFiles() throws {
+		var files: [URL] = []
+
+		do {
+			files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory.appendingPathComponent("MultipleApp.app"), includingPropertiesForKeys: nil)
+		} catch {
+			XCTFail("Directory MultipleApp.app does not exist")
+		}
+
+		XCTAssertEqual(files.count, 3, "Wrong number files in App.app folder")
+
+		var appBitcodeFound = false
+
+		for file in files {
+			if file.lastPathComponent == "MultipleAppApp.bc" {
+				appBitcodeFound = true
+			}
+		}
+
+		XCTAssertTrue(appBitcodeFound, "App bitcode file not found")
+	}
+
+	func testVerifyAppCopyBitcodeFiles() throws {
+		var files: [URL] = []
+
+		do {
+			files = try FileManager.default.contentsOfDirectory(at: Self.context.irDirectory.appendingPathComponent("MultipleApp Copy.app"), includingPropertiesForKeys: nil)
+		} catch {
+			XCTFail("Directory MultipleApp Copy.app does not exist")
+		}
+
+		XCTAssertEqual(files.count, 4, "Wrong number files in Copy.app folder")
+
+		var copyBitcodeFound = false
+		var onlyBitcodeFound = false
+
+		for file in files {
+			if file.lastPathComponent == "MultipleAppApp.bc" {
+				copyBitcodeFound = true
+			}
+		}
+
+		for file in files {
+			if file.lastPathComponent == "CopyOnly.bc" {
+				onlyBitcodeFound = true
+			}
+		}
+
+		XCTAssertTrue(copyBitcodeFound, "App bitcode file not found")
+		XCTAssertTrue(onlyBitcodeFound, "CopyOnly bitcode file not found")
 	}
 }
