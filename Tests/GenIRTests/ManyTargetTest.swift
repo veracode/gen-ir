@@ -9,7 +9,9 @@ class ManyTargetTests: XCTestCase {
 	static private var project = testPath.appendingPathComponent("ManyTargetTest.xcodeproj")
 	static private var scheme = "ManyTargetTest"
 	static private var context: TestContext = try! TestContext()		// dangerous, but this is unit testing
+	static private var buildSucceeded = true
 
+	// this is called once before this suite of tests
 	override class func setUp() {
 		do {
 			let process = try context.cleanAndBuild(test: Self.testPath, project: Self.project, scheme: Self.scheme)
@@ -18,7 +20,14 @@ class ManyTargetTests: XCTestCase {
 			try Self.context.runGenIR()
 		} catch {
 			XCTFail("Failed to setup test case")
+			Self.buildSucceeded = false
 		}
+	}
+
+	// this is called before each test
+	override func setUp() {
+		continueAfterFailure = false
+		XCTAssertTrue(Self.buildSucceeded, "Failed to build test case, aborting")
 	}
 
 	func testVerifyIRDirectory() throws {
@@ -28,7 +37,6 @@ class ManyTargetTests: XCTestCase {
 	}
 
 	func testVerifyAppBitcodeFiles() throws {
-		continueAfterFailure = false
 		var files: [URL] = []
 
 		do {
@@ -51,7 +59,6 @@ class ManyTargetTests: XCTestCase {
 	}
 
 	func testVerifyClipBitcodeFiles() throws {
-		continueAfterFailure = false
 		var files: [URL] = []
 
 		do {
