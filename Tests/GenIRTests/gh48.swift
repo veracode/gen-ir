@@ -5,7 +5,7 @@ class GH48Tests: XCTestCase {
 	static private var testPath: URL = {
 			TestContext.testAssetPath
 				.appendingPathComponent("GH48")
-		}()
+	}()
 	static private var project = testPath.appendingPathComponent("MyApp.xcodeproj")
 	static private var scheme = "MyApp"
 	static private var context: TestContext = try! TestContext()		// dangerous, but this is unit testing

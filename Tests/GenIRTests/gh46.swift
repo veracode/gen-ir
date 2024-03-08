@@ -5,14 +5,13 @@ class GH46Tests: XCTestCase {
 	static private var testPath: URL = {
 			TestContext.testAssetPath
 				.appendingPathComponent("GH46")
-		}()
+	}()
 	static private var project = testPath.appendingPathComponent("GH46.xcworkspace")
 	static private var scheme = "KeithTestApp"
 	static private var context: TestContext = try! TestContext()		// dangerous, but this is unit testing
 	static private var buildSucceeded = true
 
 	// this is called once before this suite of tests
-
 	override class func setUp() {
 		do {
 			let process = try context.cleanAndBuild(test: Self.testPath, project: Self.project, scheme: Self.scheme)

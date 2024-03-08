@@ -5,7 +5,7 @@ class ManyTargetTests: XCTestCase {
 	static private var testPath: URL = {
 			TestContext.testAssetPath
 				.appendingPathComponent("ManyTargetTest")
-		}()
+	}()
 	static private var project = testPath.appendingPathComponent("ManyTargetTest.xcodeproj")
 	static private var scheme = "ManyTargetTest"
 	static private var context: TestContext = try! TestContext()		// dangerous, but this is unit testing
