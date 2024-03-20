@@ -169,9 +169,10 @@ struct IREmitterCommand: ParsableCommand {
 
 		// archiveTargets are read from the .xcarchive - tells us what we're building
 		let archiveTargetList: [String] = try getArchiveTargets(archivePath: archive)
+		logger.info("")		// empty line for spacing
 		for tgt in genTargets where archiveTargetList.contains(tgt.value.nameForOutput) {
 			tgt.value.archiveTarget = true
-			logger.info("\nArchive Target(s): \(tgt.value.nameForOutput)")
+			logger.info("Archive Target: \(tgt.value.nameForOutput)")
 		}
 
 		logger.info("\nHandling special-case frameworks")
@@ -185,27 +186,49 @@ struct IREmitterCommand: ParsableCommand {
 		for tgt in genTargets where tgt.value.archiveTarget == true {
 			logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
 
-			// handle the frameworks
-			// all this funky processing to handle nested frameworks and re-locating them up to the app
-			var moreToProcess: Bool
-			repeat {
-				moreToProcess = false
-				for frTarget in (tgt.value.frameworkTargets ?? []) {
-					// swiftlint:disable:next for_where
-					if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
-						moreToProcess = true
+			// if the target is an app (common case)
+			if(tgt.value.type == GenTarget.TargetType.applicationTarget) {
+
+				// handle the frameworks
+				// all this funky processing to handle nested frameworks and re-locating them up to the app
+				var moreToProcess: Bool
+				repeat {
+					moreToProcess = false
+					for frTarget in (tgt.value.frameworkTargets ?? []) {
+						// swiftlint:disable:next for_where
+						if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
+							moreToProcess = true
+						}
+					}
+				} while (moreToProcess == true)
+
+				// this will handle all the direct/static (non-framework dependencies)
+				for depTarget in (tgt.value.dependencyTargets ?? []) {
+					// if something exists as both a framework and a dep, prefer the framework
+					if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
+						self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
+					} else {
+						tgt.value.dependencyTargets?.remove(depTarget)
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list")
 					}
 				}
-			} while (moreToProcess == true)
+			} else if (tgt.value.type == GenTarget.TargetType.frameworkTarget) {
+				// target is a framework (possible, just not common)
 
-			// this will handle all the direct/static (non-framework dependencies)
-			for depTarget in (tgt.value.dependencyTargets ?? []) {
-				// if something exists as both a framework and a dep, prefer the framework
-				if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
-					self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
-				} else {
-					tgt.value.dependencyTargets?.remove(depTarget)
+				// no nested frameworks, so remove the dependency
+				for depTarget in (tgt.value.dependencyTargets ?? []) {
+					// iOS does not allow nested frameworks, so remove the dependency
+					if (depTarget.type == GenTarget.TargetType.frameworkTarget) {
+						tgt.value.dependencyTargets?.remove(depTarget)
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list")
+					}
 				}
+
+				// TODO: ?? if there is an embedded framework (i.e., it exists in the frameworkTargets list)
+				// promote the embedded framework to top level, and handle it's dependencies?
+
+			} else {
+				logger.error("\(tgt.value.nameForOutput) is not an App or Framework")
 			}
 		}
 
@@ -356,20 +379,34 @@ struct IREmitterCommand: ParsableCommand {
 	private func getArchiveTargets(archivePath: URL) throws -> [String] {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
-		// Frameworks??
+		let frameworksPath = productPath.appendingPathComponent("Library").appendingPathComponent("Frameworks")
 		// other ??
 
 		var roots: [String] = []
 		let fmgr = FileManager.default
 
 		do {
-			let files = try fmgr.contentsOfDirectory(at: applicationPath, includingPropertiesForKeys: nil)
+			var files: [URL]
 
-			for file in files {
-				roots.append(file.lastPathComponent)
+			// application(s)
+			if fmgr.directoryExists(at: applicationPath) {
+				files = try fmgr.contentsOfDirectory(at: applicationPath, includingPropertiesForKeys: nil)
+
+				for file in files {
+					roots.append(file.lastPathComponent)
+				}
+			}
+
+			// framework(s)
+			if fmgr.directoryExists(at: frameworksPath) {
+				files = try fmgr.contentsOfDirectory(at: frameworksPath, includingPropertiesForKeys: nil)
+
+				for file in files {
+					roots.append(file.lastPathComponent)
+				}
 			}
 		} catch {
-			throw "Error getting target list from archive"
+			throw "Error getting target list from archive.  Is the archive \(archivePath.filePath) valid?"
 		}
 
 		return roots
@@ -382,6 +419,12 @@ struct IREmitterCommand: ParsableCommand {
 		let productPath = archivePath.appendingPathComponent("Products")
 		let applicationPath = productPath.appendingPathComponent("Applications")
 		// other ??
+
+		// nested frameworks are not allowed in iOS
+		if(target.type == GenTarget.TargetType.frameworkTarget) {
+			logger.debug("\(target.nameForOutput) is a framework, skipping")
+			return
+		}
 
 		let fmgr = FileManager.default
 
@@ -453,7 +496,7 @@ struct IREmitterCommand: ParsableCommand {
 				}
 			}
 		} catch {
-			throw "Error haddling special frameworks list for \(target.nameForOutput)"
+			throw "Error handling special frameworks list for \(target.nameForOutput)"
 		}
 	}
 }
