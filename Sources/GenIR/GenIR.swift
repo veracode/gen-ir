@@ -138,7 +138,7 @@ struct IREmitterCommand: ParsableCommand {
 		let runtime = String(format: "%.3f", endTime.timeIntervalSince(startTime))
 		print("Runtime: \(runtime) seconds")
 
-		if(returnCode == 0) {
+		if returnCode == 0 {
 			print("SUCCESS")
 		} else {
 			print("FAILURE")
@@ -194,7 +194,7 @@ struct IREmitterCommand: ParsableCommand {
 			logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
 
 			// if the target is an app (common case)
-			if(tgt.value.type == GenTarget.TargetType.applicationTarget) {
+			if tgt.value.type == GenTarget.TargetType.applicationTarget {
 
 				// handle the frameworks
 				// all this funky processing to handle nested frameworks and re-locating them up to the app
@@ -216,19 +216,17 @@ struct IREmitterCommand: ParsableCommand {
 						self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
 					} else {
 						tgt.value.dependencyTargets?.remove(depTarget)
-						logger.debug("Removed \(depTarget.nameForOutput) from dependency list")
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - exists as a frameworkTarget")
 					}
 				}
-			} else if (tgt.value.type == GenTarget.TargetType.frameworkTarget) {
+			} else if tgt.value.type == GenTarget.TargetType.frameworkTarget {
 				// target is a framework (possible, just not common)
 
-				// no nested frameworks, so remove the dependency
-				for depTarget in (tgt.value.dependencyTargets ?? []) {
-					// iOS does not allow nested frameworks, so remove the dependency
-					if (depTarget.type == GenTarget.TargetType.frameworkTarget) {
+				// iOS does not allow nested frameworks, so remove the dependency
+				for depTarget in (tgt.value.dependencyTargets ?? [])
+					where depTarget.type == GenTarget.TargetType.frameworkTarget {
 						tgt.value.dependencyTargets?.remove(depTarget)
-						logger.debug("Removed \(depTarget.nameForOutput) from dependency list")
-					}
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - no nested frameworks")
 				}
 
 				// TODO: ?? if there is an embedded framework (i.e., it exists in the frameworkTargets list)
@@ -428,7 +426,7 @@ struct IREmitterCommand: ParsableCommand {
 		// other ??
 
 		// nested frameworks are not allowed in iOS
-		if(target.type == GenTarget.TargetType.frameworkTarget) {
+		if target.type == GenTarget.TargetType.frameworkTarget {
 			logger.debug("\(target.nameForOutput) is a framework, skipping")
 			return
 		}
