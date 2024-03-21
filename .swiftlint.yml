@@ -5,6 +5,7 @@ excluded:
   - PBXProjParser/.build/ # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
   - GenIRLogging/.build/
   - TestAssets/
+  - Tests/
 
 line_length:
   warning: 150
