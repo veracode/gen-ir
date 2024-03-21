@@ -105,6 +105,7 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		let  startTime = Date()
+		var returnCode = 0
 
 		print("Starting gen-ir, version \(Versions.version)")
 
@@ -124,10 +125,9 @@ struct IREmitterCommand: ParsableCommand {
 				output: outputPath,
 				dryRun: dryRun
 			)
-
-			print("SUCCESS")
 		} catch {
-			print("FAILED, \(error)")
+			returnCode = 1
+			print("ERROR, \(error)")
 		}
 
 		let endTime = Date()
@@ -137,6 +137,13 @@ struct IREmitterCommand: ParsableCommand {
 		print("End:   \(dateFormatter.string(from: endTime))")
 		let runtime = String(format: "%.3f", endTime.timeIntervalSince(startTime))
 		print("Runtime: \(runtime) seconds")
+
+		if(returnCode == 0) {
+			print("SUCCESS")
+		} else {
+			print("FAILURE")
+			throw ExitCode(1)
+		}
 	}
 
 	// swiftlint:disable:next function_body_length cyclomatic_complexity
