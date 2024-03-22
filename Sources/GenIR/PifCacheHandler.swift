@@ -85,6 +85,12 @@ struct PifCacheHandler {
 						}
 					}
 
+					// make sure we've got a clean PIF cache (e.g., they forgot to clean before archiving)
+					let keyExists = targets[pifTarget.guid]
+					if keyExists != nil {
+						throw "Duplicates found in PIF Cache, did you clean before archiving? (\(pifTarget.name) [\(pifTarget.guid)])"
+					}
+
 					// add this target to the list
 					let gen = GenTarget(guid: pifTarget.guid, file: file, name: pifTarget.name,
 									typeName: typeName, productReference: pifTarget.productReference,
