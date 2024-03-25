@@ -17,6 +17,16 @@ struct CompilerCommand: Hashable {
 	let command: String
 	/// The compiler used in this command
 	let compiler: Compiler
+
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(command)
+
+	}
+
+	// swiftlint:disable:next operator_whitespace
+	public static func ==(lhs: CompilerCommand, rhs: CompilerCommand) -> Bool {
+		return lhs.command == rhs.command
+	}
 }
 
 /// A mapping of targets to the commands used when building them

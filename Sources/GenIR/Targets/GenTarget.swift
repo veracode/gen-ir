@@ -21,7 +21,7 @@ public class GenTarget: Hashable {
 	var hasSource: Bool								// this target has compilable source code
 
 	// A list of CompilerCommands relating to this target
-	var commands: [CompilerCommand] = []
+	var commands: Set<CompilerCommand> = []
 
 	// The name to use when writing IR to disk, 
 	// 	use the productRef name, as that handles renaming (like from .xcconfig files)

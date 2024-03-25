@@ -104,7 +104,10 @@ class XcodeLogParser {
 				in project: \(currentProject!.name) [\(currentProject!.guid)]
 				""")
 
-			currentTarget.commands.append(compilerCommand)
+			let cmdAdded = currentTarget.commands.insert(compilerCommand).inserted
+			if !cmdAdded {
+				logger.debug("Duplicate compiler command, skipped.")
+			}
 		}
 	}
 

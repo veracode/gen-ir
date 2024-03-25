@@ -164,7 +164,7 @@ struct CompilerCommandRunner {
 	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
-	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
+	private func run(commands: Set<CompilerCommand>, for name: String, at directory: URL) throws -> Int {
 		let targetDirectory = directory.appendingPathComponent(name)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
@@ -173,12 +173,7 @@ struct CompilerCommandRunner {
 		var targetModulesRun = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info(
-				"""
-				\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
-				Target modules processed: \(targetModulesRun)
-				"""
-			)
+			logger.info("\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). ")
 
 			guard dryRun == false else {
 				continue
@@ -248,6 +243,7 @@ struct CompilerCommandRunner {
 			}
 		}
 
+		logger.info("  - processed \(targetModulesRun) modules")
 		return targetModulesRun
 	}
 	// swiftlint:enable function_body_length
