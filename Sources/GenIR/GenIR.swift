@@ -363,7 +363,7 @@ struct IREmitterCommand: ParsableCommand {
 	//
 	@discardableResult
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool {
-		logger.debug("find deps: root: \(root) child: \(child) app: \(app)")
+		logger.debug("find deps: root: \(root.nameForOutput) child: \(child.nameForOutput) app: \(app.nameForOutput)")
 		for dependency in child.dependencyTargets ?? [] {
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
 			// move them to be children of the app itself
