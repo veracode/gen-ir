@@ -196,6 +196,7 @@ struct IREmitterCommand: ParsableCommand {
 			// if the target is an app (common case)
 			if tgt.value.type == GenTarget.TargetType.applicationTarget {
 
+				logger.debug("application")
 				// handle the frameworks
 				// all this funky processing to handle nested frameworks and re-locating them up to the app
 				var moreToProcess: Bool
@@ -222,6 +223,7 @@ struct IREmitterCommand: ParsableCommand {
 			} else if tgt.value.type == GenTarget.TargetType.frameworkTarget {
 				// target is a framework (possible, just not common)
 
+				logger.debug("framework")
 				// iOS does not allow nested frameworks, so remove the dependency
 				for depTarget in (tgt.value.dependencyTargets ?? [])
 					where depTarget.type == GenTarget.TargetType.frameworkTarget {
@@ -361,6 +363,7 @@ struct IREmitterCommand: ParsableCommand {
 	//
 	@discardableResult
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool {
+		logger.debug("find deps: root: \(root) child: \(child) app: \(app)")
 		for dependency in child.dependencyTargets ?? [] {
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
 			// move them to be children of the app itself
