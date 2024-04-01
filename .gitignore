@@ -18,4 +18,4 @@ output/
 *.bc
 *.dia
 _build/
-TestAssets/CMakeTest/build/				# special case?
+TestAssets/CMakeTest/build/
