@@ -88,7 +88,7 @@ class TestContext {
 		return process
 	}
 
-	func runGenIR() throws {
+	func runGenIR(cmakeBuild: Bool=false) throws {
 		/* testing swift cmd-line apps is not very well supported by Apple, 
 		  What we really need is access to the TestHelpers in the ArgumentParser package (https://github.com/apple/swift-argument-parser/blob/main/Package.swift)
 		  But that's not available as a product, so we work around that
@@ -103,6 +103,7 @@ class TestContext {
 			log: self.buildLog.filePath,
 			archive: self.archive,
 			output: self.irDirectory,
+			cmakeBuild: cmakeBuild,
 			dryRun: false
 		)
 	}

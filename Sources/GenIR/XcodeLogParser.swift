@@ -17,14 +17,7 @@ class XcodeLogParser {
 	/// Any CLI Settings found in the build log
 	private(set) var settings: [String: String] = [:]
 
-	/// The path to the Xcode build cache
-	private(set) var buildCachePath: URL!
-
 	private var projects: [GenProject]
-
-	enum Error: Swift.Error {
-		case noBuildCachePathFound(String)
-	}
 
 	/// Inits a XcodeLogParser from the contents of an Xcode build log
 	/// - Parameter log: the contents of the build log
@@ -36,10 +29,6 @@ class XcodeLogParser {
 	/// Start parsing the build log
 	func parse() throws {
 		parseBuildLog(lines: log)
-
-		if buildCachePath == nil {
-			throw Error.noBuildCachePathFound("No build cache was found from the build log. Please report this as a bug.")
-		}
 	}
 
 	/// Parses  an array representing the contents of an Xcode build log
@@ -63,20 +52,6 @@ class XcodeLogParser {
 					.filter { $0.count == 2 }
 					.map { ($0[0], $0[1]) }
 					.reduce(into: [String: String]()) { $0[$1.0] = $1.1 }
-			}
-
-			if line.contains("Build description path: ") {
-				guard let startIndex = line.firstIndex(of: ":") else { continue }
-
-				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-				// Stripped will be to the build description path, we want the root of the build path which is 6 folders up
-				buildCachePath = String(stripped).fileURL
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
 			}
 
 			// TODO: validate on guid??

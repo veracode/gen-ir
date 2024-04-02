@@ -52,6 +52,10 @@ struct IREmitterCommand: ParsableCommand {
 	@Flag(help: "Enables debug level logging")
 	var debug = false
 
+	/// Required when using CMake to generate Xcode project files
+	@Flag(help: "Set if using CMake to generate the Xcode project")
+	var cmakeBuild = false
+
 	/// Reduces log noise
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
@@ -115,6 +119,7 @@ struct IREmitterCommand: ParsableCommand {
 		print("\tarchive: \(xcarchivePath)")
 		print("\tIR path: \(outputPath)")
 		print("\tlog-level: \(logger.logLevel)")
+		print("\tcmake-build: \(cmakeBuild)")
 		print("\tdry-run: \(dryRun)")
 
 		do {
@@ -123,6 +128,7 @@ struct IREmitterCommand: ParsableCommand {
 				log: logPath,
 				archive: xcarchivePath,
 				output: outputPath,
+				cmakeBuild: cmakeBuild,
 				dryRun: dryRun
 			)
 		} catch {
@@ -146,13 +152,16 @@ struct IREmitterCommand: ParsableCommand {
 		}
 	}
 
-	// swiftlint:disable:next function_body_length cyclomatic_complexity
-	mutating func run(project: URL, log: String, archive: URL, output: URL, dryRun: Bool) throws {
+	// swiftlint:disable:next function_body_length cyclomatic_complexity function_parameter_count
+	mutating func run(project: URL, log: String, archive: URL, output: URL, cmakeBuild: Bool, dryRun: Bool) throws {
 		var genTargets = [String: GenTarget]()		// dict of all the targets, using guid as the key
 		var genProjects: [GenProject] = [GenProject]()
 
+		// find the project directory under the DerivedData directory
+		let ddProjectDir = try findDDProjectDirectory(logFile: log, cmakeBuild: cmakeBuild)
+
 		// find the PIFCache location
-		let pifCacheLocation = try findPifCache(logFile: log)
+		let pifCacheLocation = try findPifCache(projectDDDir: ddProjectDir, cmakeBuild: cmakeBuild)
 		let pifCacheHandler = PifCacheHandler(pifCache: pifCacheLocation)
 
 		// parse the PIF cache files and create a list of projects and targets
@@ -259,8 +268,10 @@ struct IREmitterCommand: ParsableCommand {
 		let log = try logParser(for: log, projects: genProjects)
 		try log.parse()
 
+		let buildCachePath = try findBuildCache(projectDDDir: ddProjectDir, cmakeBuild: cmakeBuild)
+
 		let buildCacheManipulator = try BuildCacheManipulator(
-			buildCachePath: log.buildCachePath,
+			buildCachePath: buildCachePath,
 			buildSettings: log.settings,
 			archive: archive
 		)
@@ -316,11 +327,9 @@ struct IREmitterCommand: ParsableCommand {
 		return results
 	}
 
-	//
-	// TODO: merge with the logParser, as it's doing the same thing to find the buildCache
-	private func findPifCache(logFile: String) throws -> URL {
+	// find our project's directory under the DerivedData directory
+	private func findDDProjectDirectory(logFile: String, cmakeBuild: Bool) throws -> URL {
 		var input: [String] = []
-		var pifCacheDir: URL
 
 		if logFile == "-" {
 			input = try readStdin()
@@ -334,29 +343,58 @@ struct IREmitterCommand: ParsableCommand {
 
 				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
 
-				let derivedDataDir = String(stripped).fileURL
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
+				var projectDir = String(stripped).fileURL
 					.deletingLastPathComponent()
 					.deletingLastPathComponent()
 					.deletingLastPathComponent()
 					.deletingLastPathComponent()
 					.deletingLastPathComponent()
 
-				pifCacheDir = derivedDataDir.appendingPathComponent("Build/Intermediates.noindex/XCBuildData/PIFCache")
-
-				// validate PIF Cache dir exists
-				if !FileManager.default.fileExists(atPath: pifCacheDir.path) {
-					throw ValidationError("PIF Cache doesn't exist at: \(pifCacheDir)")
+				if !cmakeBuild {
+					projectDir = projectDir.deletingLastPathComponent().deletingLastPathComponent()
 				}
 
-				logger.info("Found PIFCache at: \(pifCacheDir)")
+				logger.info("Found project DerivedData at: \(projectDir)")
 
-				return pifCacheDir
+				return projectDir
 			}
 		}
 
-		throw ValidationError("Unable to find PIF Cache")
+		throw ValidationError("Unable to find project DerivedData directory")
+	}
+
+	private func findPifCache(projectDDDir: URL, cmakeBuild: Bool) throws -> URL {
+		var pifCacheDir = projectDDDir
+
+		if !cmakeBuild {
+			pifCacheDir = pifCacheDir.appendingPathComponent("Build/Intermediates.noindex")
+		}
+		pifCacheDir = pifCacheDir.appendingPathComponent("XCBuildData/PIFCache")
+
+		// validate PIFCache dir exists
+		if !FileManager.default.fileExists(atPath: pifCacheDir.path) {
+			throw ValidationError("PIF Cache doesn't exist at: \(pifCacheDir)")
+		}
+
+		logger.info("Found PIFCache at: \(pifCacheDir)")
+		return pifCacheDir
+	}
+
+	private func findBuildCache(projectDDDir: URL, cmakeBuild: Bool) throws -> URL {
+		var buildCacheDir = projectDDDir
+
+		if !cmakeBuild {
+			buildCacheDir = buildCacheDir.appendingPathComponent("Build/Intermediates.noIndex")
+		}
+		buildCacheDir = buildCacheDir.appendingPathComponent("ArchiveIntermediates")
+
+		// validate build cache dir exists
+		if !FileManager.default.fileExists(atPath: buildCacheDir.path) {
+			throw ValidationError("Build cache doesn't exist at: \(buildCacheDir)")
+		}
+
+		logger.info("Found Build cache at: \(buildCacheDir)")
+		return buildCacheDir
 	}
 
 	//
