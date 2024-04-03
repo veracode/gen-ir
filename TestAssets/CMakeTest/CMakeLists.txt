@@ -37,8 +37,8 @@ set(MACOSX_DEPLOYMENT_TARGET ${DEPLOYMENT_TARGET})
 enable_language(Swift)
 
 set(APP_SOURCE_FILES
-	../MyApp/ContentView.swift
-	../MyApp/MyAppApp.swift
+	./MyApp/ContentView.swift
+	./MyApp/MyAppApp.swift
 )
 
 add_executable(
