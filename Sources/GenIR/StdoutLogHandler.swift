@@ -22,8 +22,10 @@ struct StdOutLogHandler: LogHandler {
 
 	var logLevel: Logging.Logger.Level = .info
 
-	// periphery:ignore
-	init(label: String) { }
+	init(label: String) {
+		// disable buffering on stdout.
+		//setbuf(__stdoutp, nil)
+	}
 
 	// swiftlint:disable function_parameter_count
 	func log(
@@ -40,6 +42,9 @@ struct StdOutLogHandler: LogHandler {
 		let lineInfo = lineInfo(for: level, file: file, function: function, line: line)
 
 		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)")
+
+		// flush the buffer, to avoid intermixing output with other programs, like the test cases
+		fflush(__stdoutp)
 	}
 	// swiftlint:enable function_parameter_count
 
