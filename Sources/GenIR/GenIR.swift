@@ -192,77 +192,12 @@ struct IREmitterCommand: ParsableCommand {
 		}
 
 		logger.info("\nHandling special-case frameworks")
+		// TODO: probably a cleaner way to do this...
 		for tgt in genTargets where tgt.value.archiveTarget == true {
 			try getArchiveFrameworks(archivePath: archive, target: tgt.value, allTargets: genTargets)
 		}
 
-		// we start at the root targets, and build the full graph from there
-		// and we already have the first level dependencies so we could determine if this target is a root
-		logger.info("\nBuilding Dependency Graph")
-		for tgt in genTargets where tgt.value.archiveTarget == true {
-			logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
-
-			// if the target is an app (common case)
-			if tgt.value.type == GenTarget.TargetType.applicationTarget {
-
-				logger.debug("application")
-				// handle the frameworks
-				// all this funky processing to handle nested frameworks and re-locating them up to the app
-				var moreToProcess: Bool
-				repeat {
-					moreToProcess = false
-					for frTarget in (tgt.value.frameworkTargets ?? []) {
-						// swiftlint:disable:next for_where
-						if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
-							moreToProcess = true
-						}
-					}
-				} while (moreToProcess == true)
-
-				// this will handle all the direct/static (non-framework dependencies)
-				for depTarget in (tgt.value.dependencyTargets ?? []) {
-					// if something exists as both a framework and a dep, prefer the framework
-					if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
-						self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
-					} else {
-						tgt.value.dependencyTargets?.remove(depTarget)
-						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - exists as a frameworkTarget")
-					}
-				}
-			} else if tgt.value.type == GenTarget.TargetType.frameworkTarget {
-				// target is a framework (possible, just not common)
-
-				logger.debug("framework")
-				// iOS does not allow nested frameworks, so remove the dependency
-				for depTarget in (tgt.value.dependencyTargets ?? [])
-					where depTarget.type == GenTarget.TargetType.frameworkTarget {
-						tgt.value.dependencyTargets?.remove(depTarget)
-						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - no nested frameworks")
-				}
-
-				// TODO: ?? if there is an embedded framework (i.e., it exists in the frameworkTargets list)
-				// promote the embedded framework to top level, and handle it's dependencies?
-
-			} else {
-				logger.error("\(tgt.value.nameForOutput) is not an App or Framework")
-			}
-		}
-
-		logger.info("\nDependency Graph:")
-		for tgt in genTargets where tgt.value.archiveTarget == true {
-			logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] [src: \(tgt.value.hasSource)]")
-
-			for dep in tgt.value.dependencyTargets ?? [] {
-				logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
-			}
-
-			for frm in tgt.value.frameworkTargets ?? [] {
-				logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)] [src: \(frm.hasSource)]")
-				for dep in frm.dependencyTargets ?? [] {
-					logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
-				}
-			}
-		}
+		buildDependencyTree(targets: genTargets)
 
 		// parse the build log to get the compiler commands 
 		let log = try logParser(for: log, projects: genProjects)
@@ -399,12 +334,87 @@ struct IREmitterCommand: ParsableCommand {
 
 	//
 	//
+	private func buildDependencyTree(targets: [String: GenTarget]) {
+		// we start at the root targets, and build the full graph from there
+		// and we already have the first level dependencies so we could determine if this target is a root
+		logger.info("\nBuilding Dependency Tree")
+		for tgt in targets where tgt.value.archiveTarget == true {
+			logger.info("Starting at root: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)]")
+
+			// if the target is an app (common case)
+			if tgt.value.type == GenTarget.TargetType.applicationTarget {
+
+				logger.debug("application")
+				// handle the frameworks
+				// all this funky processing to handle nested frameworks and re-locating them up to the app
+				var moreToProcess: Bool
+				repeat {
+					moreToProcess = false
+					for frTarget in (tgt.value.frameworkTargets ?? []) where tgt.value.dependenciesKnown != true {
+						// swiftlint:disable:next for_where
+						if self.findDependencies(root: frTarget, child: frTarget, app: tgt.value) == true {
+							moreToProcess = true
+						}
+						frTarget.dependenciesKnown = true			// unnecessary?
+					}
+				} while (moreToProcess == true)
+
+				// this will handle all the direct/static (non-framework dependencies)
+				for depTarget in (tgt.value.dependencyTargets ?? []) where tgt.value.dependenciesKnown != true {
+					// if something exists as both a framework and a dep, prefer the framework
+					if (tgt.value.frameworkTargets?.contains(depTarget) ?? false) == false {
+						self.findDependencies(root: tgt.value, child: depTarget, app: tgt.value)
+					} else {
+						tgt.value.dependencyTargets?.remove(depTarget)
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - exists as a frameworkTarget")
+					}
+					depTarget.dependenciesKnown = true			// unnecessary?
+				}
+			} else if tgt.value.type == GenTarget.TargetType.frameworkTarget {
+				// target is a framework (possible, just not common)
+
+				logger.debug("framework")
+				// iOS does not allow nested frameworks, so remove the dependency
+				for depTarget in (tgt.value.dependencyTargets ?? [])
+					where depTarget.type == GenTarget.TargetType.frameworkTarget {
+						tgt.value.dependencyTargets?.remove(depTarget)
+						logger.debug("Removed \(depTarget.nameForOutput) from dependency list - no nested frameworks")
+				}
+
+				// TODO: ?? if there is an embedded framework (i.e., it exists in the frameworkTargets list)
+				// promote the embedded framework to top level, and handle it's dependencies?
+
+			} else {
+				logger.error("\(tgt.value.nameForOutput) is not an App or Framework")
+			}
+		}
+
+		logger.info("\nDependency Tree:")
+		for tgt in targets where tgt.value.archiveTarget == true {
+			logger.info("  Root target: \(tgt.value.nameForOutput) [\(tgt.value.type)] [\(tgt.value.guid)] [src: \(tgt.value.hasSource)]")
+
+			for dep in tgt.value.dependencyTargets ?? [] {
+				logger.info("    (d) \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
+			}
+
+			for frm in tgt.value.frameworkTargets ?? [] {
+				logger.info("    (f) \(frm.nameForOutput) [\(frm.type)] [\(frm.guid)] [src: \(frm.hasSource)]")
+				for dep in frm.dependencyTargets ?? [] {
+					logger.info("        - \(dep.nameForOutput) [\(dep.type)] [\(dep.guid)] [src: \(dep.hasSource)]")
+				}
+			}
+		}
+	}
+
+	//
+	//
 	@discardableResult
 	private func findDependencies(root: GenTarget, child: GenTarget, app: GenTarget) -> Bool {
 		logger.debug("find deps: root: \(root.nameForOutput) child: \(child.nameForOutput) app: \(app.nameForOutput)")
 		for dependency in child.dependencyTargets ?? [] {
 			// since iOS (and watchOS and tvOS) don't support nested frameworks, we need to 
 			// move them to be children of the app itself
+			logger.debug(" dependency: \(dependency.nameForOutput)")
 			if dependency.type == GenTarget.TargetType.frameworkTarget {
 				app.frameworkTargets?.insert(dependency)
 				child.dependencyTargets?.remove(dependency)
@@ -414,7 +424,11 @@ struct IREmitterCommand: ParsableCommand {
 			}
 
 			// recurse
-			self.findDependencies(root: root, child: dependency, app: app)
+			if dependency.dependenciesKnown != true {
+				self.findDependencies(root: root, child: dependency, app: app)
+				logger.debug("now know dependencies of \(dependency.nameForOutput)")
+				dependency.dependenciesKnown = true
+			}
 		}
 
 		return false

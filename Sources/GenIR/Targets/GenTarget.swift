@@ -19,6 +19,7 @@ public class GenTarget: Hashable {
 	var productReference: ProductReference?			// defined in PifCacheHandler
 	var archiveTarget: Bool							// is this target is the archive?  (we need to build for this target)
 	var hasSource: Bool								// this target has compilable source code
+	var dependenciesKnown: Bool						// we've walked the dep. tree for this target and know it
 
 	// A list of CompilerCommands relating to this target
 	var commands: Set<CompilerCommand> = []
@@ -71,6 +72,7 @@ public class GenTarget: Hashable {
 		self.frameworkGuids = frameworkGuids
 		self.archiveTarget = false
 		self.hasSource = hasSource
+		self.dependenciesKnown = false
 	}
 	// swiftlint:enable vertical_parameter_alignment
 
