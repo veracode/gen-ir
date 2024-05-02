@@ -217,7 +217,7 @@ struct IREmitterCommand: ParsableCommand {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(projects: genProjects)
+		try runner.run(projects: genProjects, targets: genTargets)
 	}
 
 	/// Gets an `XcodeLogParser` for a path

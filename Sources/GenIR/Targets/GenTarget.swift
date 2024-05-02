@@ -20,6 +20,7 @@ public class GenTarget: Hashable {
 	var archiveTarget: Bool							// is this target is the archive?  (we need to build for this target)
 	var hasSource: Bool								// this target has compilable source code
 	var dependenciesKnown: Bool						// we've walked the dep. tree for this target and know it
+	var dependenciesBuilt: Bool						// we've already build this module, and all it's deps
 
 	// A list of CompilerCommands relating to this target
 	var commands: Set<CompilerCommand> = []
@@ -73,6 +74,7 @@ public class GenTarget: Hashable {
 		self.archiveTarget = false
 		self.hasSource = hasSource
 		self.dependenciesKnown = false
+		self.dependenciesBuilt = false
 	}
 	// swiftlint:enable vertical_parameter_alignment
 

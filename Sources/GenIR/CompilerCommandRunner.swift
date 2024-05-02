@@ -39,7 +39,7 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	func run(projects: [GenProject]) throws {
+	func run(projects: [GenProject], targets: [String: GenTarget]) throws {
 		logger.info("Building bitcode files")
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
@@ -77,12 +77,19 @@ struct CompilerCommandRunner {
 				logger.info("Building IR for Frameworks")
 				for dep in (target.frameworkTargets ?? []) {
 					logger.info("Building Framework \(dep.nameForOutput)")
+
+					// clear dependencyBuilt flag for every target
+					for target in targets {
+						target.value.dependenciesBuilt = false
+					}
+
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: true)
 				}
 
 				logger.info("Building IR for static dependencies")
 				for dep in (target.dependencyTargets ?? []) {
 					logger.info("Building Library \(dep.nameForOutput)")
+					// don't clear dependenciesBuilt flag, as everything is rolling up to the parent (usually the .app)
 					try buildLibrary(tempDir: tempDirectory, root: target, library: dep, isFramework: false)
 				}
 			}
@@ -98,19 +105,19 @@ struct CompilerCommandRunner {
 	private func buildLibrary(tempDir: URL, root: GenTarget, library: GenTarget, isFramework: Bool) throws {
 		logger.debug("Build library \(library.nameForOutput), with root \(root.nameForOutput)")
 
-		// if the build directory already exists we built this once, so just copy the files
-		// often happens for nested libraries
-		var justCopy = false
-		var commandsRun = 0
-		if fileManager.directoryExists(at: tempDir.appendingPathComponent(library.nameForOutput)) {
-			justCopy = true
-		} else {
-			// build my files
-			commandsRun = try run(commands: library.commands, for: library.nameForOutput, at: tempDir)
+		// we've already built and copied the files for this tree - don't do it again
+		if library.dependenciesBuilt == true {
+			logger.debug("  Already built, skipping...")
+			return
 		}
 
+		logger.debug("  First build of \(library.nameForOutput)")
+
+		var commandsRun = 0
+		commandsRun = try run(commands: library.commands, for: library.nameForOutput, at: tempDir)
+
 		// copy my files to the right place
-		if commandsRun > 0 || justCopy == true {
+		if commandsRun > 0 {
 			let src = tempDir/*.appendingPathComponent(target.nameForOutput)*/.appendingPathComponent(library.nameForOutput)
 
 			/* this is the big diff between a dependency and a framework - the dst folder 
@@ -154,6 +161,8 @@ struct CompilerCommandRunner {
 			} else {
 				try buildLibrary(tempDir: tempDir, root: root, library: dep, isFramework: false)
 			}
+
+			dep.dependenciesBuilt = true
 		}
 	}
 
