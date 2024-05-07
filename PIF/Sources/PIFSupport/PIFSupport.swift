@@ -2,23 +2,20 @@ import Foundation
 
 public class PIFParser {
 	private let cachePath: URL
+	public let workspace: PIF.Workspace
 
 	public enum Error: Swift.Error {
 		case workspaceNotFound
 	}
 
-	public init(cachePath: URL) {
+	public init(cachePath: URL) throws {
 		self.cachePath = cachePath
+
+		let data = try Data(contentsOf: try Self.workspacePath(in: cachePath))
+		workspace = try PIF.PIFDecoder(cache: cachePath).decode(PIF.Workspace.self, from: data)
 	}
 
-	public func parse() throws -> PIF.Workspace {
-		let workspace = try workspacePath()
-		let data = try Data(contentsOf: workspace)
-
-		return try PIF.PIFDecoder(cache: cachePath).decode(PIF.Workspace.self, from: data)
-	}
-
-	private func workspacePath() throws -> URL {
+	private static func workspacePath(in cachePath: URL) throws -> URL {
 		let path = cachePath.appendingPathComponent("workspace")
 
 		let workspaces = try FileManager.default.contentsOfDirectory(at: path, includingPropertiesForKeys: [.isRegularFileKey])

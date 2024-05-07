@@ -118,6 +118,9 @@ struct IREmitterCommand: ParsableCommand {
 		let log = try logParser(for: log)
 		try log.parse(&targets)
 
+		// Find and parse the PIF cache
+		let pifCache = try PIFCache(buildCache: log.buildCachePath)
+
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
 			buildSettings: log.settings,
