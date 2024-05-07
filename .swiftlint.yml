@@ -8,6 +8,7 @@ excluded:
 
 disabled_rules:
   - todo
+  - nesting
 
 line_length:
   warning: 200
