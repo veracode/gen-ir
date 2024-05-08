@@ -6,12 +6,12 @@
 //
 
 // swiftlint:disable identifier_name
-/// An edge describes the relationship between two Nodes in a graph
-class Edge {
+/// An edge describes the relationship between two Node<Value>s in a graph
+class Edge<Value: NodeValue> {
 	/// The source node
-	let to: Node
+	let to: Node<Value>
 	/// The destination node
-	let from: Node
+	let from: Node<Value>
 	/// The relationship between the two nodes
 	let relationship: Relationship
 
@@ -23,7 +23,7 @@ class Edge {
 		case depender
 	}
 
-	init(to: Node, from: Node, relationship: Relationship) {
+	init(to: Node<Value>, from: Node<Value>, relationship: Relationship) {
 		self.to = to
 		self.from = from
 		self.relationship = relationship

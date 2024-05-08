@@ -24,7 +24,7 @@ class OutputPostprocessor {
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
-	private let graph: DependencyGraph
+	private let graph: DependencyGraph<Target>
 
 	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
 
@@ -36,7 +36,8 @@ class OutputPostprocessor {
 
 		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
 
-		graph = DependencyGraphBuilder.build(targets: targets)
+		let builder = DependencyGraphBuilder<Target, Targets>(provider: targets, values: Array(targets.targets))
+		graph = builder.graph
 		if dumpGraph {
 			do {
 				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
@@ -83,7 +84,8 @@ class OutputPostprocessor {
 	private func process(
 		target: Target
 	) throws -> Set<URL> {
-		let chain = graph.chain(for: target)
+		// let chain = graph.chain(for: target)
+		let chain = [Node<Target>]()
 
 		logger.debug("Chain for target: \(target.nameForOutput):\n")
 		chain.forEach { logger.debug("\($0)") }
@@ -94,7 +96,7 @@ class OutputPostprocessor {
 		for node in chain {
 			logger.debug("Processing Node: \(node.name)")
 			// Ensure node is not a dynamic dependency
-			guard dynamicDependencyToPath[node.target.nameForOutput] == nil else { continue }
+			guard dynamicDependencyToPath[node.value.nameForOutput] == nil else { continue }
 
 			// Only care about moving dependencies into dependers - check this node's edges to dependent relationships
 			let dependers = node.edges
@@ -102,13 +104,13 @@ class OutputPostprocessor {
 				.map { $0.to }
 
 			// Move node's IR into depender's IR folder
-			guard let nodeFolderPath = node.target.irFolderPath else {
+			guard let nodeFolderPath = node.value.irFolderPath else {
 				logger.debug("IR folder for node: \(node) is nil")
 				continue
 			}
 
 			for depender in dependers {
-				guard let dependerFolderPath = depender.target.irFolderPath else {
+				guard let dependerFolderPath = depender.value.irFolderPath else {
 					logger.debug("IR folder for depender node \(depender) is nil")
 					continue
 				}

@@ -1,7 +1,9 @@
 import Foundation
 import PIFSupport
 
-struct PIFCache {
+class PIFCache {
+	public typealias GUID = String
+
 	private let buildCache: URL
 	private let pifCachePath: URL
 	private let workspace: PIF.Workspace
@@ -47,5 +49,43 @@ struct PIFCache {
 				"""
 			)
 		}
+	}
+
+	var projects: [PIF.Project] {
+		workspace.projects
+	}
+
+	private lazy var projectsByGUID: [GUID: PIF.Project] = {
+		workspace
+			.projects
+			.reduce(into: [GUID: PIF.Project]()) { result, element in
+				result[element.guid] = element
+			}
+	}()
+
+	func project(for guid: GUID) -> PIF.Project? {
+		projectsByGUID[guid]
+	}
+
+	// TODO: do we need to handle Aggregate targets here? Probably - investigate and update to BaseTarget if so
+	var targets: [PIF.Target] {
+		workspace
+			.projects
+			.flatMap {
+				$0
+					.targets
+					.compactMap { $0 as? PIF.Target }
+			}
+	}
+
+	private lazy var targetsByGUID: [GUID: PIF.Target] = {
+		targets
+			.reduce(into: [GUID: PIF.Target]()) { result, element in
+				result[element.guid] = element
+			}
+	}()
+
+	func target(for guid: GUID) -> PIF.Target? {
+		targetsByGUID[guid]
 	}
 }

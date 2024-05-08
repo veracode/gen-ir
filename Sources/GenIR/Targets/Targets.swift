@@ -85,21 +85,6 @@ class Targets {
 
 		return nil
 	}
-
-	// TODO: once we stabilize Targets, this should return a Set<Target> not [String]
-	func calculateDependencies(for target: Target) -> [String] {
-		// TODO: eventually we'd like to move some of the project dependencies calculations here
-		var dependencies = project.dependencies(for: target.name)
-
-		if dependencies.count == 0, let productName = target.productName {
-			// HACK: once we stabilize Targets to not use one of two potential names, this can be removed...
-			dependencies = project.dependencies(for: productName)
-		}
-
-		logger.debug("Calculated dependencies for target: \(target.name). Dependencies: \(dependencies)")
-
-		return dependencies
-	}
 }
 
 extension Targets: Collection {
@@ -121,5 +106,25 @@ extension Targets: Collection {
 
 	func makeIterator() -> CollectionType.Iterator {
 		targets.makeIterator()
+	}
+}
+
+extension Targets: DependencyProviding {
+	typealias Value = Target
+
+	func dependencies(for value: Target) -> [Target] {
+	// // TODO: once we stabilize Targets, this should return a Set<Target> not [String]
+	// func calculateDependencies(for target: Target) -> [String] {
+		// TODO: eventually we'd like to move some of the project dependencies calculations here
+		var dependencies = project.dependencies(for: value.name)
+
+		if dependencies.count == 0, let productName = value.productName {
+			// HACK: once we stabilize Targets to not use one of two potential names, this can be removed...
+			dependencies = project.dependencies(for: productName)
+		}
+
+		logger.debug("Calculated dependencies for target: \(value.name). Dependencies: \(dependencies)")
+
+		return dependencies.compactMap { target(for: $0) }
 	}
 }

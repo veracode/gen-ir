@@ -132,3 +132,9 @@ extension Target: CustomStringConvertible {
 		"""
 	}
 }
+
+extension Target: NodeValue {
+	var value: Self {
+		self
+	}
+}

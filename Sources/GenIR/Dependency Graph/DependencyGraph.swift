@@ -7,41 +7,41 @@
 
 import Foundation
 
-/// A directed graph that maps dependencies between targets (nodes) via edges (directions between nodes)
-class DependencyGraph {
+/// A directed graph that maps dependencies between values (nodes) via edges (directions between nodes)
+class DependencyGraph<Value: NodeValue> {
 	/// All the nodes in the graph
-	private(set) var nodes: [Node] = []
+	private(set) var nodes: [Node<Value>] = []
 
-	/// Adds a target to the graph
-	/// - Parameter target: the target to add
-	/// - Returns: the node added, iff a node for this target didn't already exist in the graph
-	func addNode(target: Target) -> Node? {
-		if findNode(for: target) != nil {
-			return nil
+	/// Adds a value to the graph
+	/// - Parameter value: the value to add
+	/// - Returns: the node added
+	func addNode(value: Value) -> Node<Value> {
+		if let node = findNode(for: value) {
+			return node
 		}
 
-		let node = Node(target)
+		let node = Node<Value>(value)
 		nodes.append(node)
 		return node
 	}
 
-	/// Finds a target's node in the graph
-	/// - Parameter target: the target to look for
-	/// - Returns: the node for the given target, if found
-	func findNode(for target: Target) -> Node? {
-		nodes.first(where: { $0.target == target })
+	/// Finds a value's node in the graph
+	/// - Parameter value: the value to look for
+	/// - Returns: the node for the given value, if found
+	func findNode(for value: Value) -> Node<Value>? {
+		nodes.first(where: { $0.value == value })
 	}
 
-	/// Builds a dependency 'chain' for a target using a depth-first search
-	/// - Parameter target: the target to get a chain for
+	/// Builds a dependency 'chain' for a value using a depth-first search
+	/// - Parameter value: the value to get a chain for
 	/// - Returns: the chain of nodes, starting
-	func chain(for target: Target) -> [Node] {
-		guard let targetNode = findNode(for: target) else {
-			logger.debug("Couldn't find node for target: \(target.name)")
+	func chain(for value: Value) -> [Node<Value>] {
+		guard let node = findNode(for: value) else {
+			logger.debug("Couldn't find node for value: \(value.name)")
 			return []
 		}
 
-		return depthFirstSearch(startingAt: targetNode)
+		return depthFirstSearch(startingAt: node)
 	}
 
 	func toDot(_ path: String) throws {
@@ -60,13 +60,13 @@ class DependencyGraph {
 	/// Perform a depth-first search starting at the provided node
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
-	private func depthFirstSearch(startingAt node: Node) -> [Node] {
-		logger.debug("----\nSearching for: \(node.target.name)")
-		var visited = Set<Node>()
-		var chain = [Node]()
+	private func depthFirstSearch(startingAt node: Node<Value>) -> [Node<Value>] {
+		logger.debug("----\nSearching for: \(node.value.name)")
+		var visited = Set<Node<Value>>()
+		var chain = [Node<Value>]()
 
-		func depthFirst(node: Node) {
-			logger.debug("inserting node: \(node.target.name)")
+		func depthFirst(node: Node<Value>) {
+			logger.debug("inserting node: \(node.value.name)")
 			visited.insert(node)
 			logger.debug("visited: \(visited)")
 
@@ -80,7 +80,7 @@ class DependencyGraph {
 				}
 			}
 
-			logger.debug("appending to chain: \(node.target.name)")
+			logger.debug("appending to chain: \(node.value.name)")
 			chain.append(node)
 		}
 
