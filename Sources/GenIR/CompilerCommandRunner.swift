@@ -42,7 +42,7 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	func run(targets: Targets) throws {
+	func run(targets: [Target]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
@@ -50,7 +50,10 @@ struct CompilerCommandRunner {
 		defer { try? fileManager.removeItem(at: tempDirectory) }
 		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
 
-		let totalCommands = targets.totalCommandCount
+		let totalCommands = targets
+			.map { $0.commands.count }
+			.reduce(0, +)
+
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
@@ -58,7 +61,7 @@ struct CompilerCommandRunner {
 		for target in targets {
 			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+			totalModulesRun += try run(commands: target.commands, for: target.productName, at: tempDirectory)
 		}
 
 		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)

@@ -9,7 +9,8 @@ protocol DependencyProviding {
 	associatedtype Value: NodeValue
 	func dependencies(for value: Value) -> [Value]
 }
-class DependencyGraphBuilder<Value: NodeValue, Provider: DependencyProviding> where Value == Provider.Value {
+
+class DependencyGraphBuilder<Provider: DependencyProviding, Value: NodeValue> where Value == Provider.Value {
 	private let provider: Provider
 	let graph = DependencyGraph<Value>()
 
@@ -25,12 +26,11 @@ class DependencyGraphBuilder<Value: NodeValue, Provider: DependencyProviding> wh
 	///   - value: the value to add
 	@discardableResult
 	private func add(value: Value) -> Node<Value> {
-		logger.debug("Adding value: \(value.name) to graph")
-
 		if let existingNode = graph.findNode(for: value) {
-			logger.debug("Already inserted node: \(existingNode.name). Skipping")
 			return existingNode
 		}
+
+		logger.debug("Adding value: \(value.valueName) to graph")
 
 		let dependencies = provider.dependencies(for: value)
 		let node = graph.addNode(value: value)

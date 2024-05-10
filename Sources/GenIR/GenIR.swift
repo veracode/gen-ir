@@ -2,6 +2,7 @@ import Foundation
 import ArgumentParser
 import Logging
 import PBXProjParser
+import PIFSupport
 
 /// Global logger object
 var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
@@ -112,11 +113,11 @@ struct IREmitterCommand: ParsableCommand {
 		dumpDependencyGraph: Bool
 	) throws {
 		let output = archive.appendingPathComponent("IR")
-		let project = try ProjectParser(path: project, logLevel: level)
-		var targets = Targets(for: project)
+		// let project = try ProjectParser(path: project, logLevel: level)
+		// var targets = Targets(for: project)
 
 		let log = try logParser(for: log)
-		try log.parse(&targets)
+		try log.parse()
 
 		// Find and parse the PIF cache
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
@@ -128,6 +129,12 @@ struct IREmitterCommand: ParsableCommand {
 			dryRun: dryRun
 		)
 
+		let targets = pifCache
+			.targets
+			.map {
+				Target(baseTarget: $0, commands: log.targetCommands[$0.name] ?? [])
+			}
+
 		let runner = CompilerCommandRunner(
 			output: output,
 			buildCacheManipulator: buildCacheManipulator,
@@ -135,13 +142,26 @@ struct IREmitterCommand: ParsableCommand {
 		)
 		try runner.run(targets: targets)
 
+		let provider = PIFDependencyProvider(targets: targets, cache: pifCache)
+		let builder = DependencyGraphBuilder(provider: provider, values: targets)
+		let graph = builder.graph
+
+		if dumpDependencyGraph {
+			do {
+				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
+			} catch {
+				logger.error("toDot error: \(error)")
+			}
+		}
+
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
 			output: output,
-			targets: targets,
-			dumpGraph: dumpDependencyGraph
+			graph: graph,
+			targets: targets
 		)
-		try postprocessor.process(targets: &targets)
+
+		try postprocessor.process()
 	}
 
 	/// Gets an `XcodeLogParser` for a path

@@ -17,6 +17,7 @@ class XcodeLogParser {
 	private(set) var settings: [String: String] = [:]
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
+	private(set) var targetCommands: [String: [CompilerCommand]] = [:]
 
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
@@ -32,11 +33,11 @@ class XcodeLogParser {
 
 	/// Start parsing the build log
 	/// - Parameter targets: The global list of targets
-	func parse(_ targets: inout Targets) throws {
-		parseBuildLog(log, &targets)
+	func parse() throws {
+		parseBuildLog(log)
 
-		if targets.isEmpty {
-			logger.debug("Found no targets in log: \(log)")
+		if targetCommands.isEmpty {
+			logger.debug("Found no targets in log")
 
 			throw Error.noTargetsFound(
 				"""
@@ -45,8 +46,13 @@ class XcodeLogParser {
 			)
 		}
 
-		if targets.totalCommandCount == 0 {
-			logger.debug("Found no commands in log: \(log)")
+		let totalCommandCount = targetCommands
+			.values
+			.compactMap { $0.count }
+			.reduce(0, +)
+
+		if totalCommandCount == 0 {
+			logger.debug("Found no commands in log")
 
 			throw Error.noCommandsFound(
 				"""
@@ -60,12 +66,11 @@ class XcodeLogParser {
 		}
 	}
 
-	/// Parses  an array representing the contents of an Xcode build log
+	/// Parses an array representing the contents of an Xcode build log
 	/// - Parameters:
 	///   - lines: contents of the Xcode build log lines
-	///   - targets: the container to add found targets to
-	private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
-		var currentTarget: Target?
+	private func parseBuildLog(_ lines: [String]) {
+		var currentTarget: String?
 		var seenTargets = Set<String>()
 
 		for (index, line) in lines.enumerated() {
@@ -97,17 +102,12 @@ class XcodeLogParser {
 					.deletingLastPathComponent()
 			}
 
-			if let target = target(from: line), currentTarget?.name != target {
+			if let target = target(from: line), currentTarget != target {
 				if seenTargets.insert(target).inserted {
 					logger.debug("Found target: \(target)")
 				}
 
-				if let targetObject = targets.target(for: target) {
-					currentTarget = targetObject
-				} else {
-					currentTarget = .init(name: target)
-					targets.insert(target: currentTarget!)
-				}
+				currentTarget = target
 			}
 
 			guard let currentTarget else {
@@ -121,9 +121,9 @@ class XcodeLogParser {
 				continue
 			}
 
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
+			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget)")
 
-			currentTarget.commands.append(compilerCommand)
+			targetCommands[currentTarget, default: [CompilerCommand]()].append(compilerCommand)
 		}
 	}
 

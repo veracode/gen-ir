@@ -55,37 +55,76 @@ class PIFCache {
 		workspace.projects
 	}
 
-	private lazy var projectsByGUID: [GUID: PIF.Project] = {
+	// private lazy var projectsByGUID: [GUID: PIF.Project] = {
+	// 	workspace
+	// 		.projects
+	// 		.reduce(into: [GUID: PIF.Project]()) { result, element in
+	// 			result[element.guid] = element
+	// 		}
+	// }()
+
+	// func project(for guid: GUID) -> PIF.Project? {
+	// 	projectsByGUID[guid]
+	// }
+
+	// TODO: We cab possibly filter out some targets here for performance
+	var targets: [PIF.BaseTarget] {
 		workspace
 			.projects
-			.reduce(into: [GUID: PIF.Project]()) { result, element in
-				result[element.guid] = element
-			}
-	}()
-
-	func project(for guid: GUID) -> PIF.Project? {
-		projectsByGUID[guid]
+			.flatMap { $0.targets }
 	}
 
-	// TODO: do we need to handle Aggregate targets here? Probably - investigate and update to BaseTarget if so
-	var targets: [PIF.Target] {
-		workspace
-			.projects
-			.flatMap {
-				$0
-					.targets
-					.compactMap { $0 as? PIF.Target }
+	// private lazy var targetsByGUID: [GUID: PIF.BaseTarget] = {
+	// 	targets
+	// 		.reduce(into: [GUID: PIF.BaseTarget]()) { result, element in
+	// 			result[element.guid] = element
+	// 		}
+	// }()
+
+	// func target(for guid: GUID) -> PIF.BaseTarget? {
+	// 	targetsByGUID[guid]
+	// }
+}
+
+extension PIF.BaseTarget: NodeValue {
+	var valueName: String {
+		if let target = self as? PIF.Target, !target.productName.isEmpty {
+			return target.productName
+		}
+
+		return name
+	}
+}
+
+extension PIF.BaseTarget: Hashable {
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(ObjectIdentifier(self))
+	}
+
+	public static func == (lhs: PIF.BaseTarget, rhs: PIF.BaseTarget) -> Bool {
+		ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+	}
+}
+
+struct PIFDependencyProvider: DependencyProviding {
+	private let targets: [Target]
+	private let cache: PIFCache
+	private var guidToTargets: [PIFCache.GUID: Target]
+
+	init(targets: [Target], cache: PIFCache) {
+		self.targets = targets
+		self.cache = cache
+
+		self.guidToTargets = targets
+			.reduce(into: [PIFCache.GUID: Target]()) { partial, target in
+				partial[target.baseTarget.guid] = target
 			}
 	}
 
-	private lazy var targetsByGUID: [GUID: PIF.Target] = {
-		targets
-			.reduce(into: [GUID: PIF.Target]()) { result, element in
-				result[element.guid] = element
-			}
-	}()
-
-	func target(for guid: GUID) -> PIF.Target? {
-		targetsByGUID[guid]
+	func dependencies(for value: Target) -> [Target] {
+		value
+			.baseTarget
+			.dependencies
+			.map { guidToTargets[$0.targetGUID]! }
 	}
 }

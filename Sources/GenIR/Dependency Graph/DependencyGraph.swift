@@ -10,7 +10,7 @@ import Foundation
 /// A directed graph that maps dependencies between values (nodes) via edges (directions between nodes)
 class DependencyGraph<Value: NodeValue> {
 	/// All the nodes in the graph
-	private(set) var nodes: [Node<Value>] = []
+	private(set) var nodes = [String: Node<Value>]()
 
 	/// Adds a value to the graph
 	/// - Parameter value: the value to add
@@ -21,7 +21,7 @@ class DependencyGraph<Value: NodeValue> {
 		}
 
 		let node = Node<Value>(value)
-		nodes.append(node)
+		nodes[value.valueName] = node
 		return node
 	}
 
@@ -29,7 +29,7 @@ class DependencyGraph<Value: NodeValue> {
 	/// - Parameter value: the value to look for
 	/// - Returns: the node for the given value, if found
 	func findNode(for value: Value) -> Node<Value>? {
-		nodes.first(where: { $0.value == value })
+		nodes[value.valueName]
 	}
 
 	/// Builds a dependency 'chain' for a value using a depth-first search
@@ -37,7 +37,7 @@ class DependencyGraph<Value: NodeValue> {
 	/// - Returns: the chain of nodes, starting
 	func chain(for value: Value) -> [Node<Value>] {
 		guard let node = findNode(for: value) else {
-			logger.debug("Couldn't find node for value: \(value.name)")
+			logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
 		}
 
@@ -47,9 +47,14 @@ class DependencyGraph<Value: NodeValue> {
 	func toDot(_ path: String) throws {
 		var contents = "digraph DependencyGraph {\n"
 
-		for node in nodes {
+		for node in nodes.values {
 			for edge in node.edges.filter({ $0.relationship == .dependency }) {
-				contents.append("\(node.name.replacingOccurrences(of: "-", with: "_")) -> \(edge.to.name.replacingOccurrences(of: "-", with: "_"))\n")
+				func dotSanitized(for name: String) -> String {
+					name
+						.replacingOccurrences(of: "-", with: "_")
+						.replacingOccurrences(of: ".", with: "_")
+				}
+				contents.append("\(dotSanitized(for: node.valueName)) -> \(dotSanitized(for: edge.to.valueName))\n")
 			}
 		}
 
@@ -61,12 +66,12 @@ class DependencyGraph<Value: NodeValue> {
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
 	private func depthFirstSearch(startingAt node: Node<Value>) -> [Node<Value>] {
-		logger.debug("----\nSearching for: \(node.value.name)")
+		logger.debug("----\nSearching for: \(node.value.valueName)")
 		var visited = Set<Node<Value>>()
 		var chain = [Node<Value>]()
 
 		func depthFirst(node: Node<Value>) {
-			logger.debug("inserting node: \(node.value.name)")
+			logger.debug("inserting node: \(node.value.valueName)")
 			visited.insert(node)
 			logger.debug("visited: \(visited)")
 
@@ -80,7 +85,7 @@ class DependencyGraph<Value: NodeValue> {
 				}
 			}
 
-			logger.debug("appending to chain: \(node.value.name)")
+			logger.debug("appending to chain: \(node.value.valueName)")
 			chain.append(node)
 		}
 

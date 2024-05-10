@@ -25,55 +25,49 @@ class OutputPostprocessor {
 	private let dynamicDependencyToPath: [String: URL]
 
 	private let graph: DependencyGraph<Target>
+	private let targets: [Target]
 
 	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
+	private let targetsToPaths: [Target: URL]
 
 	private let manager: FileManager = .default
 
-	init(archive: URL, output: URL, targets: Targets, dumpGraph: Bool) throws {
+	init(archive: URL, output: URL, graph: DependencyGraph<Target>, targets: [Target]) throws {
 		self.output = output
 		self.archive = archive
+		self.graph = graph
+		self.targets = targets
+
+		let namesToTargets = targets
+			.reduce(into: [String: Target]()) { partial, target in
+				partial[target.productName] = target
+			}
+
+		targetsToPaths = try manager
+			.directories(at: output, recursive: false)
+			.reduce(into: [Target: URL]()) { partial, path in
+				if let target = namesToTargets[path.lastPathComponent] {
+					partial[target] = path
+				} else {
+					logger.error("Failed to look up target for path: \(path)")
+				}
+			}
+
+		let namedTargetSet = Set(namesToTargets.values)
+		let pathTargetSet = Set(targetsToPaths.keys)
+		let difference = namedTargetSet.symmetricDifference(pathTargetSet)
+
+		logger.debug("target set difference: \(difference)")
 
 		dynamicDependencyToPath = dynamicDependencies(in: self.archive)
-
-		let builder = DependencyGraphBuilder<Target, Targets>(provider: targets, values: Array(targets.targets))
-		graph = builder.graph
-		if dumpGraph {
-			do {
-				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
-			} catch {
-				logger.error("toDot error: \(error)")
-			}
-		}
 	}
 
 	/// Starts the OutputPostprocessor
 	/// - Parameter targets: the targets to operate on
-	func  process(targets: inout Targets) throws {
-		try manager.directories(at: output, recursive: false)
-			.forEach { path in
-				let product = path.lastPathComponent.deletingPathExtension()
-
-				guard let target = targets.target(for: product) else {
-					logger.error("Failed to look up target for product: \(product)")
-					return
-				}
-
-				target.irFolderPath = path
-			}
-
+	func process() throws {
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		_ = try manager.directories(at: output, recursive: false)
-			.flatMap { path in
-				let product = path.lastPathComponent.deletingPathExtension()
-
-				guard let target = targets.target(for: product) else {
-					logger.error("Failed to look up target for product: \(product)")
-					return Set<URL>()
-				}
-
-				return try process(target: target)
-			}
+		_ = try targetsToPaths
+			.map { try process(target: $0.key, at: $0.value) }
 	}
 
 	/// Processes an individual target
@@ -82,21 +76,21 @@ class OutputPostprocessor {
 	///   - path: the output path
 	/// - Returns:
 	private func process(
-		target: Target
+		target: Target,
+		at path: URL
 	) throws -> Set<URL> {
-		// let chain = graph.chain(for: target)
-		let chain = [Node<Target>]()
+		let chain = graph.chain(for: target)
 
-		logger.debug("Chain for target: \(target.nameForOutput):\n")
+		logger.debug("Chain for target: \(target.productName):\n")
 		chain.forEach { logger.debug("\($0)") }
 
 		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
 		var processed = Set<URL>()
 
 		for node in chain {
-			logger.debug("Processing Node: \(node.name)")
+			logger.debug("Processing Node: \(node.valueName)")
 			// Ensure node is not a dynamic dependency
-			guard dynamicDependencyToPath[node.value.nameForOutput] == nil else { continue }
+			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
 
 			// Only care about moving dependencies into dependers - check this node's edges to dependent relationships
 			let dependers = node.edges
@@ -104,13 +98,13 @@ class OutputPostprocessor {
 				.map { $0.to }
 
 			// Move node's IR into depender's IR folder
-			guard let nodeFolderPath = node.value.irFolderPath else {
+			guard let nodeFolderPath = targetsToPaths[node.value] else {
 				logger.debug("IR folder for node: \(node) is nil")
 				continue
 			}
 
 			for depender in dependers {
-				guard let dependerFolderPath = depender.value.irFolderPath else {
+				guard let dependerFolderPath = targetsToPaths[depender.value] else {
 					logger.debug("IR folder for depender node \(depender) is nil")
 					continue
 				}
