@@ -25,6 +25,16 @@ class Target {
 	}
 }
 
+extension Target {
+	static func targets(from targets: [PIF.BaseTarget], with targetsToCommands: [String: [CompilerCommand]]) -> [Target] {
+		targets
+			.map {
+				Target(baseTarget: $0, commands: targetsToCommands[$0.name] ?? [])
+			}
+	}
+}
+
+
 extension Target: NodeValue {
 	var value: Self { self }
 	var valueName: String { productName }

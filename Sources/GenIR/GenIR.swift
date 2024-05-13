@@ -129,11 +129,7 @@ struct IREmitterCommand: ParsableCommand {
 			dryRun: dryRun
 		)
 
-		let targets = pifCache
-			.targets
-			.map {
-				Target(baseTarget: $0, commands: log.targetCommands[$0.name] ?? [])
-			}
+		let targets = Target.targets(from: pifCache.targets, with: log.targetCommands)
 
 		let runner = CompilerCommandRunner(
 			output: output,
