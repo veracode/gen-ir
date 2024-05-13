@@ -3,13 +3,13 @@ import XCTest
 import PBXProjParser
 
 final class WorkspaceTests: XCTestCase {
-	static private var testPath: URL = {
+	let testPath: URL = {
 		TestContext.testAssetPath
 			.appendingPathComponent("WorkspaceTest")
 			.appendingPathComponent("Workspace.xcworkspace")
 	}()
 
-	static private var scheme = "App"
+	let scheme = "App"
 
 	static let appIRFiles: Set<String> = ["AppApp.bc", "ContentView.bc", "GeneratedAssetSymbols.bc"]
 	static let commonIRFiles: Set<String> = ["Common_vers.bc", "Model.bc"]
@@ -50,14 +50,13 @@ final class WorkspaceTests: XCTestCase {
 	]
 
 	func testWorkspace() throws {
-		let context = try TestContext()
-		let process = try context.build(test: Self.testPath, scheme: Self.scheme)
-		XCTAssertEqual(process.code, 0, "Build returned non-zero exit code")
+		let context = TestContext()
+		try context.build(test: testPath, scheme: scheme)
 
 		var genIR = gen_ir.IREmitterCommand()
 
 		try genIR.run(
-			project: Self.testPath,
+			project: testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,
@@ -69,7 +68,7 @@ final class WorkspaceTests: XCTestCase {
 		let appIRPath = context.archive.appending(path: "IR/App.app/")
 		let commonIRPath = context.archive.appending(path: "IR/Common.framework/")
 		let frameworkIRPath = context.archive.appending(path: "IR/Framework.framework/")
-		let sfSafeSymbolsIRPath = context.archive.appending(path: "IR/SFSafeSymbols/")
+		let sfSafeSymbolsIRPath = context.archive.appending(path: "IR/SFSafeSymbols.framework/")
 
 		let appIRPathContents = try FileManager.default.contentsOfDirectory(at: appIRPath, includingPropertiesForKeys: nil)
 			.reduce(into: Set<String>(), { $0.insert($1.lastPathComponent) })

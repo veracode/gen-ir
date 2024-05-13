@@ -1,10 +1,12 @@
 import Foundation
 @testable import gen_ir
+import XCTest
 
 class TestContext {
 	enum Error: Swift.Error {
 		case commandFailed(Process.ReturnValue)
 		case invalidArgument(String)
+		case notBuilt
 	}
 
 	static let baseTestingPath: URL = {
@@ -36,6 +38,7 @@ class TestContext {
 		)
 	}
 
+	@discardableResult
 	func build(
 		test path: URL,
 		scheme: String,
@@ -74,7 +77,10 @@ class TestContext {
 			throw Error.commandFailed(process)
 		} else if let stdout = process.stdout {
 			try stdout.write(to: buildLog, atomically: true, encoding: .utf8)
+			buildLogContents = stdout.components(separatedBy: .newlines)
 		}
+
+		built = true
 
 		return process
 	}
@@ -82,10 +88,45 @@ class TestContext {
 	let archive: URL
 	let buildLog: URL
 	let temporaryDirectory: URL
+	private(set) var built = false
+	private(set) var buildLogContents = [String]()
 
-	init() throws {
-		temporaryDirectory = try FileManager.default.temporaryDirectory(named: "gen-ir-tests-\(UUID().uuidString)")
+	init() {
+		// swiftlint:disable force_try
+		temporaryDirectory = try! FileManager.default.temporaryDirectory(named: "gen-ir-tests-\(UUID().uuidString)")
 		archive = temporaryDirectory.appendingPathComponent("x.xcarchive")
 		buildLog = temporaryDirectory.appendingPathComponent("build.log")
 	}
+
+	deinit {
+		try! FileManager.default.removeItem(at: temporaryDirectory)
+		// swiftlint:enable force_try
+	}
+
+	lazy var logParser: XcodeLogParser = {
+		XCTAssertTrue(built, "Requests a log parser without building the project")
+		let parser = XcodeLogParser(log: buildLogContents)
+		do {
+			try parser.parse()
+		} catch {
+			fatalError("XcodeLogParser error: \(error)")
+		}
+		return parser
+	}()
+
+	lazy var pifCache: PIFCache = {
+		do {
+			return try PIFCache(buildCache: logParser.buildCachePath)
+		} catch {
+			fatalError("PIFCache init failed with error: \(error)")
+		}
+	}()
+
+	lazy var targets: [Target] = {
+		Target.targets(from: pifCache.targets, with: logParser.targetCommands)
+	}()
+
+	lazy var graph: DependencyGraph<Target> = {
+		DependencyGraphBuilder(provider: PIFDependencyProvider(targets: targets, cache: pifCache), values: targets).graph
+	}()
 }

@@ -1,15 +1,16 @@
 import XCTest
 @testable import gen_ir
-import PBXProjParser
 
 final class GenIRTests: XCTestCase {
 	func testManyTargetTestTargets() throws {
+		let context = TestContext()
 		let projectPath = TestContext.baseTestingPath
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("ManyTargetTest")
 			.appendingPathComponent("ManyTargetTest.xcodeproj")
-		let project = try ProjectParser(path: projectPath, logLevel: logger.logLevel)
-		let targets = Targets(for: project)
+
+		try context.build(test: projectPath, scheme: "ManyTargetTest")
+		let targets = context.targets
 
 		XCTAssert(targets.count == 3, "Targets count expected to be 3, was \(targets.count)")
 

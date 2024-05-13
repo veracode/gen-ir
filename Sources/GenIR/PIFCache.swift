@@ -2,15 +2,13 @@ import Foundation
 import PIFSupport
 
 class PIFCache {
-	public typealias GUID = String
-
 	private let buildCache: URL
 	private let pifCachePath: URL
 	private let workspace: PIF.Workspace
 
 	enum Error: Swift.Error {
 		case nonexistentCache(String)
-		case pifError(String)
+		case pifError(Swift.Error)
 	}
 
 	init(buildCache: URL) throws {
@@ -21,7 +19,7 @@ class PIFCache {
 			let cache = try PIFParser(cachePath: pifCachePath)
 			workspace = cache.workspace
 		} catch {
-			throw Error.pifError(error.localizedDescription)
+			throw Error.pifError(error)
 		}
 	}
 
@@ -74,6 +72,63 @@ class PIFCache {
 			.flatMap { $0.targets }
 	}
 
+	private lazy var namesToTargets: [String: PIF.BaseTarget] = {
+		targets
+			.reduce(into: [String: PIF.BaseTarget]()) { partial, target in
+				partial[target.name] = target
+			}
+	}()
+
+	private lazy var productNamesToTargets: [String: PIF.BaseTarget] = {
+		targets
+			.compactMap { $0 as? PIF.Target }
+			.reduce(into: [String: PIF.BaseTarget]()) { partial, target in
+				partial[target.productName] = target
+			}
+	}()
+
+	private func fileReferences(for project: PIF.Project) -> [PIF.FileReference] {
+		func resolveChildren(starting children: [PIF.Reference], result: inout [PIF.FileReference]) {
+			for child in children {
+				if let fileReference = child as? PIF.FileReference {
+					result.append(fileReference)
+				} else if let group = child as? PIF.Group {
+					resolveChildren(starting: group.children, result: &result)
+				} else {
+					print("Unhandled reference type: \(child)")
+				}
+			}
+		}
+
+		var result = [PIF.FileReference]()
+		resolveChildren(starting: project.groupTree.children, result: &result)
+		return result
+	}
+
+	lazy var frameworks: [PIF.GUID: PIF.Target] = {
+		// Here we have to get all the wrapper.framework references from the group, and then attempt to map them to targets
+		let frameworkFileReferences = projects
+			.flatMap { fileReferences(for: $0) }
+			.filter { $0.fileType == "wrapper.framework" }
+			// TODO: do we filter on sourceTree == "BUILT_PRODUCTS_DIR" here too?
+
+		// Now, stupidly, we have to do a name lookup on the path and use that to look up a target
+		let frameworks = targets
+			.compactMap { $0 as? PIF.Target }
+			.filter { $0.productType == .framework }
+			.reduce(into: [String: PIF.Target]()) { partial, target in
+				partial[target.productName] = target
+			}
+
+		return frameworkFileReferences
+			// .compactMap { frameworks[$0.path] } // TODO: I think we should get the last path component as the key here - check that
+			.reduce(into: [PIF.GUID: PIF.Target]()) { partial, fileReference in
+				// partial[target.guid] = target
+				// Use the _file reference_ GUID as the key here - we're looking up frameworks by their file reference and not target GUID!
+				partial[fileReference.guid] = frameworks[fileReference.path]
+			}
+	}()
+
 	// private lazy var targetsByGUID: [GUID: PIF.BaseTarget] = {
 	// 	targets
 	// 		.reduce(into: [GUID: PIF.BaseTarget]()) { result, element in
@@ -84,16 +139,6 @@ class PIFCache {
 	// func target(for guid: GUID) -> PIF.BaseTarget? {
 	// 	targetsByGUID[guid]
 	// }
-}
-
-extension PIF.BaseTarget: NodeValue {
-	var valueName: String {
-		if let target = self as? PIF.Target, !target.productName.isEmpty {
-			return target.productName
-		}
-
-		return name
-	}
 }
 
 extension PIF.BaseTarget: Hashable {
@@ -109,22 +154,42 @@ extension PIF.BaseTarget: Hashable {
 struct PIFDependencyProvider: DependencyProviding {
 	private let targets: [Target]
 	private let cache: PIFCache
-	private var guidToTargets: [PIFCache.GUID: Target]
+	private var guidToTargets: [PIF.GUID: Target]
 
 	init(targets: [Target], cache: PIFCache) {
 		self.targets = targets
 		self.cache = cache
 
 		self.guidToTargets = targets
-			.reduce(into: [PIFCache.GUID: Target]()) { partial, target in
+			.reduce(into: [PIF.GUID: Target]()) { partial, target in
 				partial[target.baseTarget.guid] = target
 			}
 	}
 
 	func dependencies(for value: Target) -> [Target] {
-		value
+		// Direct dependencies
+		let dependencyTargets = value
 			.baseTarget
 			.dependencies
-			.map { guidToTargets[$0.targetGUID]! }
+			.compactMap { guidToTargets[$0.targetGUID] }
+
+		// Framework build phase dependencies
+		let frameworkBuildPhases = value
+			.baseTarget
+			.buildPhases
+			.compactMap { $0 as? PIF.FrameworksBuildPhase }
+
+		let frameworks = frameworkBuildPhases
+			.flatMap { $0.buildFiles }
+			.compactMap {
+				switch $0.reference {
+				case .file(let guid): return guid
+				case .target: return nil // TODO: is this fine? I think so since we're looking for .framework file references here not targets which should be a dependency
+				}
+			}
+			.compactMap { cache.frameworks[$0] }
+			.compactMap { guidToTargets[$0.guid] }
+
+		return dependencyTargets + frameworks
 	}
 }

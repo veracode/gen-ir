@@ -114,11 +114,7 @@ public enum PIF {
 
 			projects = try projectContents
 				.map {
-					// do {
-						return try PIFDecoder(cache: cachePath).decode(PIF.Project.self, from: $0)
-					// } catch {
-						// fatalError(String(data: $0, encoding: .utf8)!)
-					// }
+					try PIFDecoder(cache: cachePath).decode(PIF.Project.self, from: $0)
 				}
 		}
 	}
@@ -203,6 +199,9 @@ public enum PIF {
 
 			/// Indicates that the path is relative to the SDKROOT
 			case sdkRoot = "SDKROOT"
+
+			/// Indicates that the path is relative to the DEVELOPER_DIR (normally in the Xcode.app bundle)
+			case developerDir = "DEVELOPER_DIR"
 		}
 
 		public let guid: GUID
