@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import PBXProjParser
 
 private typealias SizeAndCreation = (Int, Date)
 

@@ -1,7 +1,6 @@
 import Foundation
 import ArgumentParser
 import Logging
-import PBXProjParser
 import PIFSupport
 
 /// Global logger object

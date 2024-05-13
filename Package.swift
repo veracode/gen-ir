@@ -14,7 +14,6 @@ let package = Package(
 		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
-		.package(path: "PBXProjParser"),
 		.package(path: "PIF")
 	],
 	targets: [
@@ -25,7 +24,6 @@ let package = Package(
 			dependencies: [
 				.product(name: "ArgumentParser", package: "swift-argument-parser"),
 				.product(name: "Logging", package: "swift-log"),
-				.product(name: "PBXProjParser", package: "PBXProjParser"),
 				.product(name: "PIFSupport", package: "PIF")
 			],
 			path: "Sources/GenIR"

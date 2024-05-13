@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import PBXProjParser
 import PIFSupport
 
 class Target {

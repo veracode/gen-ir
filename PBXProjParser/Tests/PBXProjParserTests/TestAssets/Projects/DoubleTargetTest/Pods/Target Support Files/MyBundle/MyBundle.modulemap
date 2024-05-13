@@ -1,6 +1,0 @@
-framework module MyBundle {
-  umbrella header "MyBundle-umbrella.h"
-
-  export *
-  module * { export * }
-}

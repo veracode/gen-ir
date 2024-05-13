@@ -1,6 +1,5 @@
 import XCTest
 @testable import gen_ir
-import PBXProjParser
 
 final class DependencyGraphTests: XCTestCase {
 	let testPath: URL = {
