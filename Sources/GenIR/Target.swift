@@ -39,7 +39,7 @@ extension Target {
 
 extension Target: NodeValue {
 	var value: Self { self }
-	var valueName: String { name }
+	var valueName: String { productName }
 }
 
 extension Target: Hashable {

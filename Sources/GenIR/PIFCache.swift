@@ -16,7 +16,7 @@ class PIFCache {
 		self.pifCachePath = try Self.pifCachePath(in: buildCache)
 
 		do {
-			let cache = try PIFParser(cachePath: pifCachePath)
+			let cache = try PIFParser(cachePath: pifCachePath, logger: logger)
 			workspace = cache.workspace
 		} catch {
 			throw Error.pifError(error)

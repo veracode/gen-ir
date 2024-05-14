@@ -44,24 +44,6 @@ class DependencyGraph<Value: NodeValue> {
 		return depthFirstSearch(startingAt: node)
 	}
 
-	func toDot(_ path: String) throws {
-		var contents = "digraph DependencyGraph {\n"
-
-		for node in nodes.values {
-			for edge in node.edges.filter({ $0.relationship == .dependency }) {
-				func dotSanitized(for name: String) -> String {
-					name
-						.replacingOccurrences(of: "-", with: "_")
-						.replacingOccurrences(of: ".", with: "_")
-				}
-				contents.append("\(dotSanitized(for: node.valueName)) -> \(dotSanitized(for: edge.to.valueName))\n")
-			}
-		}
-
-		contents.append("}")
-		try contents.write(toFile: path, atomically: true, encoding: .utf8)
-	}
-
 	/// Perform a depth-first search starting at the provided node
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
@@ -76,9 +58,8 @@ class DependencyGraph<Value: NodeValue> {
 			logger.debug("visited: \(visited)")
 
 			for edge in node.edges where edge.relationship == .dependency {
-				logger.debug("edge to: \(edge.to)")
 				if visited.insert(edge.to).inserted {
-					logger.debug("inserted, recursing")
+					logger.debug("edge to: \(edge.to)")
 					depthFirst(node: edge.to)
 				} else {
 					logger.debug("edge already in visited: \(visited)")
@@ -91,6 +72,19 @@ class DependencyGraph<Value: NodeValue> {
 
 		depthFirst(node: node)
 		return chain
+	}
+
+	func toDot(_ path: String) throws {
+		var contents = "digraph DependencyGraph {\n"
+
+		for node in nodes.values {
+			for edge in node.edges.filter({ $0.relationship == .dependency }) {
+				contents.append("\"\(node.valueName)\" -> \"\(edge.to.valueName)\"\n")
+			}
+		}
+
+		contents.append("}")
+		try contents.write(toFile: path, atomically: true, encoding: .utf8)
 	}
 }
 

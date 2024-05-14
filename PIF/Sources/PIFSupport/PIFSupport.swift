@@ -1,4 +1,7 @@
 import Foundation
+import Logging
+
+var logger: Logger!
 
 public class PIFParser {
 	private let cachePath: URL
@@ -8,7 +11,8 @@ public class PIFParser {
 		case workspaceNotFound
 	}
 
-	public init(cachePath: URL) throws {
+	public init(cachePath: URL, logger log: Logger) throws {
+		logger = log
 		self.cachePath = cachePath
 
 		let data = try Data(contentsOf: try Self.workspacePath(in: cachePath))

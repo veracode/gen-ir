@@ -306,8 +306,7 @@ public enum PIF {
 					case FileReference.type:
 						return try childrenContainer.decode(FileReference.self)
 					default:
-						// TODO: use logger here
-						print("unknown reference type: \(child.type ?? "<nil>")")
+						logger.debug("unknown reference type: \(child.type ?? "<nil>")")
 						return nil
 					}
 				}
@@ -508,8 +507,7 @@ public enum PIF {
 			case ResourcesBuildPhase.type:
 				return try container.decode(ResourcesBuildPhase.self)
 			default:
-				// TODO: replace with logger
-				print("unknown build phase: \(type)")
+				logger.debug("unknown build phase: \(type)")
 				return nil
 				// TODO: we should probably handle these:
 				/*
