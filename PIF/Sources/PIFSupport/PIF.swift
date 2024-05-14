@@ -308,9 +308,7 @@ public enum PIF {
 					default:
 						// TODO: use logger here
 						print("unknown reference type: \(child.type ?? "<nil>")")
-						// TODO: support variantGroup etc
 						return nil
-						// throw Error.decodingError("unknown reference type \(child.type ?? "<nil>")")
 					}
 				}
 			} else {
@@ -515,12 +513,9 @@ public enum PIF {
 				return nil
 				// TODO: we should probably handle these:
 				/*
-				        case copyFiles = "com.apple.buildphase.copy-files"
-        case frameworks = "com.apple.buildphase.frameworks"
-        case headers = "com.apple.buildphase.headers"
-        case resources = "com.apple.buildphase.resources"
-        case shellScript = "com.apple.buildphase.shell-script"
-        case sources = "com.apple.buildphase.sources"*/
+				case copyFiles = "com.apple.buildphase.copy-files"
+				case shellScript = "com.apple.buildphase.shell-script"
+				case sources = "com.apple.buildphase.sources"*/
 				// throw Error.decodingError("unknown build phase \(type)")
 			}
 		}

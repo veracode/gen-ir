@@ -143,7 +143,11 @@ struct IREmitterCommand: ParsableCommand {
 
 		if dumpDependencyGraph {
 			do {
-				try graph.toDot(output.appendingPathComponent("graph.dot").filePath)
+				try graph.toDot(output
+					.deletingLastPathComponent()
+					.appendingPathComponent("graph.dot")
+					.filePath
+				)
 			} catch {
 				logger.error("toDot error: \(error)")
 			}

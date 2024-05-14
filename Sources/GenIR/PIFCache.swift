@@ -166,12 +166,32 @@ struct PIFDependencyProvider: DependencyProviding {
 			}
 	}
 
-	func dependencies(for value: Target) -> [Target] {
-		// Direct dependencies
-		let dependencyTargets = value
+	private func resolveSwiftPackage(_ packageGUID: PIF.GUID) -> PIF.GUID {
+		let productToken = "PACKAGE-PRODUCT:"
+		let targetToken = "PACKAGE-TARGET:"
+		guard packageGUID.starts(with: productToken), let product = guidToTargets[packageGUID] else { return packageGUID }
+
+		let productName = String(packageGUID.dropFirst(productToken.count))
+
+		// TODO: should this also use the framework build phase to determine a dependency?
+		let packageTargetDependencies = product
 			.baseTarget
 			.dependencies
-			.compactMap { guidToTargets[$0.targetGUID] }
+			.filter { $0.targetGUID.starts(with: targetToken) }
+			.filter { $0.targetGUID.dropFirst(targetToken.count) == productName }
+
+		precondition(packageTargetDependencies.count == 1, "Expecting one matching package target - found \(packageTargetDependencies.count): \(packageTargetDependencies). Returning first match")
+
+		return packageTargetDependencies.first?.targetGUID ?? packageGUID
+	}
+
+	func dependencies(for value: Target) -> [Target] {
+		// Direct dependencies
+		let dependencyTargetGUIDs = value
+			.baseTarget
+			.dependencies
+			.map { $0.targetGUID }
+			.map { resolveSwiftPackage($0) }
 
 		// Framework build phase dependencies
 		let frameworkBuildPhases = value
@@ -179,7 +199,7 @@ struct PIFDependencyProvider: DependencyProviding {
 			.buildPhases
 			.compactMap { $0 as? PIF.FrameworksBuildPhase }
 
-		let frameworks = frameworkBuildPhases
+		let frameworkGUIDs = frameworkBuildPhases
 			.flatMap { $0.buildFiles }
 			.compactMap {
 				switch $0.reference {
@@ -187,9 +207,10 @@ struct PIFDependencyProvider: DependencyProviding {
 				case .target: return nil // TODO: is this fine? I think so since we're looking for .framework file references here not targets which should be a dependency
 				}
 			}
-			.compactMap { cache.frameworks[$0] }
-			.compactMap { guidToTargets[$0.guid] }
+			.compactMap { cache.frameworks[$0]?.guid }
 
-		return dependencyTargets + frameworks
+		let dependencyTargets = (dependencyTargetGUIDs + frameworkGUIDs).compactMap { guidToTargets[$0] }
+
+		return dependencyTargets
 	}
 }

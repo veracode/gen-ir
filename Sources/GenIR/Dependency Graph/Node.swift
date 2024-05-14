@@ -29,7 +29,6 @@ class Node<Value: NodeValue> {
 	/// Adds an edge to this node
 	/// - Parameter edge: the edge to add
 	func add(edge: Edge<Value>) {
-		// TODO: slow - change.
 		if edges.filter({ $0.to.valueName == edge.to.valueName }).count == 0 {
 			edges.append(edge)
 		}

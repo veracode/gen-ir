@@ -75,7 +75,7 @@ class DependencyGraph<Value: NodeValue> {
 			visited.insert(node)
 			logger.debug("visited: \(visited)")
 
-			for edge in node.edges {
+			for edge in node.edges where edge.relationship == .dependency {
 				logger.debug("edge to: \(edge.to)")
 				if visited.insert(edge.to).inserted {
 					logger.debug("inserted, recursing")

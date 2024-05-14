@@ -11,9 +11,13 @@ import PIFSupport
 class Target {
 	var name: String { baseTarget.name }
 	var productName: String {
-		(baseTarget as? PIF.Target)?.productName ?? baseTarget.name
+		if let target = baseTarget as? PIF.Target, !target.productName.isEmpty {
+			return target.productName
+		}
+
+		return baseTarget.name
 	}
-	// TODO: we need to handle SPM's insane naming scheme for products here ^
+	// TODO: we need to handle SPM's insane naming scheme for products here ^ including the potential of a dynamic variant
 
 	let baseTarget: PIF.BaseTarget
 	let commands: [CompilerCommand]

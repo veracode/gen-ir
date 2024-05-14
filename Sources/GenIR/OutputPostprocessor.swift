@@ -78,9 +78,10 @@ class OutputPostprocessor {
 		target: Target,
 		at path: URL
 	) throws -> Set<URL> {
+		// TODO: we need better handling of swift package products and targets in the dependency graph or we fail to move dependencies here
 		let chain = graph.chain(for: target)
 
-		logger.debug("Chain for target: \(target.productName):\n")
+		logger.debug("Chain for target: \(target.productName):\n\(chain.map { "\($0)\n" })")
 		chain.forEach { logger.debug("\($0)") }
 
 		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
