@@ -53,19 +53,6 @@ class PIFCache {
 		workspace.projects
 	}
 
-	// private lazy var projectsByGUID: [GUID: PIF.Project] = {
-	// 	workspace
-	// 		.projects
-	// 		.reduce(into: [GUID: PIF.Project]()) { result, element in
-	// 			result[element.guid] = element
-	// 		}
-	// }()
-
-	// func project(for guid: GUID) -> PIF.Project? {
-	// 	projectsByGUID[guid]
-	// }
-
-	// TODO: We cab possibly filter out some targets here for performance
 	var targets: [PIF.BaseTarget] {
 		workspace
 			.projects
@@ -110,35 +97,22 @@ class PIFCache {
 		let frameworkFileReferences = projects
 			.flatMap { fileReferences(for: $0) }
 			.filter { $0.fileType == "wrapper.framework" }
-			// TODO: do we filter on sourceTree == "BUILT_PRODUCTS_DIR" here too?
 
 		// Now, stupidly, we have to do a name lookup on the path and use that to look up a target
 		let frameworks = targets
 			.compactMap { $0 as? PIF.Target }
 			.filter { $0.productType == .framework }
 			.reduce(into: [String: PIF.Target]()) { partial, target in
-				partial[target.productName] = target
+				let key = target.productName.isEmpty ? target.guid : target.productName
+				partial[key] = target
 			}
 
 		return frameworkFileReferences
-			// .compactMap { frameworks[$0.path] } // TODO: I think we should get the last path component as the key here - check that
 			.reduce(into: [PIF.GUID: PIF.Target]()) { partial, fileReference in
-				// partial[target.guid] = target
 				// Use the _file reference_ GUID as the key here - we're looking up frameworks by their file reference and not target GUID!
 				partial[fileReference.guid] = frameworks[fileReference.path]
 			}
 	}()
-
-	// private lazy var targetsByGUID: [GUID: PIF.BaseTarget] = {
-	// 	targets
-	// 		.reduce(into: [GUID: PIF.BaseTarget]()) { result, element in
-	// 			result[element.guid] = element
-	// 		}
-	// }()
-
-	// func target(for guid: GUID) -> PIF.BaseTarget? {
-	// 	targetsByGUID[guid]
-	// }
 }
 
 extension PIF.BaseTarget: Hashable {
@@ -166,19 +140,32 @@ struct PIFDependencyProvider: DependencyProviding {
 			}
 	}
 
-	private func resolveSwiftPackage(_ packageGUID: PIF.GUID) -> PIF.GUID {
+	private func resolveSwiftPackage(_ packageGUID: PIF.GUID) -> PIF.GUID? {
 		let productToken = "PACKAGE-PRODUCT:"
 		let targetToken = "PACKAGE-TARGET:"
 		guard packageGUID.starts(with: productToken), let product = guidToTargets[packageGUID] else { return packageGUID }
 
 		let productName = String(packageGUID.dropFirst(productToken.count))
 
-		// TODO: should this also use the framework build phase to determine a dependency?
-		let packageTargetDependencies = product
+		// TODO: should this also use the framework build phase to determine a dependency? Currently not needed because Gen IR doesn't care about prebuilt frameworks
+		// but for the completeness of the graph this could be a nice to have...
+		let dependencies = product
 			.baseTarget
 			.dependencies
 			.filter { $0.targetGUID.starts(with: targetToken) }
+
+		let packageTargetDependencies = dependencies
 			.filter { $0.targetGUID.dropFirst(targetToken.count) == productName }
+
+		if packageTargetDependencies.isEmpty && !dependencies.isEmpty {
+			// We likely have a stub target here (i.e. a precompiled framework)
+			// see https://github.com/apple/swift-package-manager/issues/6069 for more
+			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets. Possible stub target in: \(dependencies)")
+			return nil
+		} else if packageTargetDependencies.isEmpty && dependencies.isEmpty {
+			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets.")
+			return nil
+		}
 
 		precondition(packageTargetDependencies.count == 1, "Expecting one matching package target - found \(packageTargetDependencies.count): \(packageTargetDependencies). Returning first match")
 
@@ -191,7 +178,7 @@ struct PIFDependencyProvider: DependencyProviding {
 			.baseTarget
 			.dependencies
 			.map { $0.targetGUID }
-			.map { resolveSwiftPackage($0) }
+			.compactMap { resolveSwiftPackage($0) }
 
 		// Framework build phase dependencies
 		let frameworkBuildPhases = value
@@ -199,7 +186,7 @@ struct PIFDependencyProvider: DependencyProviding {
 			.buildPhases
 			.compactMap { $0 as? PIF.FrameworksBuildPhase }
 
-		let frameworkGUIDs = frameworkBuildPhases
+		let referenceGUIDs = frameworkBuildPhases
 			.flatMap { $0.buildFiles }
 			.compactMap {
 				switch $0.reference {
@@ -207,7 +194,11 @@ struct PIFDependencyProvider: DependencyProviding {
 				case .target: return nil // TODO: is this fine? I think so since we're looking for .framework file references here not targets which should be a dependency
 				}
 			}
-			.compactMap { cache.frameworks[$0]?.guid }
+
+		let frameworkGUIDs = referenceGUIDs
+			.compactMap {
+				cache.frameworks[$0]?.guid
+			}
 
 		let dependencyTargets = (dependencyTargetGUIDs + frameworkGUIDs).compactMap { guidToTargets[$0] }
 

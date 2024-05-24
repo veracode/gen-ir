@@ -1,0 +1,150 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "CLANG_COVERAGE_MAPPING_LINKER_ARGS": "NO",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyTransitiveLibrary.o",
+        "GENERATE_MASTER_OBJECT_FILE": "NO",
+        "MACH_O_TYPE": "mh_object",
+        "MODULEMAP_FILE_CONTENTS": "module MyTransitiveLibrary {\nheader \"MyTransitiveLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyTransitiveLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyTransitiveLibrary",
+        "PRODUCT_MODULE_NAME": "MyTransitiveLibrary",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "STRIP_INSTALLED_PRODUCT": "NO",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyTransitiveLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mytransitivelibrary",
+        "SWIFT_VERSION": "5",
+        "TAPI_DYLIB_INSTALL_NAME": "MyTransitiveLibrary",
+        "TARGET_NAME": "MyTransitiveLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "LD_RUNPATH_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyTransitiveLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "CLANG_COVERAGE_MAPPING_LINKER_ARGS": "NO",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyTransitiveLibrary.o",
+        "GENERATE_MASTER_OBJECT_FILE": "NO",
+        "MACH_O_TYPE": "mh_object",
+        "MODULEMAP_FILE_CONTENTS": "module MyTransitiveLibrary {\nheader \"MyTransitiveLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyTransitiveLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyTransitiveLibrary",
+        "PRODUCT_MODULE_NAME": "MyTransitiveLibrary",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "STRIP_INSTALLED_PRODUCT": "NO",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyTransitiveLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mytransitivelibrary",
+        "SWIFT_VERSION": "5",
+        "TAPI_DYLIB_INSTALL_NAME": "MyTransitiveLibrary",
+        "TARGET_NAME": "MyTransitiveLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyTransitiveLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Release"
+    }
+  ],
+  "buildPhases": [
+    {
+      "buildFiles": [
+        {
+          "codeSignOnCopy": "false",
+          "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyTransitiveLibrary::MAINGROUP::REF_2::REF_0",
+          "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDPHASE_0::0",
+          "platformFilters": [],
+          "removeHeadersOnCopy": "false"
+        }
+      ],
+      "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDPHASE_0",
+      "type": "com.apple.buildphase.sources"
+    },
+    {
+      "buildFiles": [
+        {
+          "codeSignOnCopy": "false",
+          "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyTransitiveLibrary::MAINGROUP::REF_1::REF_2",
+          "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDPHASE_1::0",
+          "platformFilters": [],
+          "removeHeadersOnCopy": "false"
+        }
+      ],
+      "guid": "PACKAGE-TARGET:MyTransitiveLibrary::BUILDPHASE_1",
+      "type": "com.apple.buildphase.resources"
+    }
+  ],
+  "buildRules": [],
+  "dependencies": [
+    {
+      "guid": "PACKAGE-PRODUCT:MyCommonLibrary",
+      "platformFilters": []
+    },
+    {
+      "guid": "PACKAGE-PRODUCT:MyBinaryDependency",
+      "platformFilters": []
+    }
+  ],
+  "dynamicTargetVariantGuid": "PACKAGE-TARGET:MyTransitiveLibrary-29D6C569F63C2FD7-dynamic",
+  "guid": "PACKAGE-TARGET:MyTransitiveLibrary",
+  "name": "MyTransitiveLibrary",
+  "productReference": {
+    "guid": "PRODUCTREF-PACKAGE-TARGET:MyTransitiveLibrary",
+    "name": "MyTransitiveLibrary.o",
+    "type": "file"
+  },
+  "productTypeIdentifier": "com.apple.product-type.objfile",
+  "type": "standard"
+}

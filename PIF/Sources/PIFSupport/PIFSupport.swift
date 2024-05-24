@@ -9,6 +9,7 @@ public class PIFParser {
 
 	public enum Error: Swift.Error {
 		case workspaceNotFound
+		case filesystemError(Swift.Error)
 	}
 
 	public init(cachePath: URL, logger log: Logger) throws {
@@ -25,13 +26,33 @@ public class PIFParser {
 		let workspaces = try FileManager.default.contentsOfDirectory(at: path, includingPropertiesForKeys: [.isRegularFileKey])
 			.filter { $0.lastPathComponent.starts(with: "WORKSPACE@") }
 
-		precondition(workspaces.count == 1, "Encountered more than one workspace - it is expected that a single workspace exists: \(workspaces)")
-
-		guard workspaces.count > 0 else {
+		guard !workspaces.isEmpty else {
 			throw Error.workspaceNotFound
 		}
 
-		return workspaces[0]
+		if workspaces.count == 1 {
+			return workspaces[0]
+		}
+
+		// If multiple workspaces exist, it's because the something in the project changed between builds. Sort workspaces by the most recent.
+		func modificationDate(_ path: URL) -> Date {
+			(try? FileManager.default.attributesOfItem(atPath: path.path)[.modificationDate] as? Date) ?? Date()
+		}
+
+		logger.debug("Found multiple workspaces, sorting by modification date and returning most recently modified workspace")
+
+		let workspacesAndDates = workspaces
+			.map {
+				(modificationDate($0), $0)
+			}
+
+		logger.debug("Comparing dates and workspaces: ")
+		workspacesAndDates.forEach { logger.debug("\($0) - \($1)") }
+
+		return workspacesAndDates
+			.sorted {
+				$0.0 > $1.0
+			}[0].1
 	}
 }
 

@@ -1,0 +1,192 @@
+{
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_OBJC_ARC": "YES",
+        "CODE_SIGNING_REQUIRED": "NO",
+        "CODE_SIGN_IDENTITY": "",
+        "COPY_PHASE_STRIP": "NO",
+        "DEBUG_INFORMATION_FORMAT": "dwarf",
+        "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
+        "DYLIB_INSTALL_NAME_BASE": "@rpath",
+        "ENABLE_NS_ASSERTIONS": "YES",
+        "ENABLE_TESTABILITY": "YES",
+        "ENABLE_TESTING_SEARCH_PATHS": "YES",
+        "ENTITLEMENTS_REQUIRED": "NO",
+        "GCC_OPTIMIZATION_LEVEL": "0",
+        "GCC_PREPROCESSOR_DEFINITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE",
+          "DEBUG=1"
+        ],
+        "IPHONEOS_DEPLOYMENT_TARGET": "12.0",
+        "IPHONEOS_DEPLOYMENT_TARGET[__platform_filter=ios-maccatalyst]": [
+          "13.0"
+        ],
+        "KEEP_PRIVATE_EXTERNS": "NO",
+        "MACOSX_DEPLOYMENT_TARGET": "10.13",
+        "ONLY_ACTIVE_ARCH": "YES",
+        "OTHER_CFLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "OTHER_LDRFLAGS": [],
+        "OTHER_SWIFT_FLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SKIP_CLANG_STATIC_ANALYZER": "YES",
+        "SKIP_INSTALL": "YES",
+        "SUPPORTED_PLATFORMS": [
+          "$(AVAILABLE_PLATFORMS)"
+        ],
+        "SUPPRESS_WARNINGS": "YES",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE",
+          "DEBUG"
+        ],
+        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
+        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+        "TARGETED_DEVICE_FAMILY": "1,2,3,4,6,7",
+        "TVOS_DEPLOYMENT_TARGET": "12.0",
+        "USE_HEADERMAP": "NO",
+        "WATCHOS_DEPLOYMENT_TARGET": "5.0",
+        "XROS_DEPLOYMENT_TARGET": "1.0"
+      },
+      "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_OBJC_ARC": "YES",
+        "CODE_SIGNING_REQUIRED": "NO",
+        "CODE_SIGN_IDENTITY": "",
+        "COPY_PHASE_STRIP": "YES",
+        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+        "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
+        "DYLIB_INSTALL_NAME_BASE": "@rpath",
+        "ENABLE_TESTING_SEARCH_PATHS": "YES",
+        "ENTITLEMENTS_REQUIRED": "NO",
+        "GCC_OPTIMIZATION_LEVEL": "s",
+        "GCC_PREPROCESSOR_DEFINITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE"
+        ],
+        "IPHONEOS_DEPLOYMENT_TARGET": "12.0",
+        "IPHONEOS_DEPLOYMENT_TARGET[__platform_filter=ios-maccatalyst]": [
+          "13.0"
+        ],
+        "KEEP_PRIVATE_EXTERNS": "NO",
+        "MACOSX_DEPLOYMENT_TARGET": "10.13",
+        "OTHER_CFLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "OTHER_LDRFLAGS": [],
+        "OTHER_SWIFT_FLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SKIP_CLANG_STATIC_ANALYZER": "YES",
+        "SKIP_INSTALL": "YES",
+        "SUPPORTED_PLATFORMS": [
+          "$(AVAILABLE_PLATFORMS)"
+        ],
+        "SUPPRESS_WARNINGS": "YES",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE"
+        ],
+        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
+        "SWIFT_OPTIMIZATION_LEVEL": "-Owholemodule",
+        "TARGETED_DEVICE_FAMILY": "1,2,3,4,6,7",
+        "TVOS_DEPLOYMENT_TARGET": "12.0",
+        "USE_HEADERMAP": "NO",
+        "WATCHOS_DEPLOYMENT_TARGET": "5.0",
+        "XROS_DEPLOYMENT_TARGET": "1.0"
+      },
+      "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Release"
+    }
+  ],
+  "defaultConfigurationName": "Release",
+  "groupTree": {
+    "children": [
+      {
+        "children": [],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_0",
+        "name": "AdditionalFiles",
+        "path": "/",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_1",
+        "name": "Binaries",
+        "path": "/",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [
+          {
+            "fileType": "sourcecode.swift",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_2::REF_0",
+            "path": "MyLibrary.swift",
+            "sourceTree": "<group>",
+            "type": "file"
+          }
+        ],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_2",
+        "name": "/Users/thedderwick/Desktop/SPMTest/MyLibrary/Sources/MyLibrary",
+        "path": "/Users/thedderwick/Desktop/SPMTest/MyLibrary/Sources/MyLibrary",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [
+          {
+            "fileType": "sourcecode.swift",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_3::REF_0",
+            "path": "MyLibrary.swift",
+            "sourceTree": "<group>",
+            "type": "file"
+          }
+        ],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_3",
+        "name": "/Users/thedderwick/Desktop/SPMTest/MyLibrary/Sources/MyLibrary",
+        "path": "/Users/thedderwick/Desktop/SPMTest/MyLibrary/Sources/MyLibrary",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      }
+    ],
+    "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP",
+    "name": "",
+    "path": "",
+    "sourceTree": "<group>",
+    "type": "group"
+  },
+  "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary",
+  "path": "/Users/thedderwick/Desktop/SPMTest/MyLibrary/Package.swift",
+  "projectDirectory": "/Users/thedderwick/Desktop/SPMTest/MyLibrary",
+  "projectIsPackage": "true",
+  "projectName": "MyLibrary",
+  "targets": [
+    "TARGET@v12_hash=74b26d184242037107e47412d7443f08",
+    "TARGET@v12_hash=cd6e9e040a1e22f4a8571a7087b8628e",
+    "TARGET@v12_hash=9b39f33b643d76adea258dfa2de06201",
+    "TARGET@v12_hash=e6cf06600384b639e73079abd6a4553c"
+  ]
+}

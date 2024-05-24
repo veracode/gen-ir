@@ -1,0 +1,75 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Release"
+    }
+  ],
+  "dependencies": [
+    {
+      "guid": "PACKAGE-TARGET:MyTransitiveLibrary",
+      "platformFilters": []
+    },
+    {
+      "guid": "PACKAGE-PRODUCT:MyCommonLibrary",
+      "platformFilters": []
+    },
+    {
+      "guid": "PACKAGE-PRODUCT:MyBinaryDependency",
+      "platformFilters": []
+    }
+  ],
+  "dynamicTargetVariantGuid": "PACKAGE-PRODUCT:MyTransitiveLibrary-29D6C569F63C2FD7-dynamic",
+  "frameworksBuildPhase": {
+    "buildFiles": [
+      {
+        "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDPHASE_0::0",
+        "platformFilters": [],
+        "targetReference": "PACKAGE-TARGET:MyTransitiveLibrary"
+      },
+      {
+        "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDPHASE_0::1",
+        "platformFilters": [],
+        "targetReference": "PACKAGE-PRODUCT:MyCommonLibrary"
+      },
+      {
+        "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDPHASE_0::2",
+        "platformFilters": [],
+        "targetReference": "PACKAGE-PRODUCT:MyBinaryDependency"
+      },
+      {
+        "codeSignOnCopy": "true",
+        "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyTransitiveLibrary::MAINGROUP::REF_1::REF_0",
+        "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDPHASE_0::3",
+        "platformFilters": [],
+        "removeHeadersOnCopy": "true"
+      }
+    ],
+    "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary::BUILDPHASE_0",
+    "type": "com.apple.buildphase.frameworks"
+  },
+  "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary",
+  "name": "MyTransitiveLibrary",
+  "type": "packageProduct"
+}
