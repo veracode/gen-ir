@@ -11,8 +11,8 @@ final class WorkspaceTests: XCTestCase {
 	let scheme = "App"
 
 	static let appIRFiles: Set<String> = ["AppApp.bc", "ContentView.bc", "GeneratedAssetSymbols.bc"]
-	static let commonIRFiles: Set<String> = ["Common_vers.bc", "Model.bc"]
-	static let frameworkIRFiles: Set<String> = ["Framework_vers.bc", "Framework.bc"]
+	static let commonIRFiles: Set<String> = ["Model.bc"]
+	static let frameworkIRFiles: Set<String> = ["Framework.bc"]
 	static let sfSafeSymbolsIRFiles: Set<String> = [
 		"NSImageExtension.bc",
 		"SFSymbol+1.0.bc",
@@ -94,9 +94,9 @@ final class WorkspaceTests: XCTestCase {
 		let expectedSFSafeSymbolsIRFiles = Self.sfSafeSymbolsIRFiles
 			.reduce(into: Set<String>(), { $0.insert($1) })
 
-		XCTAssertEqual(expectedAppIRFiles, appIRPathContents, "App IR expected contents didn't equal actual")
-		XCTAssertEqual(expectedFrameworkIRFiles, frameworkIRPathContents, "Framework IR expected contents didn't equal actual")
-		XCTAssertEqual(expectedCommonIRFiles, commonIRPathContents, "Common IR expected contents didn't equal actual")
-		XCTAssertEqual(expectedSFSafeSymbolsIRFiles, sfSafeSymbolsIRPathContents, "SFSafeSymbols IR expected contents didn't equal actual")
+		XCTAssertEqual(expectedAppIRFiles, appIRPathContents, "App IR expected contents didn't equal actual: \(expectedAppIRFiles.symmetricDifference(appIRPathContents))")
+		XCTAssertEqual(expectedFrameworkIRFiles, frameworkIRPathContents, "Framework IR expected contents didn't equal actual \(expectedFrameworkIRFiles.symmetricDifference(frameworkIRPathContents))")
+		XCTAssertEqual(expectedCommonIRFiles, commonIRPathContents, "Common IR expected contents didn't equal actual \(expectedCommonIRFiles.symmetricDifference(commonIRPathContents))")
+		XCTAssertEqual(expectedSFSafeSymbolsIRFiles, sfSafeSymbolsIRPathContents, "SFSafeSymbols IR expected contents didn't equal actual \(expectedSFSafeSymbolsIRFiles.symmetricDifference(sfSafeSymbolsIRPathContents))")
 	}
 }
