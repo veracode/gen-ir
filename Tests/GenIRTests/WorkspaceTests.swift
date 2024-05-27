@@ -55,7 +55,6 @@ final class WorkspaceTests: XCTestCase {
 		var genIR = gen_ir.IREmitterCommand()
 
 		try genIR.run(
-			project: testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,

@@ -27,11 +27,11 @@ struct IREmitterCommand: ParsableCommand {
 		Example with build log:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > \
 		log.txt
-			$ \(programName) log.txt output_folder/ --project-path MyProject.xcodeproj
+			$ \(programName) log.txt x.xcarchive/
 
 		Example with pipe:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 \
-		| \(programName) - output_folder/ --project-path MyProject.xcodeproj
+		| \(programName) - x.xcarchive/
 		""",
 		version: "v\(Versions.version)"
 	)
@@ -45,8 +45,8 @@ struct IREmitterCommand: ParsableCommand {
 	var xcarchivePath: URL
 
 	/// Path to xcodeproj or xcworkspace file
-	@Option(help: "Path to your Xcode Project or Workspace file")
-	var projectPath: URL!
+	@Option(help: "DEPRECATED: This Option is deprecated and will go away in a future version.")
+	var projectPath: URL?
 
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
@@ -63,17 +63,13 @@ struct IREmitterCommand: ParsableCommand {
 	var dumpDependencyGraph = false
 
 	mutating func validate() throws {
+		// This will run before run() so set this here
 		if debug {
 			logger.logLevel = .debug
 		}
 
-		// Version 0.2.x and below didn't require a project. Attempt to default this value if we can
-		if projectPath == nil {
-			projectPath = try findProjectPath()
-		}
-
-		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
-			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
+		if projectPath != nil {
+			logger.warning("--project-path has been deprecated and will go away in a future version. Please remove it from your invocation.")
 		}
 
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
@@ -94,7 +90,6 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		try run(
-			project: projectPath,
 			log: logPath,
 			archive: xcarchivePath,
 			level: logger.logLevel,
@@ -104,41 +99,26 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	mutating func run(
-		project: URL,
 		log: String,
 		archive: URL,
 		level: Logger.Level,
 		dryRun: Bool,
 		dumpDependencyGraph: Bool
 	) throws {
+		logger.logLevel = level
 		let output = archive.appendingPathComponent("IR")
-		// let project = try ProjectParser(path: project, logLevel: level)
-		// var targets = Targets(for: project)
 
 		let log = try logParser(for: log)
 		try log.parse()
 
 		// Find and parse the PIF cache
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
-
-		let buildCacheManipulator = try BuildCacheManipulator(
-			buildCachePath: log.buildCachePath,
-			buildSettings: log.settings,
-			archive: archive,
-			dryRun: dryRun
-		)
-
 		let targets = Target.targets(from: pifCache.targets, with: log.targetCommands)
 
-		let runner = CompilerCommandRunner(
-			output: output,
-			buildCacheManipulator: buildCacheManipulator,
-			dryRun: dryRun
+		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
+			provider: .init(targets: targets, cache: pifCache),
+			values: targets
 		)
-		try runner.run(targets: targets)
-
-		let provider = PIFDependencyProvider(targets: targets, cache: pifCache)
-		let builder = DependencyGraphBuilder(provider: provider, values: targets)
 		let graph = builder.graph
 
 		if dumpDependencyGraph {
@@ -152,6 +132,20 @@ struct IREmitterCommand: ParsableCommand {
 				logger.error("toDot error: \(error)")
 			}
 		}
+
+		let buildCacheManipulator = try BuildCacheManipulator(
+			buildCachePath: log.buildCachePath,
+			buildSettings: log.settings,
+			archive: archive,
+			dryRun: dryRun
+		)
+
+		let runner = CompilerCommandRunner(
+			output: output,
+			buildCacheManipulator: buildCacheManipulator,
+			dryRun: dryRun
+		)
+		try runner.run(targets: targets)
 
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
@@ -203,34 +197,6 @@ struct IREmitterCommand: ParsableCommand {
 		logger.info("Finished reading from pipe")
 
 		return results
-	}
-}
-
-extension IREmitterCommand {
-	/// Attempt to automatically determine the Xcode workspace or project path
-	/// - Returns: the path to the first xcworkspace or xcodeproj found in the current directory
-	private func findProjectPath() throws -> URL {
-		let cwd = FileManager.default.currentDirectoryPath.fileURL
-		// First, xcworkspace, then xcodeproj
-		let xcworkspace = try FileManager.default.directories(at: cwd, recursive: false)
-			.filter { $0.pathExtension == "xcworkspace" }
-
-		if xcworkspace.count == 1 {
-			return xcworkspace[0]
-		}
-
-		let xcodeproj = try FileManager.default.directories(at: cwd, recursive: false)
-			.filter { $0.pathExtension == "xcodeproj" }
-
-		if xcodeproj.count == 1 {
-			return xcodeproj[0]
-		}
-
-		throw ValidationError(
-			"""
-			Couldn't automatically determine path to xcodeproj or xcworkspace. Please use --project-path to provide it.
-			"""
-		)
 	}
 }
 

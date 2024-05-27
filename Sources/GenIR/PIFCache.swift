@@ -6,6 +6,16 @@ class PIFCache {
 	private let pifCachePath: URL
 	private let workspace: PIF.Workspace
 
+	var projects: [PIF.Project] {
+		workspace.projects
+	}
+
+	var targets: [PIF.BaseTarget] {
+		workspace
+			.projects
+			.flatMap { $0.targets }
+	}
+
 	enum Error: Swift.Error {
 		case nonexistentCache(String)
 		case pifError(Swift.Error)
@@ -48,31 +58,6 @@ class PIFCache {
 			)
 		}
 	}
-
-	var projects: [PIF.Project] {
-		workspace.projects
-	}
-
-	var targets: [PIF.BaseTarget] {
-		workspace
-			.projects
-			.flatMap { $0.targets }
-	}
-
-	private lazy var namesToTargets: [String: PIF.BaseTarget] = {
-		targets
-			.reduce(into: [String: PIF.BaseTarget]()) { partial, target in
-				partial[target.name] = target
-			}
-	}()
-
-	private lazy var productNamesToTargets: [String: PIF.BaseTarget] = {
-		targets
-			.compactMap { $0 as? PIF.Target }
-			.reduce(into: [String: PIF.BaseTarget]()) { partial, target in
-				partial[target.productName] = target
-			}
-	}()
 
 	private func fileReferences(for project: PIF.Project) -> [PIF.FileReference] {
 		func resolveChildren(starting children: [PIF.Reference], result: inout [PIF.FileReference]) {
@@ -147,29 +132,31 @@ struct PIFDependencyProvider: DependencyProviding {
 
 		let productName = String(packageGUID.dropFirst(productToken.count))
 
-		// TODO: should this also use the framework build phase to determine a dependency? Currently not needed because Gen IR doesn't care about prebuilt frameworks
-		// but for the completeness of the graph this could be a nice to have...
-		let dependencies = product
+		let productTargetDependencies = product
 			.baseTarget
 			.dependencies
 			.filter { $0.targetGUID.starts(with: targetToken) }
 
-		let packageTargetDependencies = dependencies
+		let productUnderlyingTargets = productTargetDependencies
 			.filter { $0.targetGUID.dropFirst(targetToken.count) == productName }
 
-		if packageTargetDependencies.isEmpty && !dependencies.isEmpty {
+		if productUnderlyingTargets.isEmpty && !productTargetDependencies.isEmpty {
 			// We likely have a stub target here (i.e. a precompiled framework)
 			// see https://github.com/apple/swift-package-manager/issues/6069 for more
-			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets. Possible stub target in: \(dependencies)")
+			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets. Possible stub target in: \(productTargetDependencies)")
 			return nil
-		} else if packageTargetDependencies.isEmpty && dependencies.isEmpty {
-			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets.")
+		} else if productUnderlyingTargets.isEmpty && productTargetDependencies.isEmpty {
+			logger.debug("Resolving Swift Package (\(productName) - \(packageGUID)) resulted in no targets. Likely a prebuilt dependency")
 			return nil
 		}
 
-		precondition(packageTargetDependencies.count == 1, "Expecting one matching package target - found \(packageTargetDependencies.count): \(packageTargetDependencies). Returning first match")
+		guard productTargetDependencies.count == 1, let target = productTargetDependencies.first else {
+			logger.debug("Expecting one matching package target - found \(productTargetDependencies.count): \(productTargetDependencies). Returning first match if it exists")
+			return productTargetDependencies.first?.targetGUID
+		}
 
-		return packageTargetDependencies.first?.targetGUID ?? packageGUID
+		logger.debug("\(packageGUID) resolves to \(target.targetGUID)")
+		return target.targetGUID
 	}
 
 	func dependencies(for value: Target) -> [Target] {

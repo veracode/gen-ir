@@ -15,7 +15,6 @@ final class OutputPostprocessorFileMoverTests: XCTestCase {
 
 		var runner = IREmitterCommand()
 		try runner.run(
-			project: testPath,
 			log: context.buildLog.filePath,
 			archive: context.archive,
 			level: .debug,

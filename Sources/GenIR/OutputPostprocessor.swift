@@ -14,9 +14,6 @@ private typealias SizeAndCreation = (Int, Date)
 /// The `OutputPostprocessor` attempts to remedy this by using the `ProjectParser` to detect dependencies between products AND
 /// parsing the `xcarchive` to determine if something was statically linked, and if so, copies the IR for that product into the linker's IR folder.
 class OutputPostprocessor {
-	/// The to the output IR folders that will be processed
-	let output: URL
-
 	/// The archive path, this should be the parent path of `output`
 	let archive: URL
 
@@ -32,7 +29,6 @@ class OutputPostprocessor {
 	private let manager: FileManager = .default
 
 	init(archive: URL, output: URL, graph: DependencyGraph<Target>, targets: [Target]) throws {
-		self.output = output
 		self.archive = archive
 		self.graph = graph
 		self.targets = targets
@@ -65,19 +61,15 @@ class OutputPostprocessor {
 	/// - Parameter targets: the targets to operate on
 	func process() throws {
 		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		_ = try targetsToPaths
-			.map { try process(target: $0.key, at: $0.value) }
+		_ = try targets
+			.map { try process(target: $0) }
 	}
 
 	/// Processes an individual target
 	/// - Parameters:
 	///   - target: the target to process
-	///   - path: the output path
 	/// - Returns:
-	private func process(
-		target: Target,
-		at path: URL
-	) throws -> Set<URL> {
+	private func process(target: Target) throws -> Set<URL> {
 		// TODO: we need better handling of swift package products and targets in the dependency graph or we fail to move dependencies here
 		let chain = graph.chain(for: target)
 

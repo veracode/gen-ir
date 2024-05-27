@@ -102,27 +102,6 @@ extension FileManager {
 		try moveItem(at: source, to: destination)
 	}
 
-	/// Copies an item, merging with the existing path. Replacement of existing paths is performed if specified.
-	/// - Parameters:
-	///   - source: the item to copy
-	///   - destination: the destination of the copy
-	///   - replacing: should existing items be replaced?
-	func copyItemMerging(at source: URL, to destination: URL, replacing: Bool = false) throws {
-		let sourceFiles = try contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
-
-		for sourceFile in sourceFiles {
-			let path = destination.appendingPathComponent(sourceFile.lastPathComponent)
-
-			if replacing && fileExists(atPath: path.filePath) {
-				try removeItem(at: path)
-			}
-
-			let destinationFile = uniqueFilename(directory: destination, filename: sourceFile.lastPathComponent)
-
-			try copyItem(at: sourceFile, to: destinationFile)
-		}
-	}
-
 	/// Generates a unique filename for a file at the given directory. This attempts to emulates finders style of appending a 'version' number at the end of the filename
 	/// - Parameters:
 	///   - directory: the directory the file would exist in

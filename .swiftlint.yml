@@ -1,10 +1,10 @@
 excluded:
-  - .build/
   - .swiftpm/
   - .vscode/
-  # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
-  - GenIRLogging/.build/
+  - "**/.build/*"
+  - .build/
   - TestAssets/
+  - PIF/.build/
 
 disabled_rules:
   - todo
@@ -13,3 +13,14 @@ disabled_rules:
 line_length:
   warning: 200
   ignores_comments: true
+
+missing_docs:
+  warning:
+  - private
+  - open
+  - fileprivate
+  - public
+  - internal
+
+opt_in_rules:
+  - missing_docs
