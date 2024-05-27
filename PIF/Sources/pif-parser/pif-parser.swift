@@ -7,6 +7,7 @@
 
 import Foundation
 import PIFSupport
+import Logging
 
 @main
 struct PIFParser {
@@ -17,8 +18,8 @@ struct PIFParser {
 		}
 
 		let cachePath = URL(fileURLWithPath: CommandLine.arguments[1])
-		let parser = PIFSupport.PIFParser(cachePath: cachePath)
-		let workspace = try parser.parse()
+		let parser = try PIFSupport.PIFParser(cachePath: cachePath, logger: .init(label: "com.veracode.pif-parser"))
+		let workspace = parser.workspace
 
 		print("workspace: \(workspace.guid):")
 		print("projects: \(workspace.projects.map { $0.guid }.joined(separator: "\n"))\n")
