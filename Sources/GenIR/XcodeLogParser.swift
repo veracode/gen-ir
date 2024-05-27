@@ -92,14 +92,24 @@ class XcodeLogParser {
 				guard let startIndex = line.firstIndex(of: ":") else { continue }
 
 				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-				// Stripped will be to the build description path, we want the root of the build path which is 6 folders up
-				buildCachePath = String(stripped).fileURL
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
+				var cachePath = String(stripped).fileURL
+
+				if cachePath.pathComponents.contains("DerivedData") {
+					// We want the 'project' folder which is the 'Project-randomcrap' folder inside of DerivedData.
+					// Build description path is inside this folder, but depending on the build - it can be a variable number of folders up
+					while cachePath.deletingLastPathComponent().lastPathComponent != "DerivedData" {
+						cachePath.deleteLastPathComponent()
+					}
+				} else {
+					// This build location is outside of the DerivedData directory - we want to go up to the folder _after_ the Build directory
+					while cachePath.lastPathComponent != "Build" {
+						cachePath.deleteLastPathComponent()
+					}
+
+					cachePath.deleteLastPathComponent()
+				}
+
+				buildCachePath = cachePath
 			}
 
 			if let target = target(from: line), currentTarget != target {

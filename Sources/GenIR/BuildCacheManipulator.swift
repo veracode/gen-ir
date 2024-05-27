@@ -38,6 +38,7 @@ struct BuildCacheManipulator {
 	func manipulate() throws {
 		if shouldDeploySkipInstallHack {
 			let intermediatesPath = buildCachePath
+			.appendingPathComponent("Build")
 			.appendingPathComponent("Intermediates.noindex")
 			.appendingPathComponent("ArchiveIntermediates")
 

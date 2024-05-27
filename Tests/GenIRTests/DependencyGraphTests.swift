@@ -23,17 +23,17 @@ final class DependencyGraphTests: XCTestCase {
 
 		// App should have two nodes - Framework & Common
 		XCTAssertTrue(app.edges.count == 2, "App's edges is not equal to 2")
-		_ = try XCTUnwrap(app.edges.first(where: { $0.to.valueName == "Framework" }), "Failed to get Framework edge from App")
-		let commonEdge = try XCTUnwrap(app.edges.first(where: { $0.to.valueName == "Common" }), "Failed to get Common edge from App")
+		_ = try XCTUnwrap(app.edges.first(where: { $0.to.valueName == "Framework.framework" }), "Failed to get Framework edge from App")
+		let commonEdge = try XCTUnwrap(app.edges.first(where: { $0.to.valueName == "Common.framework" }), "Failed to get Common edge from App")
 
 		let frameworkTarget = try XCTUnwrap(targets.first(where: { $0.name ==  "Framework"}), "Failed to get Framework from targets")
 		let framework = try XCTUnwrap(graph.findNode(for: frameworkTarget), "Failed to find Framework node in graph")
 
 		// Framework should have two dependency edges - Common & SFSafeSymbols and one depender edge - App
 		XCTAssertTrue(framework.edges.count == 3, "Framework's edges is not equal to 3")
-		let symbolsEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "SFSafeSymbols" }), "Failed to get SFSafeSymbols edge from Framework")
-		let frameworkCommonEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "Common" }), "Failed to get SFSafeSymbols edge from Framework")
-		let frameworkAppEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "App" }), "Failed to get App edge from Framework")
+		let symbolsEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "SFSafeSymbols.o" }), "Failed to get SFSafeSymbols edge from Framework")
+		let frameworkCommonEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "Common.framework" }), "Failed to get SFSafeSymbols edge from Framework")
+		let frameworkAppEdge = try XCTUnwrap(framework.edges.first(where: { $0.to.valueName == "App.app" }), "Failed to get App edge from Framework")
 
 		XCTAssertNotEqual(commonEdge, frameworkCommonEdge, "App's Common edge is equal to Framework's Common edge - they should have different from values")
 		XCTAssertEqual(symbolsEdge.relationship, .dependency)

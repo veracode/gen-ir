@@ -2,7 +2,6 @@ import Foundation
 import PIFSupport
 
 class PIFCache {
-	private let buildCache: URL
 	private let pifCachePath: URL
 	private let workspace: PIF.Workspace
 
@@ -22,7 +21,6 @@ class PIFCache {
 	}
 
 	init(buildCache: URL) throws {
-		self.buildCache = buildCache
 		self.pifCachePath = try Self.pifCachePath(in: buildCache)
 
 		do {
@@ -34,13 +32,12 @@ class PIFCache {
 	}
 
 	private static func pifCachePath(in buildCache: URL) throws -> URL {
-		// TODO: test this variation, because I haven't seen this personally
 		let cmakePIFCachePath = buildCache
-				.deletingLastPathComponent()
 				.appendingPathComponent("XCBuildData")
 				.appendingPathComponent("PIFCache")
 
 		let regularPIFCachePath = buildCache
+				.appendingPathComponent("Build")
 				.appendingPathComponent("Intermediates.noindex")
 				.appendingPathComponent("XCBuildData")
 				.appendingPathComponent("PIFCache")
@@ -111,12 +108,10 @@ extension PIF.BaseTarget: Hashable {
 }
 
 struct PIFDependencyProvider: DependencyProviding {
-	private let targets: [Target]
 	private let cache: PIFCache
 	private var guidToTargets: [PIF.GUID: Target]
 
 	init(targets: [Target], cache: PIFCache) {
-		self.targets = targets
 		self.cache = cache
 
 		self.guidToTargets = targets
@@ -168,24 +163,20 @@ struct PIFDependencyProvider: DependencyProviding {
 			.compactMap { resolveSwiftPackage($0) }
 
 		// Framework build phase dependencies
-		let frameworkBuildPhases = value
+		// NOTE: Previously we just cast this - all of a sudden with pods this is broken
+		// Not the end of the world - just as quick to do a dictionary lookup
+		let frameworkGUIDs = value
 			.baseTarget
 			.buildPhases
-			.compactMap { $0 as? PIF.FrameworksBuildPhase }
-
-		let referenceGUIDs = frameworkBuildPhases
 			.flatMap { $0.buildFiles }
+			// .compactMap { $0 as? PIF.FrameworksBuildPhase }
 			.compactMap {
 				switch $0.reference {
-				case .file(let guid): return guid
-				case .target: return nil // TODO: is this fine? I think so since we're looking for .framework file references here not targets which should be a dependency
+				case let .file(guid): return guid
+				case .target: return nil
 				}
 			}
-
-		let frameworkGUIDs = referenceGUIDs
-			.compactMap {
-				cache.frameworks[$0]?.guid
-			}
+			.compactMap { cache.frameworks[$0]?.guid }
 
 		let dependencyTargets = (dependencyTargetGUIDs + frameworkGUIDs).compactMap { guidToTargets[$0] }
 

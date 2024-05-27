@@ -54,7 +54,16 @@ extension Process {
 
 		let process = Process()
 
-		let executable = command.replacingOccurrences(of: "\\", with: "")
+		let executable: String
+		let args: [String]
+
+		if command.starts(with: ".") || command.starts(with: "/") {
+			executable = command.replacingOccurrences(of: "\\", with: "")
+			args = arguments
+		} else {
+			executable = "/usr/bin/env"
+			args = [command] + arguments
+		}
 
 		if #available(macOS 10.13, *) {
 			process.executableURL = executable.fileURL
@@ -62,7 +71,7 @@ extension Process {
 			process.launchPath = executable
 		}
 
-		process.arguments = arguments.map { $0.replacingOccurrences(of: "\\", with: "") }
+		process.arguments = args.map { $0.replacingOccurrences(of: "\\", with: "") }
 		process.standardOutput = stdoutPipe
 		process.standardError = stderrPipe
 		process.standardInput = FileHandle.nullDevice
