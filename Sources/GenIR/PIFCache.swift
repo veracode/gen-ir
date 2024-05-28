@@ -1,5 +1,7 @@
 import Foundation
 import PIFSupport
+import DependencyGraph
+import LogHandlers
 
 /// The PIFCache provides a wrapper around a `PIF.Workspace`.
 /// It includes a set of helper functions to make operating on the PIF Cache structures easier.
@@ -85,7 +87,7 @@ class PIFCache {
 				case let file as PIF.FileReference:
 					result.append(file)
 				case let group as PIF.Group:
-					resolveChildren(starting: group.children, result: &result)
+					resolveChildren(starting: group.children)
 				default:
 					logger.debug("Unhandled reference type: \(child)")
 				}

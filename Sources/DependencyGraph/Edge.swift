@@ -9,16 +9,17 @@
 /// An edge describes the relationship between two Node<Value>s in a graph
 
 extension DependencyGraph {
-	class Edge {
+	/// An edge represents the connection between two nodes in the graph
+	public class Edge {
 		/// The source node
-		let to: DependencyGraph.Node
+		public let to: DependencyGraph.Node
 		/// The destination node
-		let from: DependencyGraph.Node
+		public let from: DependencyGraph.Node
 		/// The relationship between the two nodes
-		let relationship: Relationship
+		public let relationship: Relationship
 
 		/// Description of the relationships between two nodes
-		enum Relationship {
+		public enum Relationship {
 			/// From depends on To
 			case dependency
 			/// From is a depender of To
@@ -39,13 +40,13 @@ extension DependencyGraph {
 }
 
 extension DependencyGraph.Edge: Equatable {
-	static func == (_ lhs: DependencyGraph.Edge, rhs: DependencyGraph.Edge) -> Bool {
+	public static func == (_ lhs: DependencyGraph.Edge, rhs: DependencyGraph.Edge) -> Bool {
 		lhs.to == rhs.to && lhs.from == rhs.from && lhs.relationship == rhs.relationship
 	}
 }
 
 extension DependencyGraph.Edge: Hashable {
-	func hash(into hasher: inout Hasher) {
+	public func hash(into hasher: inout Hasher) {
 		hasher.combine(to)
 		hasher.combine(from)
 		hasher.combine(relationship)
@@ -53,6 +54,6 @@ extension DependencyGraph.Edge: Hashable {
 }
 
 extension DependencyGraph.Edge: CustomStringConvertible {
-	var description: String { "[Edge from \(from) to \(to) relationship: \(relationship)]"}
+	public var description: String { "[Edge from \(from) to \(to) relationship: \(relationship)]"}
 }
 // swiftlint:enable identifier_name

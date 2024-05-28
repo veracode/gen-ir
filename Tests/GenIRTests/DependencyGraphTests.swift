@@ -1,5 +1,6 @@
 import XCTest
 @testable import gen_ir
+@testable import DependencyGraph
 
 final class DependencyGraphTests: XCTestCase {
 	let testPath: URL = {

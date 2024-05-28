@@ -1,4 +1,5 @@
 import Foundation
+import LogHandlers
 
 /// Manipulates the build cache, if and when needed, to fix up potential invalidations
 struct BuildCacheManipulator {
@@ -78,7 +79,7 @@ struct BuildCacheManipulator {
 					.appendingPathComponent("BuildProductsPath")
 
 			guard
-				let archivePath = Self.findConfigurationDirectory(intermediatesBuildPath)
+				let archivePath = findConfigurationDirectory(intermediatesBuildPath)
 			else {
 				throw Error.directoryNotFound(
 					"Couldn't find or determine a build configuration directory (expected inside of: \(intermediatesBuildPath))"
@@ -134,7 +135,7 @@ struct BuildCacheManipulator {
 	///  Tries to find the xcode build configuration directory path inside the given path
 	/// - Parameter path: the path to search
 	/// - Returns: the path to the build configuration directory, if found
-	private static func findConfigurationDirectory(_ path: URL) -> URL? {
+	private func findConfigurationDirectory(_ path: URL) -> URL? {
 		let folders = (try? FileManager.default.directories(at: path, recursive: false)) ?? []
 
 		guard folders.count != 0 else {

@@ -7,21 +7,22 @@
 
 import Foundation
 
-protocol NodeValue: Hashable {
+public protocol NodeValue: Hashable {
 	/// The name of this node, this should be unique
 	var valueName: String { get }
 }
 
 extension DependencyGraph {
-	class Node {
+	/// A node holds an associated value and edges to other nodes in the graph
+	public class Node {
 		/// The edges from and to this node
-		private(set) var edges = [DependencyGraph.Edge]()
+		private(set) public var edges = [DependencyGraph.Edge]()
 
 		/// The associated value of this node
-		let value: Value
+		public let value: Value
 
 		/// The name of this node
-		var valueName: String {
+		public var valueName: String {
 			value.valueName
 		}
 
@@ -42,13 +43,13 @@ extension DependencyGraph {
 }
 
 extension DependencyGraph.Node: Equatable {
-	static func == (_ lhs: DependencyGraph.Node, rhs: DependencyGraph.Node) -> Bool {
+	public static func == (_ lhs: DependencyGraph.Node, rhs: DependencyGraph.Node) -> Bool {
 		lhs.value == rhs.value && lhs.edges == rhs.edges
 	}
 }
 
 extension DependencyGraph.Node: CustomStringConvertible {
-	var description: String {
+	public var description: String {
 		var description = ""
 
 		if !edges.isEmpty {
@@ -62,7 +63,7 @@ extension DependencyGraph.Node: CustomStringConvertible {
 }
 
 extension DependencyGraph.Node: Hashable {
-	func hash(into hasher: inout Hasher) {
+	public func hash(into hasher: inout Hasher) {
 		hasher.combine(valueName)
 		hasher.combine(value)
 	}

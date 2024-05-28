@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import LogHandlers
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]

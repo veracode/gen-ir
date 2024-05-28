@@ -2,16 +2,14 @@ import Foundation
 import ArgumentParser
 import Logging
 import PIFSupport
-
-/// Global logger object
-var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
+import DependencyGraph
+import LogHandlers
 
 /// The name of the program
 let programName = CommandLine.arguments.first!
 
 /// Command to emit LLVM IR from an Xcode build log
-@main
-struct IREmitterCommand: ParsableCommand {
+@main struct IREmitterCommand: ParsableCommand {
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
@@ -175,8 +173,6 @@ struct IREmitterCommand: ParsableCommand {
 	/// Reads stdin until an EOF is found
 	/// - Returns: An array of Strings representing stdin split by lines
 	private func readStdin() throws -> [String] {
-		logger.info("Collating input via pipe")
-
 		var results = [String]()
 
 		while let line = readLine() {
@@ -193,8 +189,6 @@ struct IREmitterCommand: ParsableCommand {
 		if !quieter {
 			print("\n\n")
 		}
-
-		logger.info("Finished reading from pipe")
 
 		return results
 	}

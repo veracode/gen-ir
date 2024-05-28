@@ -7,6 +7,7 @@
 
 import Foundation
 import PIFSupport
+import DependencyGraph
 
 /// A Target represents a product to build (app, framework, plugin, package)
 class Target {

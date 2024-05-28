@@ -1,5 +1,6 @@
 import Foundation
 @testable import gen_ir
+import DependencyGraph
 import XCTest
 
 /// TestContext is a grouping of convenance functions and a context to ease the burden of testing Gen IR

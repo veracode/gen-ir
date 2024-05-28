@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import LogHandlers
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {

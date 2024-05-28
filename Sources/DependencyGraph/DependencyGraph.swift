@@ -6,11 +6,12 @@
 //
 
 import Foundation
+import LogHandlers
 
 /// A directed graph that maps dependencies between values (nodes) via edges (directions between nodes)
-class DependencyGraph<Value: NodeValue> {
+public class DependencyGraph<Value: NodeValue> {
 	/// All the nodes in the graph
-	private(set) var nodes = [String: Node]()
+	private(set) public var nodes = [String: Node]()
 
 	/// Adds a node for the associated value to the graph
 	/// - Parameter value: the value associated with the node
@@ -28,14 +29,14 @@ class DependencyGraph<Value: NodeValue> {
 	/// Finds the node associated with a value
 	/// - Parameter value: the value to look for
 	/// - Returns: the node for which the value is associated, if found
-	func findNode(for value: Value) -> Node? {
+	public func findNode(for value: Value) -> Node? {
 		nodes[value.valueName]
 	}
 
 	/// Returns the dependency 'chain' for the value associated with a node in the graph using a depth-first search
 	/// - Parameter value: the associated value for a node to start the search with
 	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
-	func chain(for value: Value) -> [Node] {
+	public func chain(for value: Value) -> [Node] {
 		guard let node = findNode(for: value) else {
 			logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
@@ -77,7 +78,7 @@ class DependencyGraph<Value: NodeValue> {
 
 	/// Writes a 'dot' graph file to disk
 	/// - Parameter path: the path to write the graph to
-	func toDot(_ path: String) throws {
+	public func toDot(_ path: String) throws {
 		var contents = "digraph DependencyGraph {\n"
 
 		for node in nodes.values {
@@ -92,7 +93,7 @@ class DependencyGraph<Value: NodeValue> {
 }
 
 extension DependencyGraph: CustomStringConvertible {
-	var description: String {
+	public var description: String {
 		var description = ""
 
 		nodes
