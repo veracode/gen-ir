@@ -17,6 +17,7 @@ class XcodeLogParser {
 	private(set) var settings: [String: String] = [:]
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
+	/// A mapping of target names to the compiler commands that relate to them
 	private(set) var targetCommands: [String: [CompilerCommand]] = [:]
 
 	enum Error: Swift.Error {

@@ -4,7 +4,7 @@ import XCTest
 final class GenIRTests: XCTestCase {
 	func testManyTargetTestTargets() throws {
 		let context = TestContext()
-		let projectPath = TestContext.baseTestingPath
+		let projectPath = TestContext.baseProjectPath
 			.appendingPathComponent("TestAssets")
 			.appendingPathComponent("ManyTargetTest")
 			.appendingPathComponent("ManyTargetTest.xcodeproj")

@@ -1,17 +1,22 @@
 import Foundation
 import Logging
 
+/// Global logger for the module
 var logger: Logger!
 
-public class PIFParser {
+/// PIFCacheParser is responsible for discovering the files in a PIF Cache and decoding them.
+public class PIFCacheParser {
+	/// The path to the PIF Cache (in Xcode's DerivedData this is often under Build/Intermediates.noindex/XCBuildData/PIFCache)
 	private let cachePath: URL
+	/// The most recent workspace in the cache
 	public let workspace: PIF.Workspace
 
 	public enum Error: Swift.Error {
+		/// A PIF Workspace was not found in the cache
 		case workspaceNotFound
-		case filesystemError(Swift.Error)
 	}
 
+	/// Creates an instance initialized with the cache data at the given path.
 	public init(cachePath: URL, logger log: Logger) throws {
 		logger = log
 		self.cachePath = cachePath
@@ -20,39 +25,33 @@ public class PIFParser {
 		workspace = try PIF.PIFDecoder(cache: cachePath).decode(PIF.Workspace.self, from: data)
 	}
 
+	/// Finds the most recent workspace in the cache
+	/// - Throws: a `workspaceNotFound` error when a workspace is not found
+	/// - Returns: the path to the most recent workspace file
 	private static func workspacePath(in cachePath: URL) throws -> URL {
-		let path = cachePath.appendingPathComponent("workspace")
-
-		let workspaces = try FileManager.default.contentsOfDirectory(at: path, includingPropertiesForKeys: [.isRegularFileKey])
-			.filter { $0.lastPathComponent.starts(with: "WORKSPACE@") }
-
-		guard !workspaces.isEmpty else {
-			throw Error.workspaceNotFound
+		let workspaces = try FileManager.default.contentsOfDirectory(
+			at: cachePath.appendingPathComponent("workspace"),
+			includingPropertiesForKeys: nil
+		)
+		.filter { $0.lastPathComponent.starts(with: "WORKSPACE@") }
+		.map {
+			(
+				workspace: $0,
+				modificationDate: (try? FileManager.default.attributesOfItem(atPath: $0.path)[.modificationDate] as? Date) ?? Date()
+			)
 		}
 
-		if workspaces.count == 1 {
-			return workspaces[0]
+		if workspaces.isEmpty {
+			throw Error.workspaceNotFound
+		} else if workspaces.count == 1, let workspace = workspaces.first?.workspace {
+			return workspace
 		}
 
 		// If multiple workspaces exist, it's because the something in the project changed between builds. Sort workspaces by the most recent.
-		func modificationDate(_ path: URL) -> Date {
-			(try? FileManager.default.attributesOfItem(atPath: path.path)[.modificationDate] as? Date) ?? Date()
-		}
-
-		logger.debug("Found multiple workspaces, sorting by modification date and returning most recently modified workspace")
-
-		let workspacesAndDates = workspaces
-			.map {
-				(modificationDate($0), $0)
-			}
-
-		logger.debug("Comparing dates and workspaces: ")
-		workspacesAndDates.forEach { logger.debug("\($0) - \($1)") }
-
-		return workspacesAndDates
-			.sorted {
-				$0.0 > $1.0
-			}[0].1
+		return workspaces
+			.sorted(using: KeyPathComparator(\.modificationDate))
+			.first!
+			.workspace
 	}
 }
 

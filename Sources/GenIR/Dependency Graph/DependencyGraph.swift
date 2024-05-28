@@ -10,32 +10,32 @@ import Foundation
 /// A directed graph that maps dependencies between values (nodes) via edges (directions between nodes)
 class DependencyGraph<Value: NodeValue> {
 	/// All the nodes in the graph
-	private(set) var nodes = [String: Node<Value>]()
+	private(set) var nodes = [String: Node]()
 
-	/// Adds a value to the graph
-	/// - Parameter value: the value to add
-	/// - Returns: the node added
-	func addNode(value: Value) -> Node<Value> {
+	/// Adds a node for the associated value to the graph
+	/// - Parameter value: the value associated with the node
+	/// - Returns: the node for the associated value. If the node already existed it is returned
+	func addNode(for value: Value) -> Node {
 		if let node = findNode(for: value) {
 			return node
 		}
 
-		let node = Node<Value>(value)
+		let node = Node(value)
 		nodes[value.valueName] = node
 		return node
 	}
 
-	/// Finds a value's node in the graph
+	/// Finds the node associated with a value
 	/// - Parameter value: the value to look for
-	/// - Returns: the node for the given value, if found
-	func findNode(for value: Value) -> Node<Value>? {
+	/// - Returns: the node for which the value is associated, if found
+	func findNode(for value: Value) -> Node? {
 		nodes[value.valueName]
 	}
 
-	/// Builds a dependency 'chain' for a value using a depth-first search
-	/// - Parameter value: the value to get a chain for
-	/// - Returns: the chain of nodes, starting
-	func chain(for value: Value) -> [Node<Value>] {
+	/// Returns the dependency 'chain' for the value associated with a node in the graph using a depth-first search
+	/// - Parameter value: the associated value for a node to start the search with
+	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
+	func chain(for value: Value) -> [Node] {
 		guard let node = findNode(for: value) else {
 			logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
@@ -47,15 +47,16 @@ class DependencyGraph<Value: NodeValue> {
 	/// Perform a depth-first search starting at the provided node
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
-	private func depthFirstSearch(startingAt node: Node<Value>) -> [Node<Value>] {
+	private func depthFirstSearch(startingAt node: Node) -> [Node] {
 		logger.debug("----\nSearching for: \(node.value.valueName)")
-		var visited = Set<Node<Value>>()
-		var chain = [Node<Value>]()
+		var visited = Set<Node>()
+		var chain = [Node]()
 
-		func depthFirst(node: Node<Value>) {
+		/// Visits node dependencies and adds them to the chain from the bottom up
+		/// - Parameter node: the node to search through
+		func depthFirst(node: Node) {
 			logger.debug("inserting node: \(node.value.valueName)")
 			visited.insert(node)
-			logger.debug("visited: \(visited)")
 
 			for edge in node.edges where edge.relationship == .dependency {
 				if visited.insert(edge.to).inserted {
@@ -74,6 +75,8 @@ class DependencyGraph<Value: NodeValue> {
 		return chain
 	}
 
+	/// Writes a 'dot' graph file to disk
+	/// - Parameter path: the path to write the graph to
 	func toDot(_ path: String) throws {
 		var contents = "digraph DependencyGraph {\n"
 

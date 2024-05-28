@@ -7,8 +7,6 @@
 
 import Foundation
 
-private typealias SizeAndCreation = (Int, Date)
-
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
 /// The `OutputPostprocessor` attempts to remedy this by using the `ProjectParser` to detect dependencies between products AND
@@ -20,18 +18,23 @@ class OutputPostprocessor {
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
 	private let dynamicDependencyToPath: [String: URL]
 
+	/// A dependency graph containing the targets in the output archive
 	private let graph: DependencyGraph<Target>
+
+	/// The targets in this archive
 	private let targets: [Target]
 
-	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
+	/// A mapping of targets to their path on disk
 	private let targetsToPaths: [Target: URL]
 
+	/// The manager to use for file system access
 	private let manager: FileManager = .default
 
-	init(archive: URL, output: URL, graph: DependencyGraph<Target>, targets: [Target]) throws {
+	/// Initializes the postprocessor
+	init(archive: URL, output: URL, graph: DependencyGraph<Target>) throws {
 		self.archive = archive
 		self.graph = graph
-		self.targets = targets
+		self.targets = graph.nodes.map { $0.value.value }
 
 		let namesToTargets = targets
 			.reduce(into: [String: Target]()) { partial, target in
@@ -44,7 +47,7 @@ class OutputPostprocessor {
 				if let target = namesToTargets[path.lastPathComponent] {
 					partial[target] = path
 				} else {
-					logger.error("Failed to look up target for path: \(path)")
+					logger.error("Path (\(path.lastPathComponent)) wasn't found in namesToTargets: \(namesToTargets)")
 				}
 			}
 
@@ -122,10 +125,11 @@ class OutputPostprocessor {
 	func copyContentsOfDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
 		let files = try manager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
+		/// Source and destination paths
+		typealias SourceAndDestination = (source: URL, destination: URL)
 		// Get two arrays of file paths of the source and destination file where:
 		//  1) destination already exists
 		//  2) destination doesn't already exist
-		typealias SourceAndDestination = (source: URL, destination: URL)
 		let (existing, nonexisting) = files
 			.map {
 				(
@@ -154,6 +158,12 @@ class OutputPostprocessor {
 			}
 	}
 
+	/// The size and creation date of a file system item
+	private typealias SizeAndCreation = (Int, Date)
+
+	/// A cache of seen files and their associated metadata
+	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
+
 	/// Copies a file, uniquing the path if it conflicts, _if_ the files they conflict with aren't the same size
 	/// - Parameters:
 	///   - source: source file path
@@ -174,11 +184,7 @@ class OutputPostprocessor {
 
 		let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
-		if seenConflictingFiles[source] == nil {
-			seenConflictingFiles[source] = [(sourceSize, sourceCreatedDate)]
-		}
-
-		for (size, date) in seenConflictingFiles[source]! where size == destinationSize && date == destinationCreatedDate {
+		for (size, date) in seenConflictingFiles[source, default: [(sourceSize, sourceCreatedDate)]] where size == destinationSize && date == destinationCreatedDate {
 			return
 		}
 
@@ -215,6 +221,9 @@ private func baseSearchPath(startingAt path: URL) -> URL {
 	let applicationsPath = productsPath.appendingPathComponent("Applications")
 	let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
 
+	/// Returns the first directory found at the given path
+	/// - Parameter path: the path to search for directories
+	/// - Returns: the first directory found in the path if one exists
 	func firstDirectory(at path: URL) -> URL? {
 		guard
 			FileManager.default.directoryExists(at: path),
@@ -225,7 +234,7 @@ private func baseSearchPath(startingAt path: URL) -> URL {
 		}
 
 		if contents.count > 1 {
-			logger.error("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
+			logger.debug("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
 		}
 
 		return contents.first!

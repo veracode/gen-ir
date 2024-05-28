@@ -2,22 +2,29 @@ import Foundation
 @testable import gen_ir
 import XCTest
 
+/// TestContext is a grouping of convenance functions and a context to ease the burden of testing Gen IR
 class TestContext {
 	enum Error: Swift.Error {
 		case commandFailed(Process.ReturnValue)
 		case invalidArgument(String)
-		case notBuilt
 	}
 
-	static let baseTestingPath: URL = {
+	/// The base folder path of the Gen IR project
+	static let baseProjectPath: URL = {
 		// HACK: use the #file magic to get a path to the test case... Maybe there's a better way to do this?
 		URL(fileURLWithPath: #file.replacingOccurrences(of: "Tests/GenIRTests/TestContext.swift", with: ""))
 	}()
 
+	/// Path to the TestAssets folder
 	static let testAssetPath: URL = {
-		baseTestingPath.appendingPathComponent("TestAssets")
+		baseProjectPath.appendingPathComponent("TestAssets")
 	}()
 
+	/// Run xcodebuild's clean action
+	/// - Parameters:
+	///   - path: the path of the project to clean
+	///   - scheme: the name of the scheme to clean (required for workspaces)
+	/// - Returns:
 	func clean(test path: URL, scheme: String) throws -> Process.ReturnValue {
 		var arguments = ["clean"]
 
@@ -38,8 +45,13 @@ class TestContext {
 		)
 	}
 
-	@discardableResult
-	func build(
+	/// Run xcodebuild's archive action
+	/// - Parameters:
+	///   - path: the path of the project to build
+	///   - scheme: the name of the scheme to build
+	///   - additionalArguments: any additional arguments to passthrough to xcodebuild
+	/// - Returns: the result of running the action.
+	@discardableResult func build(
 		test path: URL,
 		scheme: String,
 		additionalArguments: [String] = []
@@ -85,12 +97,18 @@ class TestContext {
 		return process
 	}
 
+	/// Path to the xcarchive (once built)
 	let archive: URL
+	/// Path to the build log (once built)
 	let buildLog: URL
+	/// Path to the temporary working directory for this context
 	let temporaryDirectory: URL
+	/// Has the project been built?
 	private(set) var built = false
+	/// Contents of the built build log
 	private(set) var buildLogContents = [String]()
 
+	/// Initializes the test context
 	init() {
 		// swiftlint:disable force_try
 		temporaryDirectory = try! FileManager.default.temporaryDirectory(named: "gen-ir-tests-\(UUID().uuidString)")
@@ -103,6 +121,7 @@ class TestContext {
 		// swiftlint:enable force_try
 	}
 
+	/// Generate the log parser for this context
 	lazy var logParser: XcodeLogParser = {
 		XCTAssertTrue(built, "Requests a log parser without building the project")
 		let parser = XcodeLogParser(log: buildLogContents)
@@ -114,6 +133,7 @@ class TestContext {
 		return parser
 	}()
 
+	/// Generate the PIF Cache for this context
 	lazy var pifCache: PIFCache = {
 		do {
 			return try PIFCache(buildCache: logParser.buildCachePath)
@@ -122,10 +142,12 @@ class TestContext {
 		}
 	}()
 
+	/// Generate the Targets for this context
 	lazy var targets: [Target] = {
 		Target.targets(from: pifCache.targets, with: logParser.targetCommands)
 	}()
 
+	/// Generate the dependency graph for this context
 	lazy var graph: DependencyGraph<Target> = {
 		DependencyGraphBuilder(provider: PIFDependencyProvider(targets: targets, cache: pifCache), values: targets).graph
 	}()

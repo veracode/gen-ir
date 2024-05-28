@@ -8,6 +8,7 @@ struct BuildCacheManipulator {
 	/// Build settings used as part of the build
 	private let buildSettings: [String: String]
 
+	/// Run without doing any cache manipulation
 	private let dryRun: Bool
 
 	/// Should we run the SKIP_INSTALL hack?
@@ -21,6 +22,12 @@ struct BuildCacheManipulator {
 		case tooManyDirectories(String)
 	}
 
+	/// Creates an instance of the cache manipulator
+	/// - Parameters:
+	///   - buildCachePath: the build cache to operate on
+	///   - buildSettings: the project build settings
+	///   - archive: the path to the xcarchive produced as part of the build
+	///   - dryRun: should be a dry run?
 	init(buildCachePath: URL, buildSettings: [String: String], archive: URL, dryRun: Bool) throws {
 		self.buildCachePath = buildCachePath
 		self.buildSettings = buildSettings
@@ -35,7 +42,10 @@ struct BuildCacheManipulator {
 		}
 	}
 
+	/// Start the build cache manipulator
 	func manipulate() throws {
+		guard !dryRun else { return }
+
 		if shouldDeploySkipInstallHack {
 			let intermediatesPath = buildCachePath
 			.appendingPathComponent("Build")
@@ -79,17 +89,19 @@ struct BuildCacheManipulator {
 		}
 	}
 
-	// This is a hack. Turn away now.
-	//
-	// When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
-	// This means when we rerun commands to generate IR, the frameworks no longer exist on disk, and we fail with linker errors.
-	//
-	// This is how the build cache is (roughly) laid out:
-	//
-	// * Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/<CONFIGURATION>-<PLATFORM>
-	// 	* this contains a set of symlinks to elsewhere in the build cache. These links remain in place, but the items they point to are removed
-	//
-	// The idea here is simple, attempt to update the symlinks so they point to valid framework product.
+	/// This is a hack. Turn away now.
+	///
+	/// When archiving frameworks with the SKIP_INSTALL=NO setting, frameworks will be evicted (see below) from the build cache.
+	/// This means when we rerun commands to generate IR, the frameworks no longer exist on disk, and we fail with linker errors.
+	///
+	/// This is how the build cache is (roughly) laid out:
+	///
+	/// * Build/Intermediates.noindex/ArchiveIntermediates/<TARGET>/BuildProductsPath/<CONFIGURATION>-<PLATFORM>
+	/// 	* this contains a set of symlinks to elsewhere in the build cache. These links remain in place, but the items they point to are removed
+	///
+	/// The idea here is simple, attempt to update the symlinks so they point to valid framework product.
+	///
+	/// - Parameter archiveBuildProductsPath: build products path (see description)
 	private func skipInstallHack(_ archiveBuildProductsPath: URL) throws {
 		let symlinksToUpdate = FileManager.default.filteredContents(of: archiveBuildProductsPath) {
 			$0.lastPathComponent.hasSuffix("framework")
@@ -118,9 +130,10 @@ struct BuildCacheManipulator {
 		}
 	}
 
+	/// TODO: This could be more sensible and get the build configuration from the log and match that to a configuration in the PIF Cache
 	///  Tries to find the xcode build configuration directory path inside the given path
 	/// - Parameter path: the path to search
-	/// - Returns:
+	/// - Returns: the path to the build configuration directory, if found
 	private static func findConfigurationDirectory(_ path: URL) -> URL? {
 		let folders = (try? FileManager.default.directories(at: path, recursive: false)) ?? []
 

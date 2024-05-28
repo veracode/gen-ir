@@ -6,6 +6,7 @@ import PIFSupport
 /// Global logger object
 var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
 
+/// The name of the program
 let programName = CommandLine.arguments.first!
 
 /// Command to emit LLVM IR from an Xcode build log
@@ -150,8 +151,7 @@ struct IREmitterCommand: ParsableCommand {
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
 			output: output,
-			graph: graph,
-			targets: targets
+			graph: graph
 		)
 
 		try postprocessor.process()

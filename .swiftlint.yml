@@ -5,6 +5,9 @@ excluded:
   - .build/
   - TestAssets/
   - PIF/.build/
+  - '**/Package.swift'
+  - Package.swift
+  - PIF/Sources/pif-parser/pif-parser.swift
 
 disabled_rules:
   - todo
@@ -16,11 +19,8 @@ line_length:
 
 missing_docs:
   warning:
-  - private
-  - open
-  - fileprivate
-  - public
-  - internal
+    - private
+    - public
 
 opt_in_rules:
   - missing_docs

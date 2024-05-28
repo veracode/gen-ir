@@ -5,17 +5,32 @@
 //  Created by Thomas Hedderwick on 28/08/2023.
 //
 
+/// A type that provides dependency relationships between values
 protocol DependencyProviding {
+	/// A type that represents the value of a node
 	associatedtype Value: NodeValue
+
+	/// Returns the direct dependencies for a given value
+	/// - Parameter value: the value to get dependencies for
+	/// - Returns: a list of dependencies
 	func dependencies(for value: Value) -> [Value]
 }
 
+/// A builder for the DependencyGraph - you should _always_ use this class to build out the `DependencyGraph`
 class DependencyGraphBuilder<Provider: DependencyProviding, Value: NodeValue> where Value == Provider.Value {
+	/// The graph the builder will operate on
+	typealias Graph = DependencyGraph<Value>
+
+	/// The dependency provider
 	private let provider: Provider
-	let graph = DependencyGraph<Value>()
+
+	/// The built graph
+	let graph = Graph()
 
 	/// Inits the Graph Builder
-	/// - Parameter provider: the dependency provider for the values
+	/// - Parameters:
+	///   - provider: the dependency provider for the values
+	///   - values: the values to add to the graph
 	init(provider: Provider, values: [Value]) {
 		self.provider = provider
 		values.forEach { add(value: $0) }
@@ -25,7 +40,7 @@ class DependencyGraphBuilder<Provider: DependencyProviding, Value: NodeValue> wh
 	/// - Parameters:
 	///   - value: the value to add
 	@discardableResult
-	private func add(value: Value) -> Node<Value> {
+	private func add(value: Value) -> Graph.Node {
 		if let existingNode = graph.findNode(for: value) {
 			return existingNode
 		}
@@ -33,7 +48,7 @@ class DependencyGraphBuilder<Provider: DependencyProviding, Value: NodeValue> wh
 		logger.debug("Adding value: \(value.valueName) to graph")
 
 		let dependencies = provider.dependencies(for: value)
-		let node = graph.addNode(value: value)
+		let node = graph.addNode(for: value)
 
 		for dependency in dependencies {
 			let dependencyNode = add(value: dependency)

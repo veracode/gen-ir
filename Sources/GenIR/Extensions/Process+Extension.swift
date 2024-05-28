@@ -8,7 +8,7 @@
 import Foundation
 
 extension Process {
-	/// Presents the result of a Process
+	/// Represents the result of a Process
 	struct ReturnValue {
 		/// The stdout output of the process, if there was any
 		let stdout: String?
@@ -17,17 +17,22 @@ extension Process {
 		/// The return code of the process
 		let code: Int32
 
+		/// Initializes a ReturnValue
+		/// - Parameters:
+		///   - stdout: the standard output
+		///   - stderr: the standard error
+		///   - code: the exit code
 		init(stdout: String?, stderr: String?, code: Int32) {
-			if let stdout, stdout.isEmpty {
-				self.stdout = nil
+			self.stdout = if let stdout, stdout.isEmpty {
+				nil
 			} else {
-				self.stdout = stdout
+				stdout
 			}
 
-			if let stderr, stderr.isEmpty {
-				self.stderr = nil
+			self.stderr = if let stderr, stderr.isEmpty {
+				nil
 			} else {
-				self.stderr = stderr
+				stderr
 			}
 
 			self.code = code

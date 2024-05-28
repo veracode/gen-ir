@@ -97,6 +97,10 @@ final class WorkspaceTests: XCTestCase {
 		XCTAssertEqual(expectedAppIRFiles, appIRPathContents, "App IR expected contents didn't equal actual: \(expectedAppIRFiles.symmetricDifference(appIRPathContents))")
 		XCTAssertEqual(expectedFrameworkIRFiles, frameworkIRPathContents, "Framework IR expected contents didn't equal actual \(expectedFrameworkIRFiles.symmetricDifference(frameworkIRPathContents))")
 		XCTAssertEqual(expectedCommonIRFiles, commonIRPathContents, "Common IR expected contents didn't equal actual \(expectedCommonIRFiles.symmetricDifference(commonIRPathContents))")
-		XCTAssertEqual(expectedSFSafeSymbolsIRFiles, sfSafeSymbolsIRPathContents, "SFSafeSymbols IR expected contents didn't equal actual \(expectedSFSafeSymbolsIRFiles.symmetricDifference(sfSafeSymbolsIRPathContents))")
+		XCTAssertEqual(
+			expectedSFSafeSymbolsIRFiles,
+			sfSafeSymbolsIRPathContents,
+			"SFSafeSymbols IR expected contents didn't equal actual \(expectedSFSafeSymbolsIRFiles.symmetricDifference(sfSafeSymbolsIRPathContents))"
+		)
 	}
 }

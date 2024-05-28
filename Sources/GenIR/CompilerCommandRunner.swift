@@ -20,8 +20,10 @@ struct CompilerCommandRunner {
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
+	/// The cache manipulator, required to do fix ups on the build cache in very specific circumstances
 	private let buildCacheManipulator: BuildCacheManipulator
 
+	/// Manager used to access the file system
 	private let fileManager = FileManager.default
 
 	enum Error: Swift.Error {
@@ -29,11 +31,14 @@ struct CompilerCommandRunner {
 		case failedToParse(String)
 	}
 
+	/// Run without running the commands
 	private let dryRun: Bool
 
-	/// Initializes a runner
+	/// Initializes the runner
 	/// - Parameters:
 	///   - output: The location to place the resulting LLVM IR
+	///   - buildCacheManipulator: the cache manipulator to perform fixups with
+	///   - dryRun: should run in dry run mode?
 	init(output: URL, buildCacheManipulator: BuildCacheManipulator, dryRun: Bool) {
 		self.output = output
 		self.dryRun = dryRun
@@ -41,6 +46,7 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
+	/// - Parameter targets: the targets holding the commands to run
 	func run(targets: [Target]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
@@ -165,7 +171,7 @@ struct CompilerCommandRunner {
 	/// Parses, and corrects, the executable name and arguments for a given command.
 	/// - Parameter command: The command to parse and correct
 	/// - Returns: A tuple of executable name and an array of arguments
-	private func parse(command: CompilerCommand) throws -> (String, [String]) {
+	private func parse(command: CompilerCommand) throws -> (executable: String, arguments: [String]) {
 		let fixed = fixup(command: command.command)
 		let (executable, arguments) = try split(command: fixed)
 		let fixedArguments = fixup(arguments: arguments, for: command.compiler)

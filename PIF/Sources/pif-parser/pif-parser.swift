@@ -10,7 +10,7 @@ import PIFSupport
 import Logging
 
 @main
-struct PIFParser {
+struct PIFCacheParser {
 	static func main() throws {
 		guard CommandLine.arguments.count == 2 else {
 			print("USAGE: \(CommandLine.arguments.first!) [PIFCache path]")
@@ -18,7 +18,7 @@ struct PIFParser {
 		}
 
 		let cachePath = URL(fileURLWithPath: CommandLine.arguments[1])
-		let parser = try PIFSupport.PIFParser(cachePath: cachePath, logger: .init(label: "com.veracode.pif-parser"))
+		let parser = try PIFSupport.PIFCacheParser(cachePath: cachePath, logger: .init(label: "com.veracode.pif-parser"))
 		let workspace = parser.workspace
 
 		print("workspace: \(workspace.guid):")
