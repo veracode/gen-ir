@@ -51,12 +51,14 @@ struct CompilerCommandRunner {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
-		let totalCommands = commands.reduce(0) { $0 + $1.value.count }
+		let totalCommands = commands
+			.map { $0.value.count }
+			.reduce(0, +)
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for target in targets.filter({ $0.containsBitcode }) {
+		for target in targets.filter({ $0.isBuildable }) {
 			guard let targetCommands = commands[target.name] else {
 				continue
 			}

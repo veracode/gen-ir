@@ -231,7 +231,7 @@ struct PIFDependencyProvider: DependencyProviding {
 		// Framework build phase dependencies
 		// NOTE: Previously we just cast this - all of a sudden with pods this is broken
 		// Not the end of the world - just as quick to do a dictionary lookup
-		let frameworkGUIDs = cache.target(guid:	value.guid)?
+		let frameworkGUIDs = cache.target(guid: value.guid)?
 			.buildPhases
 			.flatMap { $0.buildFiles }
 			.compactMap {
