@@ -113,20 +113,29 @@ class PIFCache {
 			.flatMap { fileReferences(for: $0) }
 			.filter { $0.fileType == "wrapper.framework" }
 
-		// Now, stupidly, we have to do a name lookup on the path and use that to look up a target
 		let frameworks = targets
 			.compactMap { $0 as? PIF.Target }
 			.filter { $0.productType == .framework }
+
+		let frameworkGUIDs = frameworks
 			.reduce(into: [String: PIF.Target]()) { partial, target in
-				let key = target.productName.isEmpty ? target.guid : target.productName
-				partial[key] = target
+				partial[target.guid] = target
 			}
 
-		return frameworkFileReferences
-			.reduce(into: [PIF.GUID: PIF.Target]()) { partial, fileReference in
-				// Use the _file reference_ GUID as the key here - we're looking up frameworks by their file reference and not target GUID!
-				partial[fileReference.guid] = frameworks[fileReference.path]
+		// Map product names to targets
+		let frameworkProducts = frameworks
+			.reduce(into: [String: PIF.Target]()) { partial, target in
+				if !target.productName.isEmpty {
+					partial[target.productName] = target
+				}
 			}
+
+		let frameworkReferenceTargets = frameworkFileReferences
+			.reduce(into: [PIF.GUID: PIF.Target]()) { partial, fileReference in
+				partial[fileReference.guid] = frameworkProducts[fileReference.path]
+			}
+
+		return frameworkGUIDs.merging(frameworkReferenceTargets) { _, new in new }
 	}()
 }
 
@@ -225,11 +234,10 @@ struct PIFDependencyProvider: DependencyProviding {
 		let frameworkGUIDs = cache.target(guid:	value.guid)?
 			.buildPhases
 			.flatMap { $0.buildFiles }
-			// .compactMap { $0 as? PIF.FrameworksBuildPhase }
 			.compactMap {
 				switch $0.reference {
-				case let .file(guid): return guid
-				case .target: return nil
+				case let .file(guid): return cache.frameworks[guid]?.guid
+				case .target(let guid): return guid
 				}
 			}
 			.compactMap { cache.frameworks[$0]?.guid }
