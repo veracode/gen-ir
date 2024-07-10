@@ -112,7 +112,7 @@ let programName = CommandLine.arguments.first!
 
 		// Find and parse the PIF cache
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
-		let targets = Target.targets(from: pifCache.targets, with: log.targetCommands)
+		let targets = pifCache.targets.map { Target(from: $0) }
 
 		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
 			provider: .init(targets: targets, cache: pifCache),
@@ -139,16 +139,20 @@ let programName = CommandLine.arguments.first!
 			dryRun: dryRun
 		)
 
+		let tempDirectory = try FileManager.default.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
+		defer { try? FileManager.default.removeItem(at: tempDirectory) }
+		logger.info("Using temp directory as working directory: \(tempDirectory)")
+
 		let runner = CompilerCommandRunner(
-			output: output,
+			output: tempDirectory,
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(targets: targets)
+		try runner.run(targets: targets, commands: log.targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
-			output: output,
+			output:tempDirectory,
 			graph: graph
 		)
 

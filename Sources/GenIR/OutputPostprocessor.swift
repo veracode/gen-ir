@@ -28,6 +28,12 @@ class OutputPostprocessor {
 	/// The targets in this archive
 	private let targets: [Target]
 
+	private lazy var guidToTargets: [String: Target] = {
+		targets.reduce(into: [String: Target]()) { partial, target in
+			partial[target.guid] = target
+		}
+	}()
+
 	/// A mapping of targets to their path on disk
 	private lazy var targetsToPaths: [Target: URL] = {
 		let namesToTargets = targets
@@ -63,58 +69,74 @@ class OutputPostprocessor {
 	/// Starts the OutputPostprocessor
 	/// - Parameter targets: the targets to operate on
 	func process() throws {
-		// TODO: remove 'static' deps so we don't duplicate them in the submission?
+		var processed: Set<Target> = []
+
 		_ = try targets
-			.map { try process(target: $0) }
+			.filter { $0.isPackageProduct }
+			.map { try process(target: $0, processed: &processed) }
+
+		logger.info("Processed \(processed.count) top-level IR targets")
+
+		try copyToArchive()
 	}
 
 	/// Processes an individual target
 	/// - Parameters:
 	///   - target: the target to process
 	/// - Returns:
-	private func process(target: Target) throws -> Set<URL> {
-		// TODO: we need better handling of swift package products and targets in the dependency graph or we fail to move dependencies here
+	private func process(target: Target, processed: inout Set<Target>) throws {
+		guard processed.insert(target).inserted else {
+			return
+		}
+
+		let targetDirectory = output.appendingPathComponent(target.productName)
+
+		// This directory may already exist if the `CompilerCommandRunner` has already built an
+		// artifact at this location.
+		try? FileManager.default.createDirectory(at: targetDirectory, withIntermediateDirectories: false)
+
 		let chain = graph.chain(for: target)
 
 		logger.debug("Chain for target: \(target.productName):\n\(chain.map { "\($0)\n" })")
 		chain.forEach { logger.debug("\($0)") }
-
-		// We want to process the chain, visiting each node _shallowly_ and copy it's dependencies into it's parent
-		var processed = Set<URL>()
 
 		for node in chain {
 			logger.debug("Processing Node: \(node.valueName)")
 			// Ensure node is not a dynamic dependency
 			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
 
-			// Only care about moving dependencies into dependers - check this node's edges to dependent relationships
-			let dependers = node.edges
-				.filter { $0.relationship == .depender }
-				.map { $0.to }
+			try process(target: node.value, processed: &processed)
 
-			// Move node's IR into depender's IR folder
-			guard let nodeFolderPath = targetsToPaths[node.value] else {
-				logger.debug("IR folder for node: \(node) is nil")
-				continue
-			}
+			let nodeFolderPath = output.appendingPathComponent(node.value.productName)
 
-			for depender in dependers {
-				guard let dependerFolderPath = targetsToPaths[depender.value] else {
-					logger.debug("IR folder for depender node \(depender) is nil")
-					continue
-				}
-
-				// Move the dependency IR (the node) to the depender (the thing depending on this node)
-				do {
-					try copyContentsOfDirectoryMergingDifferingFiles(at: nodeFolderPath, to: dependerFolderPath)
-				} catch {
-					logger.debug("Copy error: \(error)")
-				}
-				processed.insert(nodeFolderPath)
+			do {
+				try copyContentsOfDirectoryMergingDifferingFiles(at: nodeFolderPath, to: targetDirectory)
+			} catch {
+				logger.debug("Copy error: \(error)")
 			}
 		}
+	}
 
-		return processed
+	private func copyToArchive() throws {
+		let irDirectory = archive.appendingPathComponent("IR")
+		try? FileManager.default.createDirectory(at: irDirectory, withIntermediateDirectories: false)
+
+		let nodes = targets.compactMap { graph.findNode(for: $0) }
+
+		for node in nodes {
+			let dependers = node.edges.filter { $0.relationship == .depender }
+			let targetPath = output.appendingPathComponent(node.value.productName)
+			let archivePath = irDirectory.appendingPathComponent(node.value.productName)
+
+			if dynamicDependencyToPath[node.value.productName] != nil || (dependers.count == 0 && !node.value.isSwiftPackage) {
+				logger.debug("Copying \(node.value.productName) with name \(node.value.productName)")
+				if !FileManager.default.directoryExists(at: targetPath) {
+					logger.debug("No target found for target \(node.value.guid) with name \(node.value.productName)")
+					continue
+				}
+				try FileManager.default.copyItem(at: targetPath, to: archivePath)
+			}
+		}
 	}
 
 	// TODO: Write tests for this.

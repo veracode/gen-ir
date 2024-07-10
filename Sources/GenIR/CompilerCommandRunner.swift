@@ -17,6 +17,11 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
+	enum Error: Swift.Error {
+		/// Command runner failed to parse the command for the required information
+		case failedToParse(String)
+	}
+
 	/// The directory to place the LLVM BC output
 	private let output: URL
 
@@ -25,11 +30,6 @@ struct CompilerCommandRunner {
 
 	/// Manager used to access the file system
 	private let fileManager = FileManager.default
-
-	enum Error: Swift.Error {
-		/// Command runner failed to parse the command for the required information
-		case failedToParse(String)
-	}
 
 	/// Run without running the commands
 	private let dryRun: Bool
@@ -47,31 +47,26 @@ struct CompilerCommandRunner {
 
 	/// Starts the runner
 	/// - Parameter targets: the targets holding the commands to run
-	func run(targets: [Target]) throws {
+	func run(targets: [Target], commands: [String: [CompilerCommand]]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
-		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
-		defer { try? fileManager.removeItem(at: tempDirectory) }
-		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
-
-		let totalCommands = targets
-			.map { $0.commands.count }
-			.reduce(0, +)
-
+		let totalCommands = commands.reduce(0) { $0 + $1.value.count }
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for target in targets {
+		for target in targets.filter({ $0.containsBitcode }) {
+			guard let targetCommands = commands[target.name] else {
+				continue
+			}
+
 			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: target.commands, for: target.productName, at: tempDirectory)
+			totalModulesRun += try run(commands: targetCommands, for: target.productName, at: output)
 		}
 
-		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
-
-		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
+		let uniqueModules = Set(try fileManager.files(at: output, withSuffix: ".bc")).count
 		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 	}
 

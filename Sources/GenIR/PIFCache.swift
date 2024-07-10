@@ -19,11 +19,10 @@ class PIFCache {
 	}
 
 	/// All targets contained by the workspace
-	var targets: [PIF.BaseTarget] {
-		workspace
-			.projects
-			.flatMap { $0.targets }
-	}
+	let targets: [PIF.BaseTarget]
+
+	/// Maps GUIDs to their respective targets for easy lookup.
+	private let guidToTargets: [PIF.GUID: PIF.BaseTarget]
 
 	enum Error: Swift.Error {
 		case nonexistentCache(String)
@@ -33,7 +32,7 @@ class PIFCache {
 	/// Initializes the PIF Cache from a build cache
 	/// - Parameter buildCache: path to the Xcode DerivedData Build Cache
 	init(buildCache: URL) throws {
-		self.pifCachePath = try Self.pifCachePath(in: buildCache)
+		pifCachePath = try Self.pifCachePath(in: buildCache)
 
 		do {
 			let cache = try PIFCacheParser(cachePath: pifCachePath, logger: logger)
@@ -41,6 +40,15 @@ class PIFCache {
 		} catch {
 			throw Error.pifError(error)
 		}
+
+		targets = workspace.projects.flatMap { $0.targets }
+		guidToTargets = targets.reduce(into: [PIF.GUID: PIF.BaseTarget]()) { partial, target in
+			partial[target.guid] = target
+		}
+	}
+
+	func target(guid: PIF.GUID) -> PIF.BaseTarget? {
+		guidToTargets[guid]
 	}
 
 	/// Finds the PIF Cache in the Xcode Build Cache. This can vary depending on the build system used.
@@ -151,7 +159,7 @@ struct PIFDependencyProvider: DependencyProviding {
 
 		self.guidToTargets = targets
 			.reduce(into: [PIF.GUID: Target]()) { partial, target in
-				partial[target.baseTarget.guid] = target
+				partial[target.guid] = target
 			}
 	}
 
@@ -176,10 +184,10 @@ struct PIFDependencyProvider: DependencyProviding {
 
 		let productName = String(packageProductGUID.dropFirst(productToken.count))
 
-		let productTargetDependencies = product
-			.baseTarget
+		let productTargetDependencies = cache.target(guid: product.guid)?
 			.dependencies
 			.filter { $0.targetGUID.starts(with: targetToken) }
+			?? []
 
 		let productUnderlyingTargets = productTargetDependencies
 			.filter { $0.targetGUID.dropFirst(targetToken.count) == productName }
@@ -205,17 +213,16 @@ struct PIFDependencyProvider: DependencyProviding {
 
 	func dependencies(for value: Target) -> [Target] {
 		// Direct dependencies
-		let dependencyTargetGUIDs = value
-			.baseTarget
+		let dependencyTargetGUIDs = cache.target(guid: value.guid)?
 			.dependencies
 			.map { $0.targetGUID }
 			.compactMap { resolveSwiftPackage($0) }
+			?? []
 
 		// Framework build phase dependencies
 		// NOTE: Previously we just cast this - all of a sudden with pods this is broken
 		// Not the end of the world - just as quick to do a dictionary lookup
-		let frameworkGUIDs = value
-			.baseTarget
+		let frameworkGUIDs = cache.target(guid:	value.guid)?
 			.buildPhases
 			.flatMap { $0.buildFiles }
 			// .compactMap { $0 as? PIF.FrameworksBuildPhase }
@@ -226,6 +233,7 @@ struct PIFDependencyProvider: DependencyProviding {
 				}
 			}
 			.compactMap { cache.frameworks[$0]?.guid }
+			?? []
 
 		let dependencyTargets = (dependencyTargetGUIDs + frameworkGUIDs).compactMap { guidToTargets[$0] }
 
