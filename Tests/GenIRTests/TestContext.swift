@@ -145,7 +145,7 @@ class TestContext {
 
 	/// Generate the Targets for this context
 	lazy var targets: [Target] = {
-		Target.targets(from: pifCache.targets, with: logParser.targetCommands)
+        pifCache.targets.map { Target(from: $0) }
 	}()
 
 	/// Generate the dependency graph for this context

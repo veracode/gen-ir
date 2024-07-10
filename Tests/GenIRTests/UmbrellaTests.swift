@@ -11,10 +11,10 @@ final class UmbrellaTests: XCTestCase {
 	let scheme = "Umbrella"
 
 	let targetsToFiles = [
-			"Common.framework": ["OrgModel.bc"].sorted(),
-			"Networking.framework": ["Networking.bc"].sorted(),
-			"Pods_Umbrella.framework": [],
-			"Umbrella.framework": ["GetOrg.bc"].sorted()
+			"Common.framework": ["Common-dummy.bc", "Common_vers.bc", "OrgModel.bc"].sorted(),
+			"Networking.framework": ["Networking-dummy.bc", "Networking.bc", "Networking_vers.bc"].sorted(),
+			"Pods_Umbrella.framework": ["Pods-Umbrella-dummy.bc", "Pods_Umbrella_vers.bc"],
+			"Umbrella.framework": ["GetOrg.bc", "Umbrella_vers.bc"].sorted()
 	]
 
 	func testUmbrellaTargets() throws {
