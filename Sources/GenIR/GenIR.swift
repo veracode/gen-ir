@@ -152,7 +152,7 @@ let programName = CommandLine.arguments.first!
 
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
-			output: tempDirectory,
+			build: tempDirectory,
 			graph: graph
 		)
 

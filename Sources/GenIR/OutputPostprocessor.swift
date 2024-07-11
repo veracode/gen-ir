@@ -28,118 +28,84 @@ class OutputPostprocessor {
 	/// The targets in this archive
 	private let targets: [Target]
 
-	private lazy var guidToTargets: [String: Target] = {
-		targets.reduce(into: [String: Target]()) { partial, target in
-			partial[target.guid] = target
-		}
-	}()
-
-	/// A mapping of targets to their path on disk
-	private lazy var targetsToPaths: [Target: URL] = {
-		let namesToTargets = targets
-			.reduce(into: [String: Target]()) { partial, target in
-				partial[target.productName] = target
-			}
-
-		return (try? manager
-			.directories(at: output, recursive: false)
-			.reduce(into: [Target: URL]()) { partial, path in
-				if let target = namesToTargets[path.lastPathComponent] {
-					partial[target] = path
-				} else {
-					logger.error("Path (\(path.lastPathComponent)) wasn't found in namesToTargets: \(namesToTargets)")
-				}
-			}) ?? [:]
-	}()
-
-	/// Path to the IR output folder
-	private let output: URL
+	/// Path to the folder containing build artifacts
+	private let build: URL
 
 	/// The manager to use for file system access
 	private let manager: FileManager = .default
 
+	/// Cache of all files that have been copied to the IR output folder.
+	/// This maps a destination to a set of source URLs. This is used to determine if a file has already
+	/// been copied without having to waste cycles comparing file contents. If multiple source files
+	/// map to the same destination, then they will be given unique file names when copied to the IR folder.
+	private var copiedFiles: [URL: Set<URL>] = [:]
+
 	/// Initializes the postprocessor
-	init(archive: URL, output: URL, graph: DependencyGraph<Target>) throws {
+	init(archive: URL, build: URL, graph: DependencyGraph<Target>) throws {
 		self.archive = archive
-		self.output = output
+		self.build = build
 		self.graph = graph
 		self.targets = graph.nodes.map { $0.value.value }
 	}
 
 	/// Starts the OutputPostprocessor
-	/// - Parameter targets: the targets to operate on
 	func process() throws {
-		var processed: Set<Target> = []
+		let nodes = targets.compactMap { graph.findNode(for: $0) }
+		let output = archive.appendingPathComponent("IR")
 
-		_ = try targets
-			.filter { $0.isPackageProduct }
-			.map { try process(target: $0, processed: &processed) }
+		try manager.createDirectory(at: output, withIntermediateDirectories: false)
 
-		logger.info("Processed \(processed.count) top-level IR targets")
+		for node in nodes {
+			let dependers = node.edges.filter { $0.relationship == .depender }
 
-		try copyToArchive()
+			guard dynamicDependencyToPath[node.value.productName] != nil || (dependers.count == 0 && !node.value.isSwiftPackage) else {
+				continue
+			}
+
+			let irDirectory = output.appendingPathComponent(node.value.productName)
+			let buildDirectory = build.appendingPathComponent(node.value.productName)
+
+			logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
+
+			// If there is a build directory for this target then copy the artifacts over to the IR
+			// folder. Otherwise we will create an empty directory and that will contain the artifacts
+			// of the dependency chain.
+			if manager.directoryExists(at: buildDirectory) {
+				try manager.copyItem(at: buildDirectory, to: irDirectory)
+			} else {
+				try manager.createDirectory(at: irDirectory, withIntermediateDirectories: false)
+			}
+
+			// Copy over this target's static dependencies
+			var processed: Set<Target> = []
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
+		}
 	}
 
-	/// Processes an individual target
-	/// - Parameters:
-	///   - target: the target to process
-	/// - Returns:
-	private func process(target: Target, processed: inout Set<Target>) throws {
+	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>) throws {
 		guard processed.insert(target).inserted else {
 			return
 		}
 
-		let targetDirectory = output.appendingPathComponent(target.productName)
-
-		// This directory may already exist if the `CompilerCommandRunner` has already built an
-		// artifact at this location.
-		try? FileManager.default.createDirectory(at: targetDirectory, withIntermediateDirectories: false)
-
-		let chain = graph.chain(for: target)
-
-		logger.debug("Chain for target: \(target.productName):\n\(chain.map { "\($0)\n" })")
-		chain.forEach { logger.debug("\($0)") }
-
-		for node in chain {
+		for node in graph.chain(for: target) {
 			logger.debug("Processing Node: \(node.valueName)")
-			// Ensure node is not a dynamic dependency
+
+			// Do not copy dynamic dependencies
 			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
 
-			try process(target: node.value, processed: &processed)
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
 
-			let nodeFolderPath = output.appendingPathComponent(node.value.productName)
-
-			do {
-				try copyContentsOfDirectoryMergingDifferingFiles(at: nodeFolderPath, to: targetDirectory)
-			} catch {
-				logger.debug("Copy error: \(error)")
-			}
-		}
-	}
-
-	private func copyToArchive() throws {
-		let irDirectory = archive.appendingPathComponent("IR")
-		try? FileManager.default.createDirectory(at: irDirectory, withIntermediateDirectories: false)
-
-		let nodes = targets.compactMap { graph.findNode(for: $0) }
-
-		for node in nodes {
-			let dependers = node.edges.filter { $0.relationship == .depender }
-			let targetPath = output.appendingPathComponent(node.value.productName)
-			let archivePath = irDirectory.appendingPathComponent(node.value.productName)
-
-			if dynamicDependencyToPath[node.value.productName] != nil || (dependers.count == 0 && !node.value.isSwiftPackage) {
-				logger.debug("Copying \(node.value.productName) with name \(node.value.productName)")
-				if !FileManager.default.directoryExists(at: targetPath) {
-					logger.debug("No target found for target \(node.value.guid) with name \(node.value.productName)")
-					continue
+			let buildDirectory = build.appendingPathComponent(node.value.productName)
+			if manager.directoryExists(at: buildDirectory) {
+				do {
+					try copyContentsOfDirectoryMergingDifferingFiles(at: buildDirectory, to: irDirectory)
+				} catch {
+					logger.debug("Copy error: \(error)")
 				}
-				try FileManager.default.copyItem(at: targetPath, to: archivePath)
 			}
 		}
 	}
 
-	// TODO: Write tests for this.
 	/// Copies the contents of a directory from source to destination, merging files that share the same name but differ in attributes
 	/// - Parameters:
 	///   - source: the source directory to copy the contents of
@@ -147,72 +113,21 @@ class OutputPostprocessor {
 	func copyContentsOfDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
 		let files = try manager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
-		/// Source and destination paths
-		typealias SourceAndDestination = (source: URL, destination: URL)
-		// Get two arrays of file paths of the source and destination file where:
-		//  1) destination already exists
-		//  2) destination doesn't already exist
-		let (existing, nonexisting) = files
+		let sourceAndDestinations = files
 			.map {
 				(
 					source: source.appendingPathComponent($0.lastPathComponent),
 					destination: destination.appendingPathComponent($0.lastPathComponent)
 				)
 			}
-			.reduce(into: (existing: [SourceAndDestination](), nonexisting: [SourceAndDestination]())) { (partialResult, sourceAndDestination) in
-				if manager.fileExists(atPath: sourceAndDestination.destination.filePath) {
-					partialResult.existing.append(sourceAndDestination)
-				} else {
-					partialResult.nonexisting.append(sourceAndDestination)
-				}
-			}
 
-		// Nonexisting files are easy - just move them
-		try nonexisting
-			.forEach { (source, destination) in
-				try manager.copyItem(at: source, to: destination)
-			}
+		for (source, destination) in sourceAndDestinations where copiedFiles[destination, default: []].insert(source).inserted {
+			// Avoid overwriting existing files with the same name.
+			let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
-		// Existing files require some additional checks and renaming
-		try existing
-			.forEach {
-				try copyFileUniquingConflictingFiles(source: $0.source, destination: $0.destination)
-			}
-	}
-
-	/// The size and creation date of a file system item
-	private typealias SizeAndCreation = (Int, Date)
-
-	/// A cache of seen files and their associated metadata
-	private var seenConflictingFiles: [URL: [SizeAndCreation]] = [:]
-
-	/// Copies a file, uniquing the path if it conflicts, _if_ the files they conflict with aren't the same size
-	/// - Parameters:
-	///   - source: source file path
-	///   - destination: destination file path
-	private func copyFileUniquingConflictingFiles(source: URL, destination: URL) throws {
-		let destinationAttributes = try manager.attributesOfItem(atPath: destination.filePath)
-		let sourceAttributes = try manager.attributesOfItem(atPath: source.filePath)
-
-		guard
-			let destinationSize = destinationAttributes[.size] as? Int,
-			let sourceSize = sourceAttributes[.size] as? Int,
-			let destinationCreatedDate = destinationAttributes[.creationDate] as? Date,
-			let sourceCreatedDate = sourceAttributes[.creationDate] as? Date
-		else {
-			logger.debug("Failed to get attributes for source: \(source) & destination: \(destination)")
-			return
+			logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
+			try manager.copyItem(at: source, to: uniqueDestinationURL)
 		}
-
-		let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
-
-		for (size, date) in seenConflictingFiles[source, default: [(sourceSize, sourceCreatedDate)]] where size == destinationSize && date == destinationCreatedDate {
-			return
-		}
-
-		seenConflictingFiles[source, default: [(sourceSize, sourceCreatedDate)]].append((destinationSize, destinationCreatedDate))
-		logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
-		try manager.copyItem(at: source, to: uniqueDestinationURL)
 	}
 
 	/// Returns a map of dynamic objects in the provided path
@@ -224,7 +139,7 @@ class OutputPostprocessor {
 
 		let dynamicDependencyExtensions = ["framework", "appex", "app"]
 
-		return FileManager.default.filteredContents(of: searchPath, filter: { path in
+		return manager.filteredContents(of: searchPath, filter: { path in
 			return dynamicDependencyExtensions.contains(path.pathExtension)
 		})
 		.reduce(into: [String: URL]()) { partialResult, path in
@@ -247,8 +162,8 @@ class OutputPostprocessor {
 		/// - Returns: the first directory found in the path if one exists
 		func firstDirectory(at path: URL) -> URL? {
 			guard
-				FileManager.default.directoryExists(at: path),
-				let contents = try? FileManager.default.directories(at: path, recursive: false),
+				manager.directoryExists(at: path),
+				let contents = try? manager.directories(at: path, recursive: false),
 				contents.count < 0
 			else {
 				return nil
