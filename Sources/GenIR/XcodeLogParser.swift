@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import LogHandlers
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {
@@ -17,6 +17,8 @@ class XcodeLogParser {
 	private(set) var settings: [String: String] = [:]
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
+	/// A mapping of target names to the compiler commands that relate to them
+	private(set) var targetCommands: [String: [CompilerCommand]] = [:]
 
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
@@ -32,11 +34,11 @@ class XcodeLogParser {
 
 	/// Start parsing the build log
 	/// - Parameter targets: The global list of targets
-	func parse(_ targets: inout Targets) throws {
-		parseBuildLog(log, &targets)
+	func parse() throws {
+		parseBuildLog(log)
 
-		if targets.isEmpty {
-			logger.debug("Found no targets in log: \(log)")
+		if targetCommands.isEmpty {
+			logger.debug("Found no targets in log")
 
 			throw Error.noTargetsFound(
 				"""
@@ -45,8 +47,13 @@ class XcodeLogParser {
 			)
 		}
 
-		if targets.totalCommandCount == 0 {
-			logger.debug("Found no commands in log: \(log)")
+		let totalCommandCount = targetCommands
+			.values
+			.compactMap { $0.count }
+			.reduce(0, +)
+
+		if totalCommandCount == 0 {
+			logger.debug("Found no commands in log")
 
 			throw Error.noCommandsFound(
 				"""
@@ -60,12 +67,11 @@ class XcodeLogParser {
 		}
 	}
 
-	/// Parses  an array representing the contents of an Xcode build log
+	/// Parses an array representing the contents of an Xcode build log
 	/// - Parameters:
 	///   - lines: contents of the Xcode build log lines
-	///   - targets: the container to add found targets to
-	private func parseBuildLog(_ lines: [String], _ targets: inout Targets) {
-		var currentTarget: Target?
+	private func parseBuildLog(_ lines: [String]) {
+		var currentTarget: String?
 		var seenTargets = Set<String>()
 
 		for (index, line) in lines.enumerated() {
@@ -87,27 +93,32 @@ class XcodeLogParser {
 				guard let startIndex = line.firstIndex(of: ":") else { continue }
 
 				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-				// Stripped will be to the build description path, we want the root of the build path which is 6 folders up
-				buildCachePath = String(stripped).fileURL
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
-					.deletingLastPathComponent()
+				var cachePath = String(stripped).fileURL
+
+				if cachePath.pathComponents.contains("DerivedData") {
+					// We want the 'project' folder which is the 'Project-randomcrap' folder inside of DerivedData.
+					// Build description path is inside this folder, but depending on the build - it can be a variable number of folders up
+					while cachePath.deletingLastPathComponent().lastPathComponent != "DerivedData" {
+						cachePath.deleteLastPathComponent()
+					}
+				} else {
+					// This build location is outside of the DerivedData directory - we want to go up to the folder _after_ the Build directory
+					while cachePath.lastPathComponent != "Build" {
+						cachePath.deleteLastPathComponent()
+					}
+
+					cachePath.deleteLastPathComponent()
+				}
+
+				buildCachePath = cachePath
 			}
 
-			if let target = target(from: line), currentTarget?.name != target {
+			if let target = target(from: line), currentTarget != target {
 				if seenTargets.insert(target).inserted {
 					logger.debug("Found target: \(target)")
 				}
 
-				if let targetObject = targets.target(for: target) {
-					currentTarget = targetObject
-				} else {
-					currentTarget = .init(name: target)
-					targets.insert(target: currentTarget!)
-				}
+				currentTarget = target
 			}
 
 			guard let currentTarget else {
@@ -121,9 +132,9 @@ class XcodeLogParser {
 				continue
 			}
 
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget.name)")
+			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget)")
 
-			currentTarget.commands.append(compilerCommand)
+			targetCommands[currentTarget, default: [CompilerCommand]()].append(compilerCommand)
 		}
 	}
 

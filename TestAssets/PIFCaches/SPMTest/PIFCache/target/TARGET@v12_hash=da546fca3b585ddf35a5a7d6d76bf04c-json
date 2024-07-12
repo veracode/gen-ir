@@ -1,0 +1,57 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyBinaryDependency::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyBinaryDependency::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Release"
+    }
+  ],
+  "dependencies": [
+    {
+      "guid": "PACKAGE-TARGET:_Stub",
+      "platformFilters": []
+    }
+  ],
+  "dynamicTargetVariantGuid": "PACKAGE-PRODUCT:MyBinaryDependency--5B0EB316CCB8BC4-dynamic",
+  "frameworksBuildPhase": {
+    "buildFiles": [
+      {
+        "codeSignOnCopy": "true",
+        "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_1::REF_0",
+        "guid": "PACKAGE-PRODUCT:MyBinaryDependency::BUILDPHASE_0::0",
+        "platformFilters": [],
+        "removeHeadersOnCopy": "true"
+      },
+      {
+        "guid": "PACKAGE-PRODUCT:MyBinaryDependency::BUILDPHASE_0::1",
+        "platformFilters": [],
+        "targetReference": "PACKAGE-TARGET:_Stub"
+      }
+    ],
+    "guid": "PACKAGE-PRODUCT:MyBinaryDependency::BUILDPHASE_0",
+    "type": "com.apple.buildphase.frameworks"
+  },
+  "guid": "PACKAGE-PRODUCT:MyBinaryDependency",
+  "name": "MyBinaryDependency",
+  "type": "packageProduct"
+}

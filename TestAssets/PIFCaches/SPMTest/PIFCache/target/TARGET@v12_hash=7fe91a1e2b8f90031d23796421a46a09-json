@@ -1,0 +1,50 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyCommonLibrary::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "USES_SWIFTPM_UNSAFE_FLAGS": "NO"
+      },
+      "guid": "PACKAGE-PRODUCT:MyCommonLibrary::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Release"
+    }
+  ],
+  "dependencies": [
+    {
+      "guid": "PACKAGE-TARGET:MyCommonLibrary",
+      "platformFilters": []
+    }
+  ],
+  "dynamicTargetVariantGuid": "PACKAGE-PRODUCT:MyCommonLibrary--138526C95691DCED-dynamic",
+  "frameworksBuildPhase": {
+    "buildFiles": [
+      {
+        "guid": "PACKAGE-PRODUCT:MyCommonLibrary::BUILDPHASE_0::0",
+        "platformFilters": [],
+        "targetReference": "PACKAGE-TARGET:MyCommonLibrary"
+      }
+    ],
+    "guid": "PACKAGE-PRODUCT:MyCommonLibrary::BUILDPHASE_0",
+    "type": "com.apple.buildphase.frameworks"
+  },
+  "guid": "PACKAGE-PRODUCT:MyCommonLibrary",
+  "name": "MyCommonLibrary",
+  "type": "packageProduct"
+}

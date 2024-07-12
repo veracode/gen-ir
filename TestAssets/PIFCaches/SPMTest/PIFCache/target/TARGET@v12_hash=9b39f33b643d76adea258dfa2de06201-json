@@ -1,0 +1,137 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "CLANG_COVERAGE_MAPPING_LINKER_ARGS": "NO",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyLibrary.o",
+        "GENERATE_MASTER_OBJECT_FILE": "NO",
+        "MACH_O_TYPE": "mh_object",
+        "MODULEMAP_FILE_CONTENTS": "module MyLibrary {\nheader \"MyLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyLibrary",
+        "PRODUCT_MODULE_NAME": "MyLibrary",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "STRIP_INSTALLED_PRODUCT": "NO",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mylibrary",
+        "SWIFT_VERSION": "5",
+        "TAPI_DYLIB_INSTALL_NAME": "MyLibrary",
+        "TARGET_NAME": "MyLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyLibrary::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "LD_RUNPATH_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "CLANG_COVERAGE_MAPPING_LINKER_ARGS": "NO",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyLibrary.o",
+        "GENERATE_MASTER_OBJECT_FILE": "NO",
+        "MACH_O_TYPE": "mh_object",
+        "MODULEMAP_FILE_CONTENTS": "module MyLibrary {\nheader \"MyLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyLibrary",
+        "PRODUCT_MODULE_NAME": "MyLibrary",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "STRIP_INSTALLED_PRODUCT": "NO",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mylibrary",
+        "SWIFT_VERSION": "5",
+        "TAPI_DYLIB_INSTALL_NAME": "MyLibrary",
+        "TARGET_NAME": "MyLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyLibrary::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Release"
+    }
+  ],
+  "buildPhases": [
+    {
+      "buildFiles": [
+        {
+          "codeSignOnCopy": "false",
+          "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyLibrary::MAINGROUP::REF_2::REF_0",
+          "guid": "PACKAGE-TARGET:MyLibrary::BUILDPHASE_0::0",
+          "platformFilters": [],
+          "removeHeadersOnCopy": "false"
+        }
+      ],
+      "guid": "PACKAGE-TARGET:MyLibrary::BUILDPHASE_0",
+      "type": "com.apple.buildphase.sources"
+    }
+  ],
+  "buildRules": [],
+  "dependencies": [
+    {
+      "guid": "PACKAGE-PRODUCT:MyTransitiveLibrary",
+      "platformFilters": []
+    },
+    {
+      "guid": "PACKAGE-PRODUCT:MyCommonLibrary",
+      "platformFilters": []
+    }
+  ],
+  "dynamicTargetVariantGuid": "PACKAGE-TARGET:MyLibrary--71ED4B7C0CDEC55C-dynamic",
+  "guid": "PACKAGE-TARGET:MyLibrary",
+  "name": "MyLibrary",
+  "productReference": {
+    "guid": "PRODUCTREF-PACKAGE-TARGET:MyLibrary",
+    "name": "MyLibrary.o",
+    "type": "file"
+  },
+  "productTypeIdentifier": "com.apple.product-type.objfile",
+  "type": "standard"
+}

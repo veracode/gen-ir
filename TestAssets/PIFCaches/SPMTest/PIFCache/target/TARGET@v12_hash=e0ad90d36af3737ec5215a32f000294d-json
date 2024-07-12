@@ -1,0 +1,125 @@
+{
+  "approvedByUser": "true",
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_MODULES": "YES",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyCommonLibrary",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "MARKETING_VERSION": "1.0",
+        "MODULEMAP_FILE_CONTENTS": "module MyCommonLibrary {\nheader \"MyCommonLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyCommonLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyCommonLibrary",
+        "PRODUCT_MODULE_NAME": "MyCommonLibrary",
+        "PRODUCT_NAME": "MyCommonLibrary",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyCommonLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mycommonlibrary",
+        "SWIFT_VERSION": "5",
+        "TARGET_BUILD_DIR": "$(TARGET_BUILD_DIR)/PackageFrameworks",
+        "TARGET_NAME": "MyCommonLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "LD_RUNPATH_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyCommonLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_MODULES": "YES",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEFINES_MODULE": "YES",
+        "EXECUTABLE_NAME": "MyCommonLibrary",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "MARKETING_VERSION": "1.0",
+        "MODULEMAP_FILE_CONTENTS": "module MyCommonLibrary {\nheader \"MyCommonLibrary-Swift.h\"\nexport *\n}",
+        "MODULEMAP_PATH": "$(GENERATED_MODULEMAP_DIR)/MyCommonLibrary.modulemap",
+        "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+        "PRODUCT_BUNDLE_IDENTIFIER": "MyCommonLibrary",
+        "PRODUCT_MODULE_NAME": "MyCommonLibrary",
+        "PRODUCT_NAME": "MyCommonLibrary",
+        "SDKROOT": "auto",
+        "SDK_VARIANT": "auto",
+        "SUPPORTS_TEXT_BASED_API": "NO",
+        "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(GENERATED_MODULEMAP_DIR)",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "MyCommonLibrary-Swift.h",
+        "SWIFT_PACKAGE_NAME": "mycommonlibrary",
+        "SWIFT_VERSION": "5",
+        "TARGET_BUILD_DIR": "$(TARGET_BUILD_DIR)/PackageFrameworks",
+        "TARGET_NAME": "MyCommonLibrary"
+      },
+      "guid": "PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {
+          "FRAMEWORK_SEARCH_PATHS": [
+            "$(BUILT_PRODUCTS_DIR)/PackageFrameworks",
+            "$(inherited)"
+          ],
+          "OTHER_CFLAGS": [
+            "-fmodule-map-file=$(GENERATED_MODULEMAP_DIR)/MyCommonLibrary.modulemap",
+            "$(inherited)"
+          ],
+          "OTHER_LDFLAGS": [
+            "-Wl,-no_warn_duplicate_libraries",
+            "$(inherited)"
+          ],
+          "OTHER_LDRFLAGS": []
+        }
+      },
+      "name": "Release"
+    }
+  ],
+  "buildPhases": [
+    {
+      "buildFiles": [
+        {
+          "codeSignOnCopy": "false",
+          "fileReference": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyCommonLibrary::MAINGROUP::REF_3::REF_0",
+          "guid": "PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic::BUILDPHASE_0::0",
+          "platformFilters": [],
+          "removeHeadersOnCopy": "false"
+        }
+      ],
+      "guid": "PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic::BUILDPHASE_0",
+      "type": "com.apple.buildphase.sources"
+    }
+  ],
+  "buildRules": [],
+  "dependencies": [],
+  "guid": "PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic",
+  "name": "MyCommonLibrary",
+  "productReference": {
+    "guid": "PRODUCTREF-PACKAGE-TARGET:MyCommonLibrary--138526C95691DCED-dynamic",
+    "name": "MyCommonLibrary.framework",
+    "type": "file"
+  },
+  "productTypeIdentifier": "com.apple.product-type.framework",
+  "type": "standard"
+}

@@ -1,16 +1,15 @@
 import Foundation
 import ArgumentParser
 import Logging
-import PBXProjParser
+import PIFSupport
+import DependencyGraph
+import LogHandlers
 
-/// Global logger object
-var logger = Logger(label: Bundle.main.bundleIdentifier ?? "com.veracode.gen-ir", factory: StdOutLogHandler.init)
-
+/// The name of the program
 let programName = CommandLine.arguments.first!
 
 /// Command to emit LLVM IR from an Xcode build log
-@main
-struct IREmitterCommand: ParsableCommand {
+@main struct IREmitterCommand: ParsableCommand {
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
@@ -27,11 +26,11 @@ struct IREmitterCommand: ParsableCommand {
 		Example with build log:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > \
 		log.txt
-			$ \(programName) log.txt output_folder/ --project-path MyProject.xcodeproj
+			$ \(programName) log.txt x.xcarchive/
 
 		Example with pipe:
 			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 \
-		| \(programName) - output_folder/ --project-path MyProject.xcodeproj
+		| \(programName) - x.xcarchive/
 		""",
 		version: "v\(Versions.version)"
 	)
@@ -45,8 +44,8 @@ struct IREmitterCommand: ParsableCommand {
 	var xcarchivePath: URL
 
 	/// Path to xcodeproj or xcworkspace file
-	@Option(help: "Path to your Xcode Project or Workspace file")
-	var projectPath: URL!
+	@Option(help: "DEPRECATED: This Option is deprecated and will go away in a future version.")
+	var projectPath: URL?
 
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
@@ -63,17 +62,13 @@ struct IREmitterCommand: ParsableCommand {
 	var dumpDependencyGraph = false
 
 	mutating func validate() throws {
+		// This will run before run() so set this here
 		if debug {
 			logger.logLevel = .debug
 		}
 
-		// Version 0.2.x and below didn't require a project. Attempt to default this value if we can
-		if projectPath == nil {
-			projectPath = try findProjectPath()
-		}
-
-		if !FileManager.default.fileExists(atPath: projectPath.filePath) {
-			throw ValidationError("Project doesn't exist at path: \(projectPath.filePath)")
+		if projectPath != nil {
+			logger.warning("--project-path has been deprecated and will go away in a future version. Please remove it from your invocation.")
 		}
 
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
@@ -94,7 +89,6 @@ struct IREmitterCommand: ParsableCommand {
 
 	mutating func run() throws {
 		try run(
-			project: projectPath,
 			log: logPath,
 			archive: xcarchivePath,
 			level: logger.logLevel,
@@ -104,19 +98,39 @@ struct IREmitterCommand: ParsableCommand {
 	}
 
 	mutating func run(
-		project: URL,
 		log: String,
 		archive: URL,
 		level: Logger.Level,
 		dryRun: Bool,
 		dumpDependencyGraph: Bool
 	) throws {
+		logger.logLevel = level
 		let output = archive.appendingPathComponent("IR")
-		let project = try ProjectParser(path: project, logLevel: level)
-		var targets = Targets(for: project)
 
 		let log = try logParser(for: log)
-		try log.parse(&targets)
+		try log.parse()
+
+		// Find and parse the PIF cache
+		let pifCache = try PIFCache(buildCache: log.buildCachePath)
+		let targets = pifCache.targets.map { Target(from: $0) }
+
+		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
+			provider: .init(targets: targets, cache: pifCache),
+			values: targets
+		)
+		let graph = builder.graph
+
+		if dumpDependencyGraph {
+			do {
+				try graph.toDot(output
+					.deletingLastPathComponent()
+					.appendingPathComponent("graph.dot")
+					.filePath
+				)
+			} catch {
+				logger.error("toDot error: \(error)")
+			}
+		}
 
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
@@ -125,20 +139,24 @@ struct IREmitterCommand: ParsableCommand {
 			dryRun: dryRun
 		)
 
+		let tempDirectory = try FileManager.default.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
+		defer { try? FileManager.default.removeItem(at: tempDirectory) }
+		logger.info("Using temp directory as working directory: \(tempDirectory)")
+
 		let runner = CompilerCommandRunner(
-			output: output,
+			output: tempDirectory,
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(targets: targets)
+		try runner.run(targets: targets, commands: log.targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,
-			output: output,
-			targets: targets,
-			dumpGraph: dumpDependencyGraph
+			build: tempDirectory,
+			graph: graph
 		)
-		try postprocessor.process(targets: &targets)
+
+		try postprocessor.process()
 	}
 
 	/// Gets an `XcodeLogParser` for a path
@@ -159,8 +177,6 @@ struct IREmitterCommand: ParsableCommand {
 	/// Reads stdin until an EOF is found
 	/// - Returns: An array of Strings representing stdin split by lines
 	private func readStdin() throws -> [String] {
-		logger.info("Collating input via pipe")
-
 		var results = [String]()
 
 		while let line = readLine() {
@@ -178,37 +194,7 @@ struct IREmitterCommand: ParsableCommand {
 			print("\n\n")
 		}
 
-		logger.info("Finished reading from pipe")
-
 		return results
-	}
-}
-
-extension IREmitterCommand {
-	/// Attempt to automatically determine the Xcode workspace or project path
-	/// - Returns: the path to the first xcworkspace or xcodeproj found in the current directory
-	private func findProjectPath() throws -> URL {
-		let cwd = FileManager.default.currentDirectoryPath.fileURL
-		// First, xcworkspace, then xcodeproj
-		let xcworkspace = try FileManager.default.directories(at: cwd, recursive: false)
-			.filter { $0.pathExtension == "xcworkspace" }
-
-		if xcworkspace.count == 1 {
-			return xcworkspace[0]
-		}
-
-		let xcodeproj = try FileManager.default.directories(at: cwd, recursive: false)
-			.filter { $0.pathExtension == "xcodeproj" }
-
-		if xcodeproj.count == 1 {
-			return xcodeproj[0]
-		}
-
-		throw ValidationError(
-			"""
-			Couldn't automatically determine path to xcodeproj or xcworkspace. Please use --project-path to provide it.
-			"""
-		)
 	}
 }
 

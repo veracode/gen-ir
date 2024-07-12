@@ -1,17 +1,18 @@
 import XCTest
 @testable import gen_ir
-import PBXProjParser
 
 final class WorkspaceContainerTests: XCTestCase {
-	static private var testPath: URL = {
+	let testPath: URL = {
 		TestContext.testAssetPath
 			.appendingPathComponent("WorkspaceContainerTest")
 			.appendingPathComponent("WorkspaceContainerTest.xcworkspace")
 	}()
+	let scheme = "App"
 
 	func testWeirdGroupTagLocationParsing() throws {
-		let parser = try ProjectParser(path: Self.testPath, logLevel: .debug)
-		let targets = parser.targets
+		let context = TestContext()
+		try context.build(test: testPath, scheme: scheme)
+		let targets = context.targets
 
 		XCTAssert(targets.count == 3)
 		XCTAssertNotNil(targets.first(where: { $0.name == "App" }))
