@@ -78,7 +78,7 @@ public enum PIF {
 	public final class Workspace: Decodable {
 		public let guid: GUID
 		public let name: String
-		public let path: URL
+		public let path: URL?
 		public let projects: [Project]
 
 		private enum CodingKeys: CodingKey {
@@ -94,7 +94,7 @@ public enum PIF {
 
 			guid = try container.decode(GUID.self, forKey: .guid)
 			name = try container.decode(String.self, forKey: .name)
-			path = try container.decode(URL.self, forKey: .path)
+			path = try container.decodeIfPresent(URL.self, forKey: .path)
 
 			let projectPaths = try container.decode([String].self, forKey: .projects)
 				.map {
@@ -124,7 +124,7 @@ public enum PIF {
 	public final class Project: Decodable {
 		public let guid: GUID
 		public let projectName: String?
-		public let path: URL
+		public let path: URL?
 		public let projectDirectory: URL
 		public let developmentRegion: String?
 		public let buildConfigurations: [BuildConfiguration]
@@ -143,7 +143,7 @@ public enum PIF {
 
 			guid = try container.decode(GUID.self, forKey: .guid)
 			projectName = try container.decodeIfPresent(String.self, forKey: .projectName)
-			path = try container.decode(URL.self, forKey: .path)
+			path = try container.decodeIfPresent(URL.self, forKey: .path)
 			projectDirectory = try container.decode(URL.self, forKey: .projectDirectory)
 			developmentRegion = try container.decodeIfPresent(String.self, forKey: .developmentRegion)
 			buildConfigurations = try container.decode([BuildConfiguration].self, forKey: .buildConfigurations)
