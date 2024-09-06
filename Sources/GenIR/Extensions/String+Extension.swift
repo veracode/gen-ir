@@ -118,3 +118,10 @@ extension [String] {
 		return nil
 	}
 }
+
+extension StringProtocol {
+	/// Trims leading and trailing whitespace characters
+	func trimmed() -> String {
+		return trimmingCharacters(in: .whitespacesAndNewlines)
+	}
+}
