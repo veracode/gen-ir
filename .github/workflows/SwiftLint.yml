@@ -2,17 +2,14 @@ name: SwiftLint
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/swiftlint.yml'
-      - '.swiftlint.yml'
-      - '**/*.swift'
+    branches: ['main']
 
 jobs:
+  # Runs swiftlint on any pull request to main (note: this runs for _all_ files, not only the changed files in the PR!)
   SwiftLint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Lint changed files
-        uses: norio-nomura/action-swiftlint@3.2.1
-        env:
-          DIFF_BASE: ${{ github.base_ref }}
+      - uses: actions/checkout@v4
+      - uses: cirruslabs/swiftlint-action@v1
+        with:
+          version: latest
