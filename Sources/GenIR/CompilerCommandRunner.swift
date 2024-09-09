@@ -78,6 +78,7 @@ struct CompilerCommandRunner {
 	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
+	// swiftlint:disable:next function_body_length
 	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
 		let targetDirectory = directory.appendingPathComponent(name)
 

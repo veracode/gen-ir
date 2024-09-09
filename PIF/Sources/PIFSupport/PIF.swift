@@ -15,7 +15,7 @@
 	- adjust types to remove external dependencies on SPM
 */
 
-// swiftlint:disable file_length type_body_length
+// swiftlint:disable file_length type_body_length static_over_final_class
 import Foundation
 
 /// The Project Interchange Format (PIF) is a structured representation of the
@@ -900,4 +900,4 @@ private struct UntypedTarget: Decodable {
 	}
 	let contents: TargetContents
 }
-// swiftlint:enable file_length type_body_length
+// swiftlint:enable file_length type_body_length static_over_final_class

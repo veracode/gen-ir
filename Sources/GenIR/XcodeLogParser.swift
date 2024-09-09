@@ -70,6 +70,7 @@ class XcodeLogParser {
 	/// Parses an array representing the contents of an Xcode build log
 	/// - Parameters:
 	///   - lines: contents of the Xcode build log lines
+	// swiftlint:disable:next cyclomatic_complexity
 	private func parseBuildLog(_ lines: [String]) {
 		var currentTarget: String?
 		var seenTargets = Set<String>()
