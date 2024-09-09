@@ -118,8 +118,8 @@ extension Process {
 		try? stderrHandle.close()
 
 		return .init(
-			stdout: String(data: stdout, encoding: .utf8),
-			stderr: String(data: stderr, encoding: .utf8),
+			stdout: String(decoding: stdout, as: UTF8.self),
+			stderr: String(decoding: stderr, as: UTF8.self),
 			code: process.terminationStatus
 		)
 	}
