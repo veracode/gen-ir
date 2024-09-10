@@ -2,7 +2,8 @@ name: SwiftLint
 
 on:
   pull_request:
-    branches: ['main']
+    paths:
+      - '**.swift'
 
 jobs:
   # Runs swiftlint on any pull request to main (note: this runs for _all_ files, not only the changed files in the PR!)
