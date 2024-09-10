@@ -10,10 +10,11 @@ import LogHandlers
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {
-
 	/// The Xcode build log contents
 	private let log: [String]
-	/// Any CLI Settings found in the build log
+	/// The current line offset in the log
+	private var offset: Int = 0
+	/// Any CLI settings found in the build log
 	private(set) var settings: [String: String] = [:]
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
@@ -33,9 +34,8 @@ class XcodeLogParser {
 	}
 
 	/// Start parsing the build log
-	/// - Parameter targets: The global list of targets
 	func parse() throws {
-		parseBuildLog(log)
+		parseBuildLog()
 
 		if targetCommands.isEmpty {
 			logger.debug("Found no targets in log")
@@ -67,106 +67,137 @@ class XcodeLogParser {
 		}
 	}
 
-	/// Parses an array representing the contents of an Xcode build log
-	/// - Parameters:
-	///   - lines: contents of the Xcode build log lines
-	// swiftlint:disable:next cyclomatic_complexity
-	private func parseBuildLog(_ lines: [String]) {
-		var currentTarget: String?
+	/// Parse the lines from the build log
+	func parseBuildLog() {
 		var seenTargets = Set<String>()
 
-		for (index, line) in lines.enumerated() {
-			let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+		while let line = consumeLine() {
+			if line.hasPrefix("Build description path: ") {
+				buildCachePath = buildDescriptionPath(from: line)
+			} else if line.hasPrefix("Build settings from command line:") {
+				settings = parseBuildSettings()
+			} else {
+				// Attempt to find a build task on this line that we are interested in.
+				let task = line.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)[0]
 
-			if line.contains("Build settings from command line") {
-				// Every line until an empty line will contain a build setting from the CLI arguments
-				guard let nextEmptyLine = lines.nextIndex(of: "", after: index) else { continue }
-
-				settings = lines[index.advanced(by: 1)..<nextEmptyLine]
-					.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-					.map { $0.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespacesAndNewlines)} }
-					.filter { $0.count == 2 }
-					.map { ($0[0], $0[1]) }
-					.reduce(into: [String: String]()) { $0[$1.0] = $1.1 }
-			}
-
-			if line.contains("Build description path: ") {
-				guard let startIndex = line.firstIndex(of: ":") else { continue }
-
-				let stripped = line[line.index(after: startIndex)..<line.endIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-				var cachePath = String(stripped).fileURL
-
-				if cachePath.pathComponents.contains("DerivedData") {
-					// We want the 'project' folder which is the 'Project-randomcrap' folder inside of DerivedData.
-					// Build description path is inside this folder, but depending on the build - it can be a variable number of folders up
-					while cachePath.deletingLastPathComponent().lastPathComponent != "DerivedData" {
-						cachePath.deleteLastPathComponent()
-					}
-				} else {
-					// This build location is outside of the DerivedData directory - we want to go up to the folder _after_ the Build directory
-					while cachePath.lastPathComponent != "Build" {
-						cachePath.deleteLastPathComponent()
+				switch task {
+				case "CompileC", "SwiftDriver", "CompileSwiftSources":
+					guard let target = target(from: line) else {
+						continue
 					}
 
-					cachePath.deleteLastPathComponent()
+					if seenTargets.insert(target).inserted {
+						logger.debug("Found target: \(target)")
+					}
+
+					let compilerCommands = parseCompilerCommands()
+
+					compilerCommands.forEach {
+						logger.debug("Found \($0.compiler.rawValue) compiler command for target: \(target)")
+					}
+
+					targetCommands[target, default: []].append(contentsOf: compilerCommands)
+				default:
+					continue
 				}
-
-				buildCachePath = cachePath
 			}
-
-			if let target = target(from: line), currentTarget != target {
-				if seenTargets.insert(target).inserted {
-					logger.debug("Found target: \(target)")
-				}
-
-				currentTarget = target
-			}
-
-			guard let currentTarget else {
-				continue
-			}
-
-			guard
-				let compilerCommand = compilerCommand(from: line),
-				isPartOfCompilerCommand(lines, index)
-			else {
-				continue
-			}
-
-			logger.debug("Found \(compilerCommand.compiler.rawValue) compiler command for target: \(currentTarget)")
-
-			targetCommands[currentTarget, default: [CompilerCommand]()].append(compilerCommand)
 		}
 	}
 
-	/// Is the index provided part of a compiler command block
-	/// - Parameters:
-	///   - lines: all the lines in the build log
-	///   - index: the index of the line to search from
-	/// - Returns: true if it's determined that the index is part of compiler command block
-	private func isPartOfCompilerCommand(_ lines: [String], _ index: Int) -> Bool {
-		var result = false
-		var offset = lines.index(index, offsetBy: -2)
+	/// Consume the next line from the log file and return it if we have not reached the end
+	private func consumeLine() -> String? {
+		guard offset + 1 < log.endIndex else { return nil }
 
-		// Check the line starts with either 'CompileC', 'SwiftDriver', or 'CompileSwiftSources' to ensure we only pick up compilation commands
-		while lines.indices.contains(offset) {
-			let previousLine = lines[offset].trimmingCharacters(in: .whitespacesAndNewlines)
-			offset -= 1
+		defer { offset += 1 }
+		return log[offset]
+	}
 
-			if previousLine.isEmpty {
-				// hit the top of the block, exit loop
-				break
-			}
+	/// Parse build settings key-value pairs
+	private func parseBuildSettings() -> [String: String] {
+		var settings = [String: String]()
 
-			if previousLine.starts(with: "CompileC")
-					|| previousLine.starts(with: "SwiftDriver")
-					|| previousLine.starts(with: "CompileSwiftSources") {
-				result = true
-				break
+		// Build settings end with a blank line
+		while let line = consumeLine()?.trimmed(), !line.isEmpty {
+			let pair = line.split(separator: "=", maxSplits: 1).map { $0.trimmed() }
+			if pair.count < 2 {
+				settings[pair[0]] = ""
+			} else {
+				settings[pair[0]] = pair[1]
 			}
 		}
 
-		return result
+		return settings
+	}
+
+	/// Parse the build description path from the provided line
+	/// - Parameter from: the line that should contain the build description path
+	private func buildDescriptionPath(from line: String) -> URL? {
+		guard line.hasPrefix("Build description path:"), let startIndex = line.firstIndex(of: ":") else {
+			return nil
+		}
+
+		var cachePath = String(line[line.index(after: startIndex)..<line.endIndex]).trimmed().fileURL
+
+		if cachePath.pathComponents.contains("DerivedData") {
+			// We want the 'project' folder which is the 'Project-randomcrap' folder inside of DerivedData.
+			// Build description path is inside this folder, but depending on the build - it can be a variable number of folders up
+			while cachePath.deletingLastPathComponent().lastPathComponent != "DerivedData" {
+				cachePath.deleteLastPathComponent()
+			}
+		} else {
+			// This build location is outside of the DerivedData directory - we want to go up to the folder _after_ the Build directory
+			while cachePath.lastPathComponent != "Build" {
+				cachePath.deleteLastPathComponent()
+			}
+
+			cachePath.deleteLastPathComponent()
+		}
+
+		return cachePath
+	}
+
+	/// Parsecompiler commands from the current block
+	private func parseCompilerCommands() -> [CompilerCommand] {
+		var commands: [CompilerCommand] = []
+
+		while let line = consumeLine() {
+			// Assume we have reached the end of this build task's block when we encounter an unindented line.
+			guard line.hasPrefix(" ") else {
+				break
+			}
+
+			guard let compilerCommand = parseCompilerCommand(from: line) else {
+				continue
+			}
+
+			commands.append(compilerCommand)
+		}
+
+		return commands
+	}
+
+	/// Parses a `CompilerCommand` from the given line if one exists
+	/// - Parameter from: the line which may contain a compiler command
+	private func parseCompilerCommand(from line: String) -> CompilerCommand? {
+		var commandLine = line
+
+		if let index = line.firstIndexWithEscapes(of: "/"), index != line.startIndex {
+			commandLine = String(line[index..<line.endIndex])
+		}
+
+		// Ignore preprocessing of assembly files
+		if commandLine.contains("-x assembler-with-cpp") {
+			return nil
+		}
+
+		// Note: the spaces here so we don't match subpaths
+		if commandLine.contains("/swiftc ") {
+			return .init(command: commandLine, compiler: .swiftc)
+		} else if commandLine.contains("/clang ") {
+			return .init(command: commandLine, compiler: .clang)
+		}
+
+		return nil
 	}
 
 	/// Returns the target from the given line
@@ -186,28 +217,6 @@ class XcodeLogParser {
 		} else if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
 			// sometimes (seemingly for archives) build logs follow a different format for targets
 			return String(line[startIndex..<endIndex])
-		}
-
-		return nil
-	}
-
-	/// Returns the compiler command from a line, if one exists
-	/// - Parameter line: the line to parse
-	/// - Returns: the compiler command if one was successfully parsed
-	private func compilerCommand(from line: String) -> CompilerCommand? {
-		var stripped = line
-		if let index = stripped.firstIndexWithEscapes(of: "/"), index != stripped.startIndex {
-			stripped = String(stripped[index..<stripped.endIndex])
-		}
-
-		// Ignore preprocessing of assembly files
-		if stripped.contains("-x assembler-with-cpp") { return nil }
-
-		// Note: the spaces here are so we don't match subpaths
-		if stripped.contains("/swiftc ") {
-			return .init(command: stripped, compiler: .swiftc)
-		} else if stripped.contains("/clang ") {
-			return .init(command: stripped, compiler: .clang)
 		}
 
 		return nil

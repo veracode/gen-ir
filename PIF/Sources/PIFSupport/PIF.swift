@@ -436,6 +436,7 @@ public enum PIF {
 			case hostBuild = "com.apple.product-type.tool.host-build"
 			case xpcService = "com.apple.product-type.xpc-service"
 			case watchApp2 = "com.apple.product-type.application.watchapp2"
+			case watchApp2Container = "com.apple.product-type.application.watchapp2-container"
 			case watchKit2Extension = "com.apple.product-type.watchkit2-extension"
 		}
 
