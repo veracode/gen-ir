@@ -1,0 +1,11 @@
+
+                            PIF Support
+                            ===========
+
+This product contains a derivation of Swift Package Manager's XCBuildSupport library, specifically `PIF.swift`
+
+  * LICENSE (Apache License 2.0):
+    * https://raw.githubusercontent.com/apple/swift-package-manager/main/LICENSE.txt
+  * HOMEPAGE:
+    * https://github.com/apple/swift-package-manager/
+    * https://swift.org

@@ -6,8 +6,7 @@
 //
 
 import Foundation
-import Logging
-import PBXProjParser
+import LogHandlers
 
 /// A model of the contents of an output file map json
 typealias OutputFileMap = [String: [String: String]]
@@ -18,23 +17,28 @@ typealias OutputFileMap = [String: [String: String]]
 ///
 /// > clang will emit LLVM BC to the current working directory in a named file. In this case, the runner will  move the files from temporary storage to the output location
 struct CompilerCommandRunner {
-	/// The directory to place the LLVM BC output
-	private let output: URL
-
-	private let buildCacheManipulator: BuildCacheManipulator
-
-	private let fileManager = FileManager.default
-
 	enum Error: Swift.Error {
 		/// Command runner failed to parse the command for the required information
 		case failedToParse(String)
 	}
 
+	/// The directory to place the LLVM BC output
+	private let output: URL
+
+	/// The cache manipulator, required to do fix ups on the build cache in very specific circumstances
+	private let buildCacheManipulator: BuildCacheManipulator
+
+	/// Manager used to access the file system
+	private let fileManager = FileManager.default
+
+	/// Run without running the commands
 	private let dryRun: Bool
 
-	/// Initializes a runner
+	/// Initializes the runner
 	/// - Parameters:
 	///   - output: The location to place the resulting LLVM IR
+	///   - buildCacheManipulator: the cache manipulator to perform fixups with
+	///   - dryRun: should run in dry run mode?
 	init(output: URL, buildCacheManipulator: BuildCacheManipulator, dryRun: Bool) {
 		self.output = output
 		self.dryRun = dryRun
@@ -42,28 +46,29 @@ struct CompilerCommandRunner {
 	}
 
 	/// Starts the runner
-	func run(targets: Targets) throws {
+	/// - Parameter targets: the targets holding the commands to run
+	func run(targets: [Target], commands: [String: [CompilerCommand]]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
-		let tempDirectory = try fileManager.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
-		defer { try? fileManager.removeItem(at: tempDirectory) }
-		logger.debug("Using temp directory as working directory: \(tempDirectory.filePath)")
-
-		let totalCommands = targets.totalCommandCount
+		let totalCommands = commands
+			.map { $0.value.count }
+			.reduce(0, +)
 		logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
-		for target in targets {
+		for target in targets.filter({ $0.isBuildable }) {
+			guard let targetCommands = commands[target.name] else {
+				continue
+			}
+
 			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
-			totalModulesRun += try run(commands: target.commands, for: target.nameForOutput, at: tempDirectory)
+			totalModulesRun += try run(commands: targetCommands, for: target.productName, at: output)
 		}
 
-		try fileManager.moveItemReplacingExisting(from: tempDirectory, to: output)
-
-		let uniqueModules = try fileManager.files(at: output, withSuffix: ".bc").count
+		let uniqueModules = Set(try fileManager.files(at: output, withSuffix: ".bc")).count
 		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 	}
 
@@ -73,6 +78,7 @@ struct CompilerCommandRunner {
 	///   - name: The name this command relates to, used to create the product folder
 	///   - directory: The directory to run these commands in
 	/// - Returns: The total amount of modules produced for this target
+	// swiftlint:disable:next function_body_length
 	private func run(commands: [CompilerCommand], for name: String, at directory: URL) throws -> Int {
 		let targetDirectory = directory.appendingPathComponent(name)
 
@@ -163,7 +169,7 @@ struct CompilerCommandRunner {
 	/// Parses, and corrects, the executable name and arguments for a given command.
 	/// - Parameter command: The command to parse and correct
 	/// - Returns: A tuple of executable name and an array of arguments
-	private func parse(command: CompilerCommand) throws -> (String, [String]) {
+	private func parse(command: CompilerCommand) throws -> (executable: String, arguments: [String]) {
 		let fixed = fixup(command: command.command)
 		let (executable, arguments) = try split(command: fixed)
 		let fixedArguments = fixup(arguments: arguments, for: command.compiler)

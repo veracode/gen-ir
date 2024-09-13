@@ -60,7 +60,7 @@ extension FileManager {
 	///   - path: The path of the directory to search in
 	///   - suffix: The suffix to match against file names
 	///   - recursive: A Boolean value to indicate whether a recursive search should be performed
-	/// - Returns: An array of URL file paths matching the suffix found in the specifed path
+	/// - Returns: An array of URL file paths matching the suffix found in the specified path
 	func files(at path: URL, withSuffix suffix: String, recursive: Bool = true) throws -> [URL] {
 		try filteredContents(of: path, recursive: recursive) { url in
 			let attributes = try url.resourceValues(forKeys: [.isRegularFileKey])
@@ -102,27 +102,6 @@ extension FileManager {
 		try moveItem(at: source, to: destination)
 	}
 
-	/// Copies an item, merging with the existing path. Replacement of existing paths is performed if specified.
-	/// - Parameters:
-	///   - source: the item to copy
-	///   - destination: the destination of the copy
-	///   - replacing: should existing items be replaced?
-	func copyItemMerging(at source: URL, to destination: URL, replacing: Bool = false) throws {
-		let sourceFiles = try contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
-
-		for sourceFile in sourceFiles {
-			let path = destination.appendingPathComponent(sourceFile.lastPathComponent)
-
-			if replacing && fileExists(atPath: path.filePath) {
-				try removeItem(at: path)
-			}
-
-			let destinationFile = uniqueFilename(directory: destination, filename: sourceFile.lastPathComponent)
-
-			try copyItem(at: sourceFile, to: destinationFile)
-		}
-	}
-
 	/// Generates a unique filename for a file at the given directory. This attempts to emulates finders style of appending a 'version' number at the end of the filename
 	/// - Parameters:
 	///   - directory: the directory the file would exist in
@@ -155,7 +134,11 @@ extension FileManager {
 
 		if let type = attributes[.type] as? FileAttributeType, type == .typeSymbolicLink {
 			let destination = try destinationOfSymbolicLink(atPath: path.filePath)
-			let actualDestinationCausePathingSucksInFoundation = path.deletingLastPathComponent().appendingPathComponent(destination)
+			// swiftlint:disable identifier_name
+			let actualDestinationCausePathingSucksInFoundation = path
+				.deletingLastPathComponent()
+				.appendingPathComponent(destination)
+			// swiftlint:enable identifier_name
 			return fileExists(atPath: actualDestinationCausePathingSucksInFoundation.filePath)
 		}
 

@@ -1,0 +1,12 @@
+{
+  "guid": "1548de4dda862e04fcc1cb773900f3bf",
+  "name": "SPMTest",
+  "path": "/Users/thedderwick/Desktop/SPMTest/SPMTest.xcodeproj/project.xcworkspace",
+  "projects": [
+    "PROJECT@v11_mod=1716537774.576404_hash=0f958f39499d9f0b6b454948d2be549bplugins=1OJSG6M1FOV3XYQCBH7Z29RZ0FPR9XDE1",
+    "PACKAGE@v12_hash=28350dce3dbf6c3324256d2ef84c721e",
+    "PACKAGE@v12_hash=d061ee81d8927d5b63443e777e83938a",
+    "PACKAGE@v12_hash=217e2718d5748fe803db10bf7703f87e",
+    "PACKAGE@v12_hash=60e18114455190230d62ad086fd6a1d5"
+  ]
+}

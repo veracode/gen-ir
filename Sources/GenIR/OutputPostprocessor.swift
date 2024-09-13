@@ -6,144 +6,183 @@
 //
 
 import Foundation
-import PBXProjParser
+import DependencyGraph
+import LogHandlers
 
 /// The `OutputPostprocessor` is responsible for trying to match the IR output of the `CompilerCommandRunner` with the products in the `xcarchive`.
 /// The `CompilerCommandRunner` will output IR with it's product name, but doesn't take into account the linking of products into each other.
 /// The `OutputPostprocessor` attempts to remedy this by using the `ProjectParser` to detect dependencies between products AND
 /// parsing the `xcarchive` to determine if something was statically linked, and if so, copies the IR for that product into the linker's IR folder.
-struct OutputPostprocessor {
-	/// The to the output IR folders that will be processed
-	let output: URL
-
+class OutputPostprocessor {
 	/// The archive path, this should be the parent path of `output`
 	let archive: URL
 
 	/// Mapping of dynamic dependencies (inside the xcarchive) to their paths on disk
-	private let dynamicDependencyToPath: [String: URL]
+	private lazy var dynamicDependencyToPath: [String: URL] = {
+		dynamicDependencies(in: archive)
+	}()
 
-	init(archive: URL, output: URL) throws {
-		self.output = output
+	/// A dependency graph containing the targets in the output archive
+	private let graph: DependencyGraph<Target>
+
+	/// The targets in this archive
+	private let targets: [Target]
+
+	/// Path to the folder containing build artifacts
+	private let build: URL
+
+	/// The manager to use for file system access
+	private let manager: FileManager = .default
+
+	/// Cache of all files that have been copied to the IR output folder.
+	/// This maps a destination to a set of source URLs. This is used to determine if a file has already
+	/// been copied without having to waste cycles comparing file contents. If multiple source files
+	/// map to the same destination, then they will be given unique file names when copied to the IR folder.
+	private var copiedFiles: [URL: Set<URL>] = [:]
+
+	/// Initializes the postprocessor
+	init(archive: URL, build: URL, graph: DependencyGraph<Target>) throws {
 		self.archive = archive
-
-		dynamicDependencyToPath = dynamicDependencies(in: archive)
+		self.build = build
+		self.graph = graph
+		self.targets = graph.nodes.map { $0.value.value }
 	}
 
 	/// Starts the OutputPostprocessor
-	/// - Parameter targets: the targets to operate on
-	func  process(targets: inout Targets) throws {
-		let targetsToPaths = try FileManager.default.directories(at: output, recursive: false)
-			.reduce(into: [Target: URL]()) { partialResult, path in
-				let product = path.lastPathComponent.deletingPathExtension()
+	func process() throws {
+		let nodes = targets.compactMap { graph.findNode(for: $0) }
+		let output = archive.appendingPathComponent("IR")
 
-				guard let target = targets.target(for: product) else {
-					logger.error("Failed to look up target for product: \(product)")
-					return
-				}
+		try manager.createDirectory(at: output, withIntermediateDirectories: false)
 
-				partialResult[target] = path
+		for node in nodes {
+			let dependers = node.edges.filter { $0.relationship == .depender }
+
+			guard dynamicDependencyToPath[node.value.productName] != nil || (dependers.count == 0 && !node.value.isSwiftPackage) else {
+				continue
 			}
 
-		// TODO: remove 'static' deps so we don't duplicate them in the submission?
-		let _ = try targets.flatMap { target in
-			guard let path = targetsToPaths[target] else {
-				logger.error("Couldn't find path for target: \(target)")
-				return Set<URL>()
+			let irDirectory = output.appendingPathComponent(node.value.productName)
+			let buildDirectory = build.appendingPathComponent(node.value.productName)
+
+			logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
+
+			// If there is a build directory for this target then copy the artifacts over to the IR
+			// folder. Otherwise we will create an empty directory and that will contain the artifacts
+			// of the dependency chain.
+			if manager.directoryExists(at: buildDirectory) {
+				try manager.copyItem(at: buildDirectory, to: irDirectory)
+			} else {
+				try manager.createDirectory(at: irDirectory, withIntermediateDirectories: false)
 			}
 
-			return try process(target: target, in: targets, at: path, with: targetsToPaths)
+			// Copy over this target's static dependencies
+			var processed: Set<Target> = []
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
 		}
 	}
 
-	/// Processes an individual target
+	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>) throws {
+		guard processed.insert(target).inserted else {
+			return
+		}
+
+		for node in graph.chain(for: target) {
+			logger.debug("Processing Node: \(node.valueName)")
+
+			// Do not copy dynamic dependencies
+			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
+
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
+
+			let buildDirectory = build.appendingPathComponent(node.value.productName)
+			if manager.directoryExists(at: buildDirectory) {
+				do {
+					try copyContentsOfDirectoryMergingDifferingFiles(at: buildDirectory, to: irDirectory)
+				} catch {
+					logger.debug("Copy error: \(error)")
+				}
+			}
+		}
+	}
+
+	/// Copies the contents of a directory from source to destination, merging files that share the same name but differ in attributes
 	/// - Parameters:
-	///   - target: the target to process
-	///   - targets: a list of all targets
-	///   - path: the output path
-	///   - targetsToPaths: a map of targets to their IR folder paths
-	/// - Returns:
-	private func process(
-		target: Target,
-		in targets: Targets,
-		at path: URL,
-		with targetsToPaths: [Target: URL]
-	) throws -> Set<URL> {
-		let dependencies = targets.calculateDependencies(for: target)
+	///   - source: the source directory to copy the contents of
+	///   - destination: the destination directory for the contents
+	func copyContentsOfDirectoryMergingDifferingFiles(at source: URL, to destination: URL) throws {
+		let files = try manager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
 
-		let staticDependencies = dependencies
-			.filter { dynamicDependencyToPath[$0] == nil }
-
-		let processedPaths = try staticDependencies
-			.compactMap { product -> URL? in
-				guard let dependencyTarget = targets.target(for: product) else {
-					logger.debug("Failed to lookup target for product: \(product)")
-					return nil
-				}
-
-				guard let dependencyPath = targetsToPaths[dependencyTarget] else {
-					logger.debug("Failed to lookup path for target: \(dependencyTarget.name)")
-					return nil
-				}
-
-				try FileManager.default.copyItemMerging(at: dependencyPath, to: path)
-				return dependencyPath
+		let sourceAndDestinations = files
+			.map {
+				(
+					source: source.appendingPathComponent($0.lastPathComponent),
+					destination: destination.appendingPathComponent($0.lastPathComponent)
+				)
 			}
 
-		return Set(processedPaths)
-	}
-}
+		for (source, destination) in sourceAndDestinations where copiedFiles[destination, default: []].insert(source).inserted {
+			// Avoid overwriting existing files with the same name.
+			let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
-// swiftlint:disable private_over_fileprivate
-/// Returns a map of dynamic objects in the provided path
-/// - Parameter xcarchive: the path to search through
-/// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
-fileprivate func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
-	let searchPath = baseSearchPath(startingAt: xcarchive)
-	logger.debug("Using search path for dynamic dependencies: \(searchPath)")
-
-	let dynamicDependencyExtensions = ["framework", "appex", "app"]
-
-	return FileManager.default.filteredContents(of: searchPath, filter: { path in
-		return dynamicDependencyExtensions.contains(path.pathExtension)
-	})
-	.reduce(into: [String: URL]()) { partialResult, path in
-		// HACK: For now, insert both with an without extension to avoid any potential issues
-		partialResult[path.deletingPathExtension().lastPathComponent] = path
-		partialResult[path.lastPathComponent] = path
-	}
-}
-
-/// Returns the base URL to start searching inside an xcarchive
-/// - Parameter path: the original path, should be an xcarchive
-/// - Returns: the path to start a dependency search from
-fileprivate func baseSearchPath(startingAt path: URL) -> URL {
-	let productsPath = path.appendingPathComponent("Products")
-	let applicationsPath = productsPath.appendingPathComponent("Applications")
-	let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
-
-	func firstDirectory(at path: URL) -> URL? {
-		guard
-			FileManager.default.directoryExists(at: path),
-			let contents = try? FileManager.default.directories(at: path, recursive: false),
-			contents.count < 0
-		else {
-			return nil
-		}
-
-		if contents.count > 1 {
-			logger.error("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
-		}
-
-		return contents.first!
-	}
-
-	for path in [applicationsPath, frameworkPath] {
-		if let directory = firstDirectory(at: path) {
-			return directory
+			logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
+			try manager.copyItem(at: source, to: uniqueDestinationURL)
 		}
 	}
 
-	logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
-	return productsPath
+	/// Returns a map of dynamic objects in the provided path
+	/// - Parameter xcarchive: the path to search through
+	/// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
+	private func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
+		let searchPath = baseSearchPath(startingAt: xcarchive)
+		logger.debug("Using search path for dynamic dependencies: \(searchPath)")
+
+		let dynamicDependencyExtensions = ["framework", "appex", "app"]
+
+		return manager.filteredContents(of: searchPath, filter: { path in
+			return dynamicDependencyExtensions.contains(path.pathExtension)
+		})
+		.reduce(into: [String: URL]()) { partialResult, path in
+			// HACK: For now, insert both with an without extension to avoid any potential issues
+			partialResult[path.deletingPathExtension().lastPathComponent] = path
+			partialResult[path.lastPathComponent] = path
+		}
+	}
+
+	/// Returns the base URL to start searching inside an xcarchive
+	/// - Parameter path: the original path, should be an xcarchive
+	/// - Returns: the path to start a dependency search from
+	private func baseSearchPath(startingAt path: URL) -> URL {
+		let productsPath = path.appendingPathComponent("Products")
+		let applicationsPath = productsPath.appendingPathComponent("Applications")
+		let frameworkPath = productsPath.appendingPathComponent("Library").appendingPathComponent("Framework")
+
+		/// Returns the first directory found at the given path
+		/// - Parameter path: the path to search for directories
+		/// - Returns: the first directory found in the path if one exists
+		func firstDirectory(at path: URL) -> URL? {
+			guard
+				manager.directoryExists(at: path),
+				let contents = try? manager.directories(at: path, recursive: false),
+				contents.count < 0
+			else {
+				return nil
+			}
+
+			if contents.count > 1 {
+				logger.debug("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
+			}
+
+			return contents.first!
+		}
+
+		for path in [applicationsPath, frameworkPath] {
+			if let directory = firstDirectory(at: path) {
+				return directory
+			}
+		}
+
+		logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
+		return productsPath
+	}
 }
-// swiftlint:enable private_over_fileprivate

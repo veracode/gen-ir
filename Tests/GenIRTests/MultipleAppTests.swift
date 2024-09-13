@@ -1,29 +1,24 @@
 import XCTest
 @testable import gen_ir
-import PBXProjParser
 
 final class MultipleAppTests: XCTestCase {
-	static private var testPath: URL = {
+	let testPath: URL = {
 		TestContext.testAssetPath
 			.appendingPathComponent("MultipleApp")
 			.appendingPathComponent("MultipleApp.xcodeproj")
 	}()
+	let scheme = "MultipleApp"
 
 	func testExpectedTargetLookup() throws {
-		let context = try TestContext()
-		let result = try context.build(test: Self.testPath, scheme: "MultipleApp")
+		let context = TestContext()
+		try context.build(test: testPath, scheme: "MultipleApp")
 
-		let project: ProjectParser = try ProjectParser(path: Self.testPath, logLevel: .debug)
-		var targets = Targets(for: project)
+		let targets = context.targets
 
-		let logContents = try String(contentsOf: context.buildLog).components(separatedBy: .newlines)
-		let log = XcodeLogParser(log: logContents)
-		try log.parse(&targets)
+		let app = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp" }))
+		let copy = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp Copy" }))
 
-		let app = try XCTUnwrap(targets.target(for: "MultipleApp"))
-		let copy = try XCTUnwrap(targets.target(for: "MultipleApp Copy"))
-
-		XCTAssertEqual(app.commands.count, 3)
-		XCTAssertEqual(copy.commands.count, 3)
+        XCTAssertEqual(context.logParser.targetCommands[app.name]?.count, 3)
+        XCTAssertEqual(context.logParser.targetCommands[copy.name]?.count, 3)
 	}
 }

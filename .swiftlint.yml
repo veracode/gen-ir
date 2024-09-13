@@ -1,10 +1,25 @@
 excluded:
-  - .build/
   - .swiftpm/
   - .vscode/
-  - PBXProjParser/.build/ # https://github.com/realm/SwiftLint/issues/2329 doesn't support recursive globs yet
-  - GenIRLogging/.build/
+  - "**/.build/*"
+  - .build/
+  - TestAssets/
+  - PIF/.build/
+  - '**/Package.swift'
+  - Package.swift
+  - PIF/Sources/pif-parser/pif-parser.swift
+
+disabled_rules:
+  - todo
+  - nesting
 
 line_length:
-  warning: 150
+  warning: 200
   ignores_comments: true
+
+missing_docs:
+  warning:
+    - public
+
+opt_in_rules:
+  - missing_docs

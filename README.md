@@ -60,13 +60,13 @@ All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir 
 ```bash
 # Path to build log (you can export from inside of Xcode too)
 xcodebuild clean && \
-xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS -archivePath TestProject.xcarchive > build_log.txt
+xcodebuild archive -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS -archivePath TestProject.xcarchive > build_log.txt
 
-gen-ir build_log.txt TestProject.xcarchive --project-path TestProject.xcodeproj
+gen-ir build_log.txt TestProject.xcarchive
 
 # Stdin (you may need to redirect stderr to stdout here, Xcode is weird about writing to it sometimes)
 xcodebuild clean && \
-xcodebuild build -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS -archivePath TestProject.xcarchive | gen-ir - TestProject.xcarchive  --project-path TestProject.xcodeproj
+xcodebuild archive -project TestProject.xcodeproj -scheme TestProject -configuration Debug -destination generic/platform=iOS -archivePath TestProject.xcarchive | gen-ir - TestProject.xcarchive
 ```
 
 ## Building
@@ -86,6 +86,6 @@ swift build -c release
 If you previously installed the test version during early access testing, run the following commands to remove the test version from your system before installing:
 
  ```sh
- brew uninstall gen-ir && 
- brew untap NinjaLikesCheez/tap
- ```
+brew uninstall gen-ir &&
+brew untap NinjaLikesCheez/tap
+```

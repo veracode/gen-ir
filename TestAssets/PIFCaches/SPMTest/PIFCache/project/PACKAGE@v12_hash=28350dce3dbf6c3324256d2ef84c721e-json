@@ -1,0 +1,207 @@
+{
+  "buildConfigurations": [
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_OBJC_ARC": "YES",
+        "CODE_SIGNING_REQUIRED": "NO",
+        "CODE_SIGN_IDENTITY": "",
+        "COPY_PHASE_STRIP": "NO",
+        "DEBUG_INFORMATION_FORMAT": "dwarf",
+        "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
+        "DYLIB_INSTALL_NAME_BASE": "@rpath",
+        "ENABLE_NS_ASSERTIONS": "YES",
+        "ENABLE_TESTABILITY": "YES",
+        "ENABLE_TESTING_SEARCH_PATHS": "YES",
+        "ENTITLEMENTS_REQUIRED": "NO",
+        "GCC_OPTIMIZATION_LEVEL": "0",
+        "GCC_PREPROCESSOR_DEFINITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE",
+          "DEBUG=1"
+        ],
+        "IPHONEOS_DEPLOYMENT_TARGET": "12.0",
+        "IPHONEOS_DEPLOYMENT_TARGET[__platform_filter=ios-maccatalyst]": [
+          "13.0"
+        ],
+        "KEEP_PRIVATE_EXTERNS": "NO",
+        "MACOSX_DEPLOYMENT_TARGET": "10.13",
+        "ONLY_ACTIVE_ARCH": "YES",
+        "OTHER_CFLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "OTHER_LDRFLAGS": [],
+        "OTHER_SWIFT_FLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SKIP_CLANG_STATIC_ANALYZER": "YES",
+        "SKIP_INSTALL": "YES",
+        "SUPPORTED_PLATFORMS": [
+          "$(AVAILABLE_PLATFORMS)"
+        ],
+        "SUPPRESS_WARNINGS": "YES",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE",
+          "DEBUG"
+        ],
+        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
+        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+        "TARGETED_DEVICE_FAMILY": "1,2,3,4,6,7",
+        "TVOS_DEPLOYMENT_TARGET": "12.0",
+        "USE_HEADERMAP": "NO",
+        "WATCHOS_DEPLOYMENT_TARGET": "5.0",
+        "XROS_DEPLOYMENT_TARGET": "1.0"
+      },
+      "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::BUILDCONFIG_0",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Debug"
+    },
+    {
+      "buildSettings": {
+        "CLANG_ENABLE_OBJC_ARC": "YES",
+        "CODE_SIGNING_REQUIRED": "NO",
+        "CODE_SIGN_IDENTITY": "",
+        "COPY_PHASE_STRIP": "YES",
+        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+        "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
+        "DYLIB_INSTALL_NAME_BASE": "@rpath",
+        "ENABLE_TESTING_SEARCH_PATHS": "YES",
+        "ENTITLEMENTS_REQUIRED": "NO",
+        "GCC_OPTIMIZATION_LEVEL": "s",
+        "GCC_PREPROCESSOR_DEFINITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE"
+        ],
+        "IPHONEOS_DEPLOYMENT_TARGET": "12.0",
+        "IPHONEOS_DEPLOYMENT_TARGET[__platform_filter=ios-maccatalyst]": [
+          "13.0"
+        ],
+        "KEEP_PRIVATE_EXTERNS": "NO",
+        "MACOSX_DEPLOYMENT_TARGET": "10.13",
+        "OTHER_CFLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "OTHER_LDRFLAGS": [],
+        "OTHER_SWIFT_FLAGS": [
+          "$(inherited)",
+          "-DXcode"
+        ],
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SKIP_CLANG_STATIC_ANALYZER": "YES",
+        "SKIP_INSTALL": "YES",
+        "SUPPORTED_PLATFORMS": [
+          "$(AVAILABLE_PLATFORMS)"
+        ],
+        "SUPPRESS_WARNINGS": "YES",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": [
+          "$(inherited)",
+          "SWIFT_PACKAGE"
+        ],
+        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
+        "SWIFT_OPTIMIZATION_LEVEL": "-Owholemodule",
+        "TARGETED_DEVICE_FAMILY": "1,2,3,4,6,7",
+        "TVOS_DEPLOYMENT_TARGET": "12.0",
+        "USE_HEADERMAP": "NO",
+        "WATCHOS_DEPLOYMENT_TARGET": "5.0",
+        "XROS_DEPLOYMENT_TARGET": "1.0"
+      },
+      "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::BUILDCONFIG_1",
+      "impartedBuildProperties": {
+        "buildSettings": {}
+      },
+      "name": "Release"
+    }
+  ],
+  "defaultConfigurationName": "Release",
+  "groupTree": {
+    "children": [
+      {
+        "children": [],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_0",
+        "name": "AdditionalFiles",
+        "path": "/",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [
+          {
+            "fileType": "wrapper.xcframework",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_1::REF_0",
+            "path": "/Users/thedderwick/Library/Developer/Xcode/DerivedData/SPMTest-akjbvrfwkrsolpeqhugesmlhclvn/SourcePackages/artifacts/mybinarydependency/MyBinaryDependency/Lottie.xcframework",
+            "sourceTree": "<group>",
+            "type": "file"
+          },
+          {
+            "fileType": "wrapper.xcframework",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_1::REF_1",
+            "path": "/Users/thedderwick/Library/Developer/Xcode/DerivedData/SPMTest-akjbvrfwkrsolpeqhugesmlhclvn/SourcePackages/artifacts/mybinarydependency/MyBinaryDependency/Lottie.xcframework",
+            "sourceTree": "<group>",
+            "type": "file"
+          }
+        ],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_1",
+        "name": "Binaries",
+        "path": "/",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [
+          {
+            "fileType": "sourcecode.swift",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_2::REF_0",
+            "path": "MyBinaryDependency.swift",
+            "sourceTree": "<group>",
+            "type": "file"
+          }
+        ],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_2",
+        "name": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency/Sources/_Stub",
+        "path": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency/Sources/_Stub",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      },
+      {
+        "children": [
+          {
+            "fileType": "sourcecode.swift",
+            "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_3::REF_0",
+            "path": "MyBinaryDependency.swift",
+            "sourceTree": "<group>",
+            "type": "file"
+          }
+        ],
+        "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP::REF_3",
+        "name": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency/Sources/_Stub",
+        "path": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency/Sources/_Stub",
+        "sourceTree": "<absolute>",
+        "type": "group"
+      }
+    ],
+    "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency::MAINGROUP",
+    "name": "",
+    "path": "",
+    "sourceTree": "<group>",
+    "type": "group"
+  },
+  "guid": "PACKAGE:/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency",
+  "path": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency/Package.swift",
+  "projectDirectory": "/Users/thedderwick/Desktop/SPMTest/MyBinaryDependency",
+  "projectIsPackage": "true",
+  "projectName": "MyBinaryDependency",
+  "targets": [
+    "TARGET@v12_hash=da546fca3b585ddf35a5a7d6d76bf04c",
+    "TARGET@v12_hash=322b71ca67a33085a0152ac83f23a35f",
+    "TARGET@v12_hash=5c5fac44a4728a01cbe089b857eb0636",
+    "TARGET@v12_hash=8de09bc5397dcfbae930a9e8ab952e62"
+  ]
+}

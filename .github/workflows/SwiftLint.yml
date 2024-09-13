@@ -1,0 +1,17 @@
+name: SwiftLint
+
+on:
+  pull_request:
+    paths:
+      - '**.swift'
+
+jobs:
+  # Runs swiftlint on any pull request to main (note: this runs for _all_ files, not only the changed files in the PR!)
+  SwiftLint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cirruslabs/swiftlint-action@v1
+        with:
+          version: latest
+          args: "--strict"

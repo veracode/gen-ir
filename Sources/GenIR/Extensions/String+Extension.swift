@@ -31,6 +31,7 @@ extension String {
 		return self[startIndex..<self.endIndex].firstIndexWithEscapes(of: character, from: startIndex)
 	}
 
+	// periphery:ignore - not used, but written and could be useful in the future.
 	/// Splits a String ignoring matches where a split would normally occur, but is escaped with a \ character
 	/// - Parameter separator: The separator to split on
 	/// - Returns: An array of subsequences, split from the collection's elements
@@ -59,16 +60,6 @@ extension String {
 		}
 
 		return results
-	}
-
-	func deletingPathExtension() -> String {
-		if let index = self.firstIndexWithEscapes(of: ".") {
-			var newSelf = self
-			newSelf.removeSubrange(index..<self.endIndex)
-			return newSelf
-		}
-
-		return self
 	}
 }
 
@@ -125,5 +116,12 @@ extension [String] {
 		}
 
 		return nil
+	}
+}
+
+extension StringProtocol {
+	/// Trims leading and trailing whitespace characters
+	func trimmed() -> String {
+		return trimmingCharacters(in: .whitespacesAndNewlines)
 	}
 }
