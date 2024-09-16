@@ -36,17 +36,17 @@ class Target {
 	init(from baseTarget: PIF.BaseTarget) {
 		guid = baseTarget.guid
 		name = baseTarget.name
-		productName = if let target = baseTarget as? PIF.Target, !target.productName.isEmpty {
-			target.productName
+		if let target = baseTarget as? PIF.Target, !target.productName.isEmpty {
+			productName = target.productName
 		} else if baseTarget.guid == "PACKAGE-PRODUCT:\(baseTarget.name)" {
 			// The `PACKAGE-PRODUCT` for a package does not have a product reference name so
 			// we do not have a proper extension. For now we assume it is a framework and add
 			// the extension. A better way may be to follow the `dynamicTargetVariantGuid` of
 			// the `PACKAGE-TARGET` as this appears to provide the correct name if available.
-			baseTarget.name.appending(".framework")
+			productName = baseTarget.name.appending(".framework")
 		} else {
 			// Fallback to the target's name if we are unable to determine a proper product name.
-			baseTarget.name
+			productName = baseTarget.name
 		}
 		isBuildable = guid == "PACKAGE-TARGET:\(name)" || !guid.hasPrefix("PACKAGE-")
 		isPackageProduct = !guid.hasPrefix("PACKAGE-TARGET:")

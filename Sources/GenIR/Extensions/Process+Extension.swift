@@ -23,16 +23,16 @@ extension Process {
 		///   - stderr: the standard error
 		///   - code: the exit code
 		init(stdout: String?, stderr: String?, code: Int32) {
-			self.stdout = if let stdout, stdout.isEmpty {
-				nil
+			if let stdout, stdout.isEmpty {
+				self.stdout = nil
 			} else {
-				stdout
+				self.stdout = stdout
 			}
 
-			self.stderr = if let stderr, stderr.isEmpty {
-				nil
+			if let stderr, stderr.isEmpty {
+				self.stderr = nil
 			} else {
-				stderr
+				self.stderr = stderr
 			}
 
 			self.code = code
