@@ -8,14 +8,14 @@
 
 <p align="center">
  <a href="https://github.com/veracode/gen-ir/actions/workflows/build.yml">
-    <img src="https://github.com/veracode/gen-ir/actions/workflows/build.yml/badge.svg?branch=main" />
+    <img src="https://github.com/veracode/gen-ir/actions/workflows/build.yml/badge.svg?branch=main" alt="Badge showing status of the build pipelines"/>
   </a>
   <a href="">
-    <img src="https://img.shields.io/github/v/release/veracode/gen-ir" />
+    <img src="https://img.shields.io/github/v/release/veracode/gen-ir" alt="Badge showing the current release version of Gen IR"/>
   </a>
 </p>
 
-This tool was heavily inspired by: https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html ❤️
+This tool was heavily inspired by [a DigitalRickshaw blog post](https://blog.digitalrickshaw.com/2016/03/14/dumping-the-swift-ast-for-an-ios-project-part-2.html) ❤️
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ brew install gen-ir
 brew upgrade gen-ir
 ```
 
-## 🎉 Done!
+## 🎉 Done
 
 All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir --help` to check the available commands and options.
 
@@ -54,6 +54,8 @@ All installed! You can now use `gen-ir` on your system - be sure to run `gen-ir 
 >**This means a clean, fresh build of a project.**
 >
 >The compiler will **not** make a call for an object that doesn't need to be rebuilt, and we will not be able to parse what doesn't exist. Ensure you do a clean before your build otherwise `gen-ir` may miss some modules.
+>
+> Due to a bug in Xcode you **must** run the clean and archive commands _separately_. This means you need to do a `xcodebuild clean` and _then_ an `xcodebuild archive` and not `xcodebuild clean archive`.
 
 `gen-ir` takes a Xcode build log by two means, a path to a file or stdin:
 
@@ -71,7 +73,7 @@ xcodebuild archive -project TestProject.xcodeproj -scheme TestProject -configura
 
 ## Building
 
-`gen-ir` is implemented as a Swift Package, so you can either open [`Package.swift`](Package.swift) in Xcode, or build via the command line:
+`gen-ir` is implemented as a Swift Package, so you can either open [`Package.swift`](Package.swift) in an IDE or build via the command line:
 
 ```sh
 # Debug output: ./.build/debug/gen-ir
