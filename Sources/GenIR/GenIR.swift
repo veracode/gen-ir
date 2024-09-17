@@ -112,7 +112,13 @@ let programName = CommandLine.arguments.first!
 
 		// Find and parse the PIF cache
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
-		let targets = pifCache.targets.map { Target(from: $0) }
+		let targets = pifCache.projects.flatMap { project in
+			project.targets.compactMap { Target(from: $0, in: project) }
+		}
+
+		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
+			commands[entry.target, default: []].append(entry.command)
+		}
 
 		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
 			provider: .init(targets: targets, cache: pifCache),
@@ -148,7 +154,7 @@ let programName = CommandLine.arguments.first!
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-		try runner.run(targets: targets, commands: log.targetCommands)
+		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
 			archive: archive,

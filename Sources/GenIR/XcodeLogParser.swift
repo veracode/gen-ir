@@ -10,6 +10,11 @@ import LogHandlers
 
 /// An XcodeLogParser extracts targets and their compiler commands from a given Xcode build log
 class XcodeLogParser {
+	struct CommandEntry {
+		let target: TargetKey
+		let command: CompilerCommand
+	}
+
 	/// The Xcode build log contents
 	private let log: [String]
 	/// The current line offset in the log
@@ -18,8 +23,7 @@ class XcodeLogParser {
 	private(set) var settings: [String: String] = [:]
 	/// The path to the Xcode build cache
 	private(set) var buildCachePath: URL!
-	/// A mapping of target names to the compiler commands that relate to them
-	private(set) var targetCommands: [String: [CompilerCommand]] = [:]
+	private(set) var commandLog: [CommandEntry] = []
 
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
@@ -37,7 +41,7 @@ class XcodeLogParser {
 	func parse() throws {
 		parseBuildLog()
 
-		if targetCommands.isEmpty {
+		if commandLog.isEmpty {
 			logger.debug("Found no targets in log")
 
 			throw Error.noTargetsFound(
@@ -47,12 +51,7 @@ class XcodeLogParser {
 			)
 		}
 
-		let totalCommandCount = targetCommands
-			.values
-			.compactMap { $0.count }
-			.reduce(0, +)
-
-		if totalCommandCount == 0 {
+		if commandLog.count == 0 {
 			logger.debug("Found no commands in log")
 
 			throw Error.noCommandsFound(
@@ -69,7 +68,7 @@ class XcodeLogParser {
 
 	/// Parse the lines from the build log
 	func parseBuildLog() {
-		var seenTargets = Set<String>()
+		var seenTargets = Set<TargetKey>()
 
 		while let line = consumeLine() {
 			if line.hasPrefix("Build description path: ") {
@@ -90,13 +89,14 @@ class XcodeLogParser {
 						logger.debug("Found target: \(target)")
 					}
 
-					let compilerCommands = parseCompilerCommands()
+					let commands = parseCompilerCommands(target: target)
 
-					compilerCommands.forEach {
-						logger.debug("Found \($0.compiler.rawValue) compiler command for target: \(target)")
+					commands.forEach {
+						logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
 					}
 
-					targetCommands[target, default: []].append(contentsOf: compilerCommands)
+					commandLog.append(contentsOf: commands)
+
 				default:
 					continue
 				}
@@ -157,8 +157,8 @@ class XcodeLogParser {
 	}
 
 	/// Parsecompiler commands from the current block
-	private func parseCompilerCommands() -> [CompilerCommand] {
-		var commands: [CompilerCommand] = []
+	private func parseCompilerCommands(target: TargetKey) -> [CommandEntry] {
+		var commands: [CommandEntry] = []
 
 		while let line = consumeLine() {
 			// Assume we have reached the end of this build task's block when we encounter an unindented line.
@@ -170,7 +170,7 @@ class XcodeLogParser {
 				continue
 			}
 
-			commands.append(compilerCommand)
+			commands.append(.init(target: target, command: compilerCommand))
 		}
 
 		return commands
@@ -200,25 +200,21 @@ class XcodeLogParser {
 		return nil
 	}
 
-	/// Returns the target from the given line
-	/// - Parameter line: the line to parse
-	/// - Returns: the name of the target if one was found, otherwise nil
-	private func target(from line: String) -> String? {
-		if line.contains("Build target ") {
-			var result = line.replacingOccurrences(of: "Build target ", with: "")
-
-			if let bound = result.range(of: "of ")?.lowerBound {
-				result = String(result[result.startIndex..<bound])
-			} else if let bound = result.range(of: "with configuration ")?.lowerBound {
-				result = String(result[result.startIndex..<bound])
-			}
-
-			return result.trimmingCharacters(in: .whitespacesAndNewlines)
-		} else if let startIndex = line.range(of: "(in target '")?.upperBound, let endIndex = line.range(of: "' from ")?.lowerBound {
-			// sometimes (seemingly for archives) build logs follow a different format for targets
-			return String(line[startIndex..<endIndex])
+    /// Attempts to find the name of a project and target on a given line
+    /// - Parameter line: the line to parse
+    /// - Returns: tuple containing the project name and target name, otherwise nil
+    private func target(from line: String) -> TargetKey? {
+        guard let targetStart = line.range(of: "(in target '")?.upperBound, let targetEnd = line.range(of: "' from ")?.lowerBound else {
+			return nil
 		}
 
-		return nil
-	}
+		guard let projectStart = line.range(of: "' from project '")?.upperBound, let projectEnd = line.range(of: "')")?.lowerBound else {
+			return nil
+		}
+
+		let target = String(line[targetStart..<targetEnd])
+		let project = String(line[projectStart..<projectEnd])
+
+        return TargetKey(projectName: project, targetName: target)
+    }
 }
