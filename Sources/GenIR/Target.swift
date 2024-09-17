@@ -9,6 +9,11 @@ import Foundation
 import PIFSupport
 import DependencyGraph
 
+struct TargetKey: Hashable {
+	let projectName: String
+	let targetName: String
+}
+
 /// Represents a product to build (app, framework, plugin, package). It contains the identifying
 /// information about a target and its output when it is built or archived. In the future the
 /// `PIF` package will likely be modified so that it is usable within the context of Gen-IR
@@ -18,6 +23,8 @@ class Target {
 	let guid: String
 	/// Name of the target.
 	let name: String
+	/// Name of the project that the target belongs to.
+	let projectName: String
 	/// The product name refers to the output of this target when it is built or copied into an archive.
 	let productName: String
 
@@ -33,9 +40,14 @@ class Target {
 
 	let isSwiftPackage: Bool
 
-	init(from baseTarget: PIF.BaseTarget) {
+	init(from baseTarget: PIF.BaseTarget, in project: PIF.Project) {
 		guid = baseTarget.guid
 		name = baseTarget.name
+		// Each target is associated with a project, but the name of the project is not
+		// always available. We fallback to the GUID to maintain uniqueness of the target,
+		// but this isn't useful for finding the target in the build log, since only
+		// the project name is present in there.
+		projectName = project.projectName ?? project.groupTree.name ?? project.guid
 		if let target = baseTarget as? PIF.Target, !target.productName.isEmpty {
 			productName = target.productName
 		} else if baseTarget.guid == "PACKAGE-PRODUCT:\(baseTarget.name)" {
