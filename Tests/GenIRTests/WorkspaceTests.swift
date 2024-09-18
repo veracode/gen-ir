@@ -64,7 +64,7 @@ final class WorkspaceTests: XCTestCase {
 
 		// Check dependencies made it to the right place. All dependencies should be statically
 		// linked and appear under the .app directory.
-		let appIRPath = context.archive.appending(path: "IR/App.app/")
+		let appIRPath = context.archive.appendingPathComponent("IR/App.app/")
 
 		let expectedIRFiles = Self.appIRFiles
 			.union(Self.commonIRFiles)
