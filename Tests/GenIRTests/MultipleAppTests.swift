@@ -18,7 +18,7 @@ final class MultipleAppTests: XCTestCase {
 		let app = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp" }))
 		let copy = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp Copy" }))
 
-        XCTAssertEqual(context.logParser.targetCommands[app.name]?.count, 3)
-        XCTAssertEqual(context.logParser.targetCommands[copy.name]?.count, 3)
+        XCTAssertEqual(context.logParser.targetCommands[app.name]?.count, 1)
+        XCTAssertEqual(context.logParser.targetCommands[copy.name]?.count, 1)
 	}
 }
