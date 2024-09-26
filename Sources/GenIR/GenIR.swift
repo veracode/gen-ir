@@ -112,9 +112,10 @@ let programName = CommandLine.arguments.first!
 
 		// Find and parse the PIF cache
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
+
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
-		}
+		}.filter { !$0.isTest }
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)
