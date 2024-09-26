@@ -32,6 +32,10 @@ class Target {
 	/// for the object file, since this is used by the other targets.
 	let isBuildable: Bool
 
+	/// Returns true if this target is a test bundle. These will be ignored when packaging bitcode
+	/// in order to reduce archive size.
+	let isTest: Bool
+
 	/// Returns true if this target produces a package product that will be included in the archive.
 	/// For simplicity we say this can be anything that is not a `PACKAGE-TARGET`, which will just be
 	/// an object file. The `dynamicTargetVariantGuid` of a `PACKAGE-TARGET` is technically a framework,
@@ -60,6 +64,13 @@ class Target {
 			// Fallback to the target's name if we are unable to determine a proper product name.
 			productName = baseTarget.name
 		}
+
+		if let target = baseTarget as? PIF.Target {
+			isTest = target.productType == .unitTest || target.productType == .uiTesting
+		} else {
+			isTest = false
+		}
+
 		isBuildable = guid == "PACKAGE-TARGET:\(name)" || !guid.hasPrefix("PACKAGE-")
 		isPackageProduct = !guid.hasPrefix("PACKAGE-TARGET:")
 		isSwiftPackage = guid.hasPrefix("PACKAGE-")

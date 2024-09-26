@@ -58,7 +58,7 @@ struct CompilerCommandRunner {
 
 		var totalModulesRun = 0
 
-		for target in targets.filter({ $0.isBuildable }) {
+		for target in targets {
 			guard let targetCommands = commands[TargetKey(projectName: target.projectName, targetName: target.name)] else {
 				continue
 			}
