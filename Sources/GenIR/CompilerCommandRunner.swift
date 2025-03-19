@@ -59,7 +59,9 @@ struct CompilerCommandRunner {
 		var totalModulesRun = 0
 
 		for target in targets {
+			// Continue to the next target if no commands are found for the current target
 			guard let targetCommands = commands[TargetKey(projectName: target.projectName, targetName: target.name)] else {
+				logger.warning("No commands found for target: \(target.name) in project: \(target.projectName)")
 				continue
 			}
 
