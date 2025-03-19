@@ -111,6 +111,7 @@ let programName = CommandLine.arguments.first!
 		try log.parse()
 
 		// Find and parse the PIF cache
+		logger.info("PIF location is: \(log.buildCachePath.filePath)")
 		let pifCache = try PIFCache(buildCache: log.buildCachePath)
 
 		let targets = pifCache.projects.flatMap { project in
