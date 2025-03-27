@@ -45,6 +45,7 @@ class PIFCache {
 		guidToTargets = targets.reduce(into: [PIF.GUID: PIF.BaseTarget]()) { partial, target in
 			partial[target.guid] = target
 		}
+		logger.debug("Project targets: \(targets.count) reduced to \(guidToTargets.count)")
 	}
 
 	func target(guid: PIF.GUID) -> PIF.BaseTarget? {
