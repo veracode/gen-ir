@@ -61,6 +61,9 @@ let programName = CommandLine.arguments.first!
 	@Flag(help: "Output the dependency graph as .dot files to the output directory - debug only")
 	var dumpDependencyGraph = false
 
+	@Option(help: "Path to PIF cache. Use this in place of what is in the Xcode build log")
+	var pifCachePath: URL?
+
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
@@ -102,7 +105,8 @@ let programName = CommandLine.arguments.first!
 		archive: URL,
 		level: Logger.Level,
 		dryRun: Bool,
-		dumpDependencyGraph: Bool
+		dumpDependencyGraph: Bool,
+		pifCachePath: URL? = nil
 	) throws {
 		logger.logLevel = level
 		let output = archive.appendingPathComponent("IR")
@@ -111,8 +115,9 @@ let programName = CommandLine.arguments.first!
 		try log.parse()
 
 		// Find and parse the PIF cache
-		logger.info("PIF location is: \(log.buildCachePath.filePath)")
-		let pifCache = try PIFCache(buildCache: log.buildCachePath)
+		let pifCachePath = pifCachePath ?? URL(fileURLWithPath: log.buildCachePath.filePath)
+		logger.info("PIF location is: \(pifCachePath)")
+		let pifCache = try PIFCache(buildCache: pifCachePath)
 
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }

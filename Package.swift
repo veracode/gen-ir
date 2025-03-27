@@ -52,6 +52,11 @@ let package = Package(
 			name: "GenIRTests",
 			dependencies: ["gen-ir"],
 			path: "Tests/GenIRTests"
+		),
+		.testTarget(
+			name: "PIFTests",
+			dependencies: ["gen-ir"],
+			path: "PIF/Tests/PIFTests"
 		)
 	]
 )
