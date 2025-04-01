@@ -14,24 +14,25 @@ let programName = CommandLine.arguments.first!
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
 		discussion:
-		"""
-		This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
-		tool.
+        """
+        This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
+        tool.
 
-		This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, \
-		you may notice that not all modules are emitted.
+        This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, you may notice \
+        that not all modules are emitted.
 
-		To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
+        To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
 
-		Example with build log:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme > \
-		log.txt
-			$ \(programName) log.txt x.xcarchive/
+        Example with build log:
+        	$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
+        DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO > log.txt
+                $ \(programName) log.txt x.xcarchive
 
-		Example with pipe:
-			$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme 2>&1 \
-		| \(programName) - x.xcarchive/
-		""",
+        Example with pipe:
+        	$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
+        DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO 2>&1 | \(programName) - x.xcarchive
+
+        """,
 		version: "v\(Versions.version)"
 	)
 
@@ -109,6 +110,17 @@ let programName = CommandLine.arguments.first!
 		pifCachePath: URL? = nil
 	) throws {
 		logger.logLevel = level
+        logger.info(
+            """
+
+            Gen-IR v\(IREmitterCommand.configuration.version)
+                log: \(log)
+                archive: \(archive.filePath)
+                level: \(level)
+                dryRun: \(dryRun)
+                dumpDependencyGraph: \(dumpDependencyGraph)
+                pifCache: \(pifCachePath?.filePath ?? "not provided")
+            """)
 		let output = archive.appendingPathComponent("IR")
 
 		let log = try logParser(for: log)
@@ -122,6 +134,7 @@ let programName = CommandLine.arguments.first!
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
 		}.filter { !$0.isTest }
+        logger.debug("Project non-test targets: \(targets.count)")
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)
@@ -161,6 +174,7 @@ let programName = CommandLine.arguments.first!
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
+        logger.debug("Targets to run: \(targets.count)")
 		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
@@ -170,6 +184,7 @@ let programName = CommandLine.arguments.first!
 		)
 
 		try postprocessor.process()
+        logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
 	}
 
 	/// Gets an `XcodeLogParser` for a path
