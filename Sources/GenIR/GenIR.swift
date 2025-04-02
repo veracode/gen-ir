@@ -14,25 +14,25 @@ let programName = CommandLine.arguments.first!
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
 		discussion:
-        """
-        This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
-        tool.
+				"""
+				This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
+				tool.
 
-        This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, you may notice \
-        that not all modules are emitted.
+				This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, you may notice \
+				that not all modules are emitted.
 
-        To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
+				To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
 
-        Example with build log:
-        	$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
-        DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO > log.txt
-                $ \(programName) log.txt x.xcarchive
+				Example with build log:
+					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
+				DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO > log.txt
+								$ \(programName) log.txt x.xcarchive
 
-        Example with pipe:
-        	$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
-        DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO 2>&1 | \(programName) - x.xcarchive
+				Example with pipe:
+					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
+				DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO 2>&1 | \(programName) - x.xcarchive
 
-        """,
+				""",
 		version: "v\(Versions.version)"
 	)
 
@@ -62,7 +62,7 @@ let programName = CommandLine.arguments.first!
 	@Flag(help: "Output the dependency graph as .dot files to the output directory - debug only")
 	var dumpDependencyGraph = false
 
-	@Option(help: "Path to PIF cache. Use this in place of what is in the Xcode build log")
+	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
 	var pifCachePath: URL?
 
 	mutating func validate() throws {
@@ -119,7 +119,6 @@ let programName = CommandLine.arguments.first!
                 level: \(level)
                 dryRun: \(dryRun)
                 dumpDependencyGraph: \(dumpDependencyGraph)
-                pifCache: \(pifCachePath?.filePath ?? "not provided")
             """)
 		let output = archive.appendingPathComponent("IR")
 
@@ -127,9 +126,9 @@ let programName = CommandLine.arguments.first!
 		try log.parse()
 
 		// Find and parse the PIF cache
-		let pifCachePath = pifCachePath ?? URL(fileURLWithPath: log.buildCachePath.filePath)
-		logger.info("PIF location is: \(pifCachePath)")
-		let pifCache = try PIFCache(buildCache: pifCachePath)
+		let pifCachePath = pifCachePath ?? log.buildCachePath
+		logger.debug("PIF location is: \(pifCachePath!)")
+		let pifCache = try PIFCache(buildCache: pifCachePath!)
 
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
@@ -140,23 +139,7 @@ let programName = CommandLine.arguments.first!
 			commands[entry.target, default: []].append(entry.command)
 		}
 
-		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
-			provider: .init(targets: targets, cache: pifCache),
-			values: targets
-		)
-		let graph = builder.graph
-
-		if dumpDependencyGraph {
-			do {
-				try graph.toDot(output
-					.deletingLastPathComponent()
-					.appendingPathComponent("graph.dot")
-					.filePath
-				)
-			} catch {
-				logger.error("toDot error: \(error)")
-			}
-		}
+	 	let graph = buildDependencyGraph(targets: targets, pifCache: pifCache, output: output, dumpGraph: dumpDependencyGraph)
 
 		let buildCacheManipulator = try BuildCacheManipulator(
 			buildCachePath: log.buildCachePath,
@@ -185,6 +168,28 @@ let programName = CommandLine.arguments.first!
 
 		try postprocessor.process()
         logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
+	}
+
+	private func buildDependencyGraph(targets: [Target], pifCache: PIFCache, output: URL, dumpGraph: Bool) -> DependencyGraph<Target> {
+
+		let builder = DependencyGraphBuilder<PIFDependencyProvider, Target>(
+			provider: .init(targets: targets, cache: pifCache),
+			values: targets
+		)
+		let graph = builder.graph
+
+		if dumpGraph {
+			do {
+				try graph.toDot(output
+					.deletingLastPathComponent()
+					.appendingPathComponent("graph.dot")
+					.filePath
+				)
+			} catch {
+				logger.error("toDot error: \(error)")
+			}
+		}
+		return graph
 	}
 
 	/// Gets an `XcodeLogParser` for a path

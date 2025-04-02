@@ -160,7 +160,7 @@ struct PIFDependencyProvider: DependencyProviding {
 	/// A mapping of `PIF.GUID` to the `Target` they represent
 	private var guidToTargets: [PIF.GUID: Target]
 
-	// / Initializes the PIFDependencyProvider
+	/// Initializes the PIFDependencyProvider
 	/// - Parameters:
 	///   - targets: the list of targets to provide dependency relationships for
 	///   - cache: the cache that contains the targets

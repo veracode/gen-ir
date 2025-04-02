@@ -72,7 +72,7 @@ class OutputPostprocessor {
 			    logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
 				try manager.copyItem(at: buildDirectory, to: irDirectory)
 			} else {
-                logger.debug("No build directory for \(node.value.guid) with name \(node.value.productName)")
+                logger.debug("Creating build directory for \(node.value.guid) with name \(node.value.productName)")
 				try manager.createDirectory(at: irDirectory, withIntermediateDirectories: false)
 			}
 

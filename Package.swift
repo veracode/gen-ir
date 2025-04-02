@@ -16,7 +16,7 @@ let package = Package(
 	dependencies: [
 		// Dependencies declare other packages that this package depends on.
 		// .package(url: /* package url */, from: "1.0.0"),
-		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
+		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
 		.package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
 		.package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
 		.package(path: "PIF")
@@ -52,11 +52,6 @@ let package = Package(
 			name: "GenIRTests",
 			dependencies: ["gen-ir"],
 			path: "Tests/GenIRTests"
-		),
-		.testTarget(
-			name: "PIFTests",
-			dependencies: ["gen-ir"],
-			path: "PIF/Tests/PIFTests"
 		)
 	]
 )
