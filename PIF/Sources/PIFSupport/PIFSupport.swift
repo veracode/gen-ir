@@ -49,7 +49,7 @@ public class PIFCacheParser {
 
 		// If multiple workspaces exist, it's because the something in the project changed between builds. Sort workspaces by the most recent.
 		return workspaces
-            .sorted(using: KeyPathComparator(\.modificationDate, order: .reverse))
+        .sorted(using: KeyPathComparator(\.modificationDate, order: .reverse))
 			.first!
 			.workspace
 	}
