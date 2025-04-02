@@ -166,13 +166,13 @@ public enum PIF {
         let pifDecoder = PIFDecoder(cache: cachePath)
         let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
         switch untypedTarget.type {
-        case "aggregate":
-          return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
-        case "standard", "packageProduct":
-          return try pifDecoder.decode(PIF.Target.self, from: targetData)
-        default:
-          logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
-          return nil
+				case "aggregate":
+					return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
+				case "standard", "packageProduct":
+					return try pifDecoder.decode(PIF.Target.self, from: targetData)
+				default:
+					logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
+					return nil
 				}
 			}
 			self.groupTree = try container.decode(Group.self, forKey: .groupTree)
