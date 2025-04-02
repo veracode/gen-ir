@@ -162,16 +162,17 @@ public enum PIF {
 					}
 				}
 
-			targets = try targetContents.reduce(into: [BaseTarget]()) { result, targetData in
-				let pifDecoder = PIFDecoder(cache: cachePath)
-				let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
-				switch untypedTarget.type {
-				case "aggregate":
-					result.append(try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData))
-				case "standard", "packageProduct":
-					result.append(try pifDecoder.decode(PIF.Target.self, from: targetData))
-				default:
-					logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
+			targets = try targetContents.compactMap { targetData in
+        let pifDecoder = PIFDecoder(cache: cachePath)
+        let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
+        switch untypedTarget.type {
+        case "aggregate":
+          return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
+        case "standard", "packageProduct":
+          return try pifDecoder.decode(PIF.Target.self, from: targetData)
+        default:
+          logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
+          return nil
 				}
 			}
 			self.groupTree = try container.decode(Group.self, forKey: .groupTree)
