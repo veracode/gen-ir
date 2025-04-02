@@ -18,6 +18,5 @@ jobs:
 
       - name: 🔨 Build
         run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app/
           swift build
           swift test
