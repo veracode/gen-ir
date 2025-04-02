@@ -8,8 +8,8 @@ struct PIFTests {
     init() throws {
 
         let fileManager = FileManager.default
-        let currentDirectoryPath = fileManager.currentDirectoryPath
-        testBundlePath = URL(fileURLWithPath: "\(currentDirectoryPath)/PIF/Tests/Resources/PIFCache")
+        let basePath = URL(fileURLWithPath: #file.replacingOccurrences(of: "PIFTests/PIFTests.swift", with: ""))
+        testBundlePath = basePath.appendingPathComponent("Resources/PIFCache")
 
         try #require(fileManager.fileExists(atPath: testBundlePath.path()))
     }
