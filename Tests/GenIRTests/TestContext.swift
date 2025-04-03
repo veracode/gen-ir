@@ -144,9 +144,9 @@ class TestContext {
 	}()
 
 	/// Generate the Targets for this context
-	lazy var targets: [Target] = {
-        pifCache.targets.map { Target(from: $0) }
-	}()
+	lazy var targets: [Target] = pifCache.projects.flatMap { project in
+			project.targets.compactMap { Target(from: $0, in: project) }
+		}
 
 	/// Generate the dependency graph for this context
 	lazy var graph: DependencyGraph<Target> = {

@@ -87,7 +87,7 @@ public enum PIF {
 
 		public required init(from decoder: Decoder) throws {
 			guard let cachePath = decoder.userInfo[.pifCachePath] as? URL else {
-				throw Error.userInfoError("decoder's userInfo doesn't container required key .cachePath, or that value isn't a URL")
+				throw Error.userInfoError("decoder's userInfo doesn't contain the required key .cachePath, or that value isn't a URL")
 			}
 
 			let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -162,20 +162,19 @@ public enum PIF {
 					}
 				}
 
-			targets = try targetContents
-				.map { targetData -> BaseTarget in
-					let pifDecoder = PIFDecoder(cache: cachePath)
-					let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
-					switch untypedTarget.type {
-					case "aggregate":
-						return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
-					case "standard", "packageProduct":
-						return try pifDecoder.decode(PIF.Target.self, from: targetData)
-					default:
-						throw Error.decodingError("Target type unknown: \(untypedTarget)")
-					}
+			targets = try targetContents.compactMap { targetData in
+        let pifDecoder = PIFDecoder(cache: cachePath)
+        let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
+        switch untypedTarget.type {
+				case "aggregate":
+					return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
+				case "standard", "packageProduct":
+					return try pifDecoder.decode(PIF.Target.self, from: targetData)
+				default:
+					logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
+					return nil
 				}
-
+			}
 			self.groupTree = try container.decode(Group.self, forKey: .groupTree)
 		}
 	}
@@ -306,7 +305,7 @@ public enum PIF {
 					case FileReference.type:
 						return try childrenContainer.decode(FileReference.self)
 					default:
-						logger.debug("unknown reference type: \(child.type ?? "<nil>")")
+						logger.debug("Ignoring reference type: \(child.type ?? "<nil>")")
 						return nil
 					}
 				}
@@ -510,7 +509,7 @@ public enum PIF {
 			case ResourcesBuildPhase.type:
 				return try container.decode(ResourcesBuildPhase.self)
 			default:
-				logger.debug("unknown build phase: \(type)")
+				logger.debug("Ignoring build phase: \(type)")
 				return nil
 				// TODO: we should probably handle these:
 				/*
