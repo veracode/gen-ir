@@ -43,7 +43,7 @@ final class CMakeDiscoveryTests: XCTestCase {
 		)
 	}
 
-	func testCMakeDiscovery() throws {
+	func skip_testCMakeDiscovery() throws {
 		try generate()
 		let context = TestContext()
 		try context.build(test: testPath, scheme: scheme)

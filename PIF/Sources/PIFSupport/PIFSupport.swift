@@ -28,7 +28,7 @@ public class PIFCacheParser {
 	/// Finds the most recent workspace in the cache
 	/// - Throws: a `workspaceNotFound` error when a workspace is not found
 	/// - Returns: the path to the most recent workspace file
-	private static func workspacePath(in cachePath: URL) throws -> URL {
+	internal static func workspacePath(in cachePath: URL) throws -> URL {
 		let workspaces = try FileManager.default.contentsOfDirectory(
 			at: cachePath.appendingPathComponent("workspace"),
 			includingPropertiesForKeys: nil
@@ -49,7 +49,7 @@ public class PIFCacheParser {
 
 		// If multiple workspaces exist, it's because the something in the project changed between builds. Sort workspaces by the most recent.
 		return workspaces
-			.sorted(using: KeyPathComparator(\.modificationDate))
+        .sorted(using: KeyPathComparator(\.modificationDate, order: .reverse))
 			.first!
 			.workspace
 	}

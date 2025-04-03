@@ -29,6 +29,11 @@ let package = Package(
 			name: "PIFSupportTests",
 			dependencies: ["PIFSupport"]
 		),
+		.testTarget(
+			name: "PIFTests",
+			dependencies: ["PIFSupport"],
+			path: "PIF/Tests/PIFTests"
+		),
 		.executableTarget(
 			name: "pif-parser",
 			dependencies: [
