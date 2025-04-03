@@ -65,14 +65,14 @@ class OutputPostprocessor {
 			let irDirectory = output.appendingPathComponent(node.value.productName)
 			let buildDirectory = build.appendingPathComponent(node.value.productName)
 
-			logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
-
 			// If there is a build directory for this target then copy the artifacts over to the IR
 			// folder. Otherwise we will create an empty directory and that will contain the artifacts
 			// of the dependency chain.
 			if manager.directoryExists(at: buildDirectory) {
+			    logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
 				try manager.copyItem(at: buildDirectory, to: irDirectory)
 			} else {
+                logger.debug("Creating build directory for \(node.value.guid) with name \(node.value.productName)")
 				try manager.createDirectory(at: irDirectory, withIntermediateDirectories: false)
 			}
 

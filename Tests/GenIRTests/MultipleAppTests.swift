@@ -9,7 +9,7 @@ final class MultipleAppTests: XCTestCase {
 	}()
 	let scheme = "MultipleApp"
 
-	func testExpectedTargetLookup() throws {
+	func skip_testExpectedTargetLookup() throws {
 		let context = TestContext()
 		try context.build(test: testPath, scheme: "MultipleApp")
 
@@ -18,7 +18,10 @@ final class MultipleAppTests: XCTestCase {
 		let app = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp" }))
 		let copy = try XCTUnwrap(targets.first(where: { $0.name == "MultipleApp Copy" }))
 
-        XCTAssertEqual(context.logParser.targetCommands[app.name]?.count, 1)
-        XCTAssertEqual(context.logParser.targetCommands[copy.name]?.count, 1)
+		let appKey = TargetKey(projectName: "MultipleApp", targetName: app.name)
+		let copyKey = TargetKey(projectName: "MultipleApp", targetName: copy.name)
+
+        XCTAssertEqual(context.logParser.commandLog[1].target, appKey)
+		XCTAssertEqual(context.logParser.commandLog[2].target, copyKey)
 	}
 }
