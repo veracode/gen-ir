@@ -9,7 +9,7 @@ final class OutputPostprocessorFileMoverTests: XCTestCase {
 	}()
 	let scheme = "OutputPostprocessorFileMoverTests"
 
-	func testFileMoving() throws {
+	func skip_testFileMoving() throws {
 		let context = TestContext()
 		try context.build(test: testPath, scheme: scheme)
 

@@ -45,6 +45,7 @@ class PIFCache {
 		guidToTargets = targets.reduce(into: [PIF.GUID: PIF.BaseTarget]()) { partial, target in
 			partial[target.guid] = target
 		}
+		logger.debug("Project targets: \(targets.count) reduced to \(guidToTargets.count)")
 	}
 
 	func target(guid: PIF.GUID) -> PIF.BaseTarget? {
@@ -159,7 +160,7 @@ struct PIFDependencyProvider: DependencyProviding {
 	/// A mapping of `PIF.GUID` to the `Target` they represent
 	private var guidToTargets: [PIF.GUID: Target]
 
-	// / Initializes the PIFDependencyProvider
+	/// Initializes the PIFDependencyProvider
 	/// - Parameters:
 	///   - targets: the list of targets to provide dependency relationships for
 	///   - cache: the cache that contains the targets

@@ -47,7 +47,7 @@ struct CompilerCommandRunner {
 
 	/// Starts the runner
 	/// - Parameter targets: the targets holding the commands to run
-	func run(targets: [Target], commands: [String: [CompilerCommand]]) throws {
+	func run(targets: [Target], commands: [TargetKey: [CompilerCommand]]) throws {
 		// Quick, do a hack!
 		try buildCacheManipulator.manipulate()
 
@@ -58,8 +58,10 @@ struct CompilerCommandRunner {
 
 		var totalModulesRun = 0
 
-		for target in targets.filter({ $0.isBuildable }) {
-			guard let targetCommands = commands[target.name] else {
+		for target in targets {
+			// Continue to the next target if no commands are found for the current target
+			guard let targetCommands = commands[TargetKey(projectName: target.projectName, targetName: target.name)] else {
+				logger.debug("No commands found for target: \(target.name) in project: \(target.projectName)")
 				continue
 			}
 
