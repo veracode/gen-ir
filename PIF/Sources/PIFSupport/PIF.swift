@@ -72,6 +72,7 @@ public enum PIF {
 		required public init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 			type = try container.decode(String.self, forKey: .type)
+			logger.trace(" ---> Decoded TypedObject \(String(describing: type))")	
 		}
 	}
 
@@ -95,13 +96,16 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			name = try container.decode(String.self, forKey: .name)
 			path = try container.decodeIfPresent(URL.self, forKey: .path)
-
+			logger.trace(" ---> Decoded Workspace: guid \(guid) name \(name) path \(path?.absoluteString ?? "<nil>" ) ")
 			let projectPaths = try container.decode([String].self, forKey: .projects)
 				.map {
 					cachePath
 						.appendingPathComponent("project")
 						.appendingPathComponent("\($0)\(PIF.cacheFileExtension)")
 				}
+			projectPaths.forEach { URL in
+				logger.trace("\t project path \(URL)")
+			}
 
 			let projectContents = try projectPaths
 				.map {
@@ -147,6 +151,7 @@ public enum PIF {
 			projectDirectory = try container.decode(URL.self, forKey: .projectDirectory)
 			developmentRegion = try container.decodeIfPresent(String.self, forKey: .developmentRegion)
 			buildConfigurations = try container.decode([BuildConfiguration].self, forKey: .buildConfigurations)
+			logger.trace(" ---> Decoded Project: guid \(guid) name \(projectName ?? "<nil>") path \(path?.absoluteString ?? "<nil>" ) ")
 
 			let targetContents = try container.decode([String].self, forKey: .targets)
 				.map {
@@ -165,6 +170,7 @@ public enum PIF {
 			targets = try targetContents.compactMap { targetData in
         let pifDecoder = PIFDecoder(cache: cachePath)
         let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
+				logger.trace("\t untyped target type: \(untypedTarget)")
         switch untypedTarget.type {
 				case "aggregate":
 					return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
@@ -201,6 +207,8 @@ public enum PIF {
 
 			/// Indicates that the path is relative to the DEVELOPER_DIR (normally in the Xcode.app bundle)
 			case developerDir = "DEVELOPER_DIR"
+
+			case decodeError = "<decodeError>"
 		}
 
 		public let guid: GUID
@@ -223,11 +231,20 @@ public enum PIF {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			guid = try container.decode(String.self, forKey: .guid)
-			sourceTree = try container.decode(SourceTree.self, forKey: .sourceTree)
+
+			// Attempt to decode `sourceTree` and handle errors
+			do {
+				sourceTree = try container.decode(SourceTree.self, forKey: .sourceTree)
+			} catch {
+				logger.error("Failed to decode SourceTree for Reference with guid \(guid): \(error)")
+				sourceTree = .decodeError // Assign a default value
+			}
+
 			path = try container.decode(String.self, forKey: .path)
 			name = try container.decodeIfPresent(String.self, forKey: .name)
 
 			try super.init(from: decoder)
+			logger.trace(" ---> Decoded Reference guid \(guid) name \(name ?? "<nil>") path (\(path))")
 		}
 	}
 
@@ -245,6 +262,7 @@ public enum PIF {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			fileType = try container.decode(String.self, forKey: .fileType)
+			logger.trace(" ---> Decoded FileType \(fileType)")
 
 			try super.init(from: decoder)
 		}
@@ -295,6 +313,7 @@ public enum PIF {
 				var childrenContainer = try container.nestedUnkeyedContainer(forKey: .children)
 
 				children = try untypedChildren.compactMap { child in
+					logger.trace(" ---> Decoded Group Type \(child.type ?? "<nil>")")
 					switch child.type {
 					case Group.type:
 						return try childrenContainer.decode(Group.self)
@@ -334,6 +353,7 @@ public enum PIF {
 
 			targetGUID = try container.decode(String.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
+			logger.trace("---> Decoded TargetDependency: \(targetGUID)")
 		}
 	}
 
@@ -393,6 +413,7 @@ public enum PIF {
 
 			let dependencies = try container.decode([TargetDependency].self, forKey: .dependencies)
 			let impartedBuildProperties = try container.decodeIfPresent(BuildSettings.self, forKey: .impartedBuildProperties)
+			logger.trace("---> Decoded BaseTarget: guid \(guid) name \(name)")
 
 			super.init(
 				guid: guid,
@@ -449,6 +470,8 @@ public enum PIF {
 		public required init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
+			// The swift package manager drops the length of schemaVersion from the end of the guid-string. However, 
+			// this doesn't work for all guids, because some are names and not guid strings (PackageProduct?).
 			let guid = try container.decode(GUID.self, forKey: .guid)
 			let name = try container.decode(String.self, forKey: .name)
 			let buildConfigurations = try container.decode([BuildConfiguration].self, forKey: .buildConfigurations)
@@ -457,6 +480,7 @@ public enum PIF {
 
 			let buildPhases: [BuildPhase]
 			let impartedBuildProperties: ImpartedBuildProperties
+			logger.trace("---> Decoded Target: guid \(guid) name \(name)")
 
 			if type == "packageProduct" {
 				self.productType = .packageProduct
@@ -493,12 +517,14 @@ public enum PIF {
 				dependencies: dependencies,
 				impartedBuildSettings: impartedBuildProperties.buildSettings
 			)
+			logger.trace(" ---> Target \(name) with guid \(guid) and product type \(productType) and product name \(productName) decoded")
 		}
 	}
 
 	/// Abstract base class for all build phases in a target.
 	public class BuildPhase: TypedObject {
 		static func decode(container: inout UnkeyedDecodingContainer, type: String) throws -> BuildPhase? {
+			logger.trace("---> Decoded BuildPhase: type \(type)")
 			switch type {
 			case HeadersBuildPhase.type:
 				return try container.decode(HeadersBuildPhase.self)
@@ -508,15 +534,13 @@ public enum PIF {
 				return try container.decode(FrameworksBuildPhase.self)
 			case ResourcesBuildPhase.type:
 				return try container.decode(ResourcesBuildPhase.self)
+			case CopyFilesBuildPhase.type:
+				return try container.decode(CopyFilesBuildPhase.self)
+			case ShellScriptBuildPhase.type:
+				return try container.decode(ShellScriptBuildPhase.self)
 			default:
 				logger.debug("Ignoring build phase: \(type)")
 				return nil
-				// TODO: we should probably handle these:
-				/*
-				case copyFiles = "com.apple.buildphase.copy-files"
-				case shellScript = "com.apple.buildphase.shell-script"
-				case sources = "com.apple.buildphase.sources"*/
-				// throw Error.decodingError("unknown build phase \(type)")
 			}
 		}
 
@@ -532,6 +556,7 @@ public enum PIF {
 
 			guid = try container.decode(GUID.self, forKey: .guid)
 			buildFiles = try container.decode([BuildFile].self, forKey: .buildFiles)
+			logger.trace("\tBuildPhase guid \(guid)")
 
 			try super.init(from: decoder)
 		}
@@ -556,6 +581,14 @@ public enum PIF {
 
 	public final class ResourcesBuildPhase: BuildPhase {
 		override class var type: String { "com.apple.buildphase.resources" }
+	}
+
+	public final class CopyFilesBuildPhase: BuildPhase {
+		override class var type: String { "com.apple.buildphase.copy-files" }
+	}
+
+	public final class ShellScriptBuildPhase: BuildPhase {
+		override class var type: String { "com.apple.buildphase.shell-script" }
 	}
 
 	/// A build file, representing the membership of either a file or target product reference in a build phase.
@@ -585,6 +618,7 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
 			headerVisibility = try container.decodeIfPresent(HeaderVisibility.self, forKey: .headerVisibility) ?? nil
+			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")") 
 
 			if container.allKeys.contains(.fileReference) {
 				reference = try .file(guid: container.decode(GUID.self, forKey: .fileReference))
@@ -627,6 +661,7 @@ public enum PIF {
 			name = try container.decode(String.self, forKey: .name)
 			buildSettings = try container.decode(BuildSettings.self, forKey: .buildSettings)
 			impartedBuildProperties  = try container.decodeIfPresent(ImpartedBuildProperties.self, forKey: .impartedBuildProperties) ?? .init(buildSettings: .init())
+			logger.trace("---> Decoded BuildConfiguration: guid \(guid) name \(name)")
 		}
 	}
 
@@ -833,65 +868,6 @@ public struct XCBuildFileType: CaseIterable {
 	private init(fileType: String, fileTypeIdentifier: String) {
 		self.init(fileTypes: [fileType], fileTypeIdentifier: fileTypeIdentifier)
 	}
-}
-
-extension PIF.FileReference {
-	// fileprivate static func fileTypeIdentifier(forPath path: String) -> String {
-	// 	let pathExtension: String?
-	// 	if let path = try? URL(validating: path) {
-	// 		pathExtension = path.extension
-	// 	} else if let path = try? RelativePath(validating: path) {
-	// 		pathExtension = path.extension
-	// 	} else {
-	// 		pathExtension = nil
-	// 	}
-
-	// 	switch pathExtension {
-	// 	case "a":
-	// 		return "archive.ar"
-	// 	case "s", "S":
-	// 		return "sourcecode.asm"
-	// 	case "c":
-	// 		return "sourcecode.c.c"
-	// 	case "cl":
-	// 		return "sourcecode.opencl"
-	// 	case "cpp", "cp", "cxx", "cc", "c++", "C", "tcc":
-	// 		return "sourcecode.cpp.cpp"
-	// 	case "d":
-	// 		return "sourcecode.dtrace"
-	// 	case "defs", "mig":
-	// 		return "sourcecode.mig"
-	// 	case "m":
-	// 		return "sourcecode.c.objc"
-	// 	case "mm", "M":
-	// 		return "sourcecode.cpp.objcpp"
-	// 	case "metal":
-	// 		return "sourcecode.metal"
-	// 	case "l", "lm", "lmm", "lpp", "lp", "lxx":
-	// 		return "sourcecode.lex"
-	// 	case "swift":
-	// 		return "sourcecode.swift"
-	// 	case "y", "ym", "ymm", "ypp", "yp", "yxx":
-	// 		return "sourcecode.yacc"
-
-	// 	case "xcassets":
-	// 		return "folder.assetcatalog"
-	// 	case "xcstrings":
-	// 		return "text.json.xcstrings"
-	// 	case "storyboard":
-	// 		return "file.storyboard"
-	// 	case "xib":
-	// 		return "file.xib"
-
-	// 	case "xcframework":
-	// 		return "wrapper.xcframework"
-
-	// 	default:
-	// 		return pathExtension.flatMap({ pathExtension in
-	// 			XCBuildFileType.allCases.first(where: ({ $0.fileTypes.contains(pathExtension) }))
-	// 		})?.fileTypeIdentifier ?? "file"
-	// 	}
-	// }
 }
 
 private struct UntypedTarget: Decodable {
