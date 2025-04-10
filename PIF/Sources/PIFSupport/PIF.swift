@@ -72,7 +72,7 @@ public enum PIF {
 		required public init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 			type = try container.decode(String.self, forKey: .type)
-			logger.trace(" ---> Decoded TypedObject \(String(describing: type))")	
+			logger.trace(" ---> Decoded TypedObject \(String(describing: type))")
 		}
 	}
 
@@ -618,7 +618,7 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
 			headerVisibility = try container.decodeIfPresent(HeaderVisibility.self, forKey: .headerVisibility) ?? nil
-			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")") 
+			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")")
 
 			if container.allKeys.contains(.fileReference) {
 				reference = try .file(guid: container.decode(GUID.self, forKey: .fileReference))
