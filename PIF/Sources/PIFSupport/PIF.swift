@@ -208,7 +208,7 @@ public enum PIF {
 			/// Indicates that the path is relative to the DEVELOPER_DIR (normally in the Xcode.app bundle)
 			case developerDir = "DEVELOPER_DIR"
 
-			case decodeError = "<decodeError>"
+			case unknown = "<unknown>"
 		}
 
 		public let guid: GUID
@@ -232,12 +232,23 @@ public enum PIF {
 
 			guid = try container.decode(String.self, forKey: .guid)
 
-			// Attempt to decode `sourceTree` and handle errors
-			do {
-				sourceTree = try container.decode(SourceTree.self, forKey: .sourceTree)
-			} catch {
-				logger.error("Failed to decode SourceTree for Reference with guid \(guid): \(error)")
-				sourceTree = .decodeError // Assign a default value
+			let sourceTreeString = try container.decode(String.self, forKey: .sourceTree)
+			switch sourceTreeString {
+			case SourceTree.sourceRoot.rawValue:
+				sourceTree = .sourceRoot
+			case SourceTree.group.rawValue:
+				sourceTree = .group
+			case SourceTree.builtProductsDir.rawValue:
+				sourceTree = .builtProductsDir
+			case SourceTree.absolute.rawValue:
+				sourceTree = .absolute
+			case SourceTree.sdkRoot.rawValue:
+				sourceTree = .sdkRoot
+			case SourceTree.developerDir.rawValue:
+				sourceTree = .developerDir
+			default:
+				sourceTree = .unknown
+				logger.debug("Ignoring source tree type: \(sourceTreeString)")
 			}
 
 			path = try container.decode(String.self, forKey: .path)

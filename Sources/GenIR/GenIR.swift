@@ -66,16 +66,14 @@ let programName = CommandLine.arguments.first!
 	var pifCachePath: URL?
 
 	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
-	var logLevel: String?
+	var logLevel: LogLevelArgument?
 
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
 			logger.logLevel = .debug
-		}
-
-		if !(logLevel ?? "").isEmpty && debug == false {
-			logger.logLevel = Logger.Level(rawValue: logLevel?.lowercased() ?? "info") ?? .info
+		} else {
+			logger.logLevel = logLevel?.level ?? .info
 		}
 
 		if projectPath != nil {
@@ -245,4 +243,16 @@ extension URL: ExpressibleByArgument {
 	public init?(argument: String) {
 		self = argument.fileURL.absoluteURL
 	}
+}
+
+struct LogLevelArgument: ExpressibleByArgument {
+    let level: Logger.Level
+
+    init?(argument: String) {
+        // Convert the argument to lowercase and attempt to create a Logger.Level
+        guard let logLevel = Logger.Level(rawValue: argument.lowercased()) else {
+            return nil // Return nil if the argument is invalid
+        }
+        self.level = logLevel
+    }
 }
