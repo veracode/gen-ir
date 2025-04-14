@@ -248,7 +248,7 @@ public enum PIF {
 				sourceTree = .developerDir
 			default:
 				sourceTree = .unknown
-				logger.debug("Ignoring source tree type: \(sourceTreeString)")
+				logger.debug("Ignoring sourceTree type: \(sourceTreeString)")
 			}
 
 			path = try container.decode(String.self, forKey: .path)
