@@ -45,15 +45,6 @@ public enum PIF {
 		case dataReadingFailure(String)
 	}
 
-	/// The top-level PIF object.
-	public struct TopLevelObject: Decodable {
-		public let workspace: PIF.Workspace
-
-		public init(workspace: PIF.Workspace) {
-			self.workspace = workspace
-		}
-	}
-
 	public class TypedObject: Decodable {
 		class var type: String {
 			fatalError("\(self) missing implementation")
@@ -170,7 +161,6 @@ public enum PIF {
 			targets = try targetContents.compactMap { targetData in
         let pifDecoder = PIFDecoder(cache: cachePath)
         let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
-				logger.trace("\t untyped target type: \(untypedTarget)")
         switch untypedTarget.type {
 				case "aggregate":
 					return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
@@ -295,7 +285,7 @@ public enum PIF {
 		public var fileType: String
 
 		private enum CodingKeys: CodingKey {
-			case fileType
+			case fileType, guid, sourceTree, path, type
 		}
 
 		public required init(from decoder: Decoder) throws {
@@ -658,7 +648,6 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
 			headerVisibility = try container.decodeIfPresent(HeaderVisibility.self, forKey: .headerVisibility) ?? nil
-			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")")
 
 			if container.allKeys.contains(.fileReference) {
 				reference = try .file(guid: container.decode(GUID.self, forKey: .fileReference))
@@ -667,6 +656,8 @@ public enum PIF {
 			} else {
 				throw Error.decodingError("Expected \(CodingKeys.fileReference) or \(CodingKeys.targetReference) in the keys")
 			}
+			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")")
+			logger.trace("\tBuildFile reference \(reference)")
 		}
 	}
 
