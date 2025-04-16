@@ -75,6 +75,17 @@ class Target {
 		isPackageProduct = !guid.hasPrefix("PACKAGE-TARGET:")
 		isSwiftPackage = guid.hasPrefix("PACKAGE-")
 	}
+
+	init(from file: PIF.FileReference, in project: PIF.Project) {
+		guid = file.guid
+		name = file.name ?? file.path
+		projectName = project.projectName ?? project.groupTree.name ?? project.guid
+		productName = file.name ?? file.path
+		isBuildable = true
+		isTest = false
+		isPackageProduct = false
+		isSwiftPackage = false
+	}
 }
 
 extension Target: NodeValue {

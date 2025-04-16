@@ -138,10 +138,15 @@ let programName = CommandLine.arguments.first!
 		logger.debug("PIF location is: \(pifCachePath)")
 		let pifCache = try PIFCache(buildCache: pifCachePath)
 
-		let targets = pifCache.projects.flatMap { project in
+		var targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
 		}.filter { !$0.isTest }
-        logger.debug("Project non-test targets: \(targets.count)")
+
+		let xcf = pifCache.projects.flatMap { project in
+			project.allXcframeworks().compactMap { Target(from: $0, in: project)	} 
+		}
+		targets.append(contentsOf: xcf)
+		logger.debug("Project non-test targets: \(targets.count)")
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)
@@ -165,7 +170,7 @@ let programName = CommandLine.arguments.first!
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-        logger.debug("Targets to run: \(targets.count)")
+    logger.debug("Targets to run: \(targets.count)")
 		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(

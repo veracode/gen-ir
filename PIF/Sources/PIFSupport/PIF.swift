@@ -173,6 +173,23 @@ public enum PIF {
 			}
 			self.groupTree = try container.decode(Group.self, forKey: .groupTree)
 		}
+
+		public func allXcframeworks() -> [PIF.FileReference] {
+			var allFiles: [PIF.FileReference] = []
+			for child in groupTree.children {
+				if let fileRef = child as? PIF.FileReference {
+					if fileRef.isXcframework() {
+						allFiles.append(fileRef)
+					}
+				} else if let group = child as? PIF.Group {
+					allFiles.append(contentsOf: group.allXcframeworks())
+				}
+			}
+			return allFiles
+			// return groupTree.children
+			// 	.compactMap { $0 as? PIF.FileReference }
+			// 	.filter { $0.isXcframework() } 
+		}
 	}
 
 	/// Abstract base class for all items in the group hierarchy.
@@ -197,11 +214,17 @@ public enum PIF {
 
 		public required init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
-
+			
 			guid = try container.decode(String.self, forKey: .guid)
 			sourceTree = try container.decode(SourceTree.self, forKey: .sourceTree)
 			path = try container.decode(String.self, forKey: .path)
-			name = try container.decodeIfPresent(String.self, forKey: .name)
+			var potentialName = try container.decodeIfPresent(String.self, forKey: .name)
+			if potentialName == nil {
+				// Set the name to the last path component of the `path`, excluding the extension
+				potentialName = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+				logger.debug("Setting reference name to \(potentialName ?? "<nil>") base on the path \(path)")
+			}
+			name = potentialName
 
 			try super.init(from: decoder)
 			logger.trace(" ---> Decoded Reference guid \(guid) name \(name ?? "<nil>") path (\(path))")
@@ -285,16 +308,20 @@ public enum PIF {
 		public var fileType: String
 
 		private enum CodingKeys: CodingKey {
-			case fileType, guid, sourceTree, path, type
+			case fileType
 		}
 
 		public required init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			fileType = try container.decode(String.self, forKey: .fileType)
-			logger.trace(" ---> Decoded FileType \(fileType)")
 
 			try super.init(from: decoder)
+			logger.trace(" ---> Decoded FileType \(fileType) guid \(guid) name \(name ?? "<nil>") path (\(path))")
+		}
+
+		public func isXcframework() -> Bool {
+			return fileType == "wrapper.xcframework"
 		}
 	}
 
@@ -363,6 +390,20 @@ public enum PIF {
 			}
 
 			try super.init(from: decoder)
+		}
+
+		public func allXcframeworks() -> [PIF.FileReference] {
+			var allFiles: [PIF.FileReference] = []
+			for child in children {
+				if let fileRef = child as? PIF.FileReference {
+					if fileRef.isXcframework() {
+						allFiles.append(fileRef)
+					}
+				} else if let group = child as? PIF.Group {
+					allFiles.append(contentsOf: group.allXcframeworks())
+				}
+			}
+			return allFiles
 		}
 	}
 
