@@ -188,28 +188,6 @@ public enum PIF {
 	/// Abstract base class for all items in the group hierarchy.
 	public class Reference: TypedObject {
 		/// Determines the base path for a reference's relative path.
-		public enum SourceTree: String, Decodable {
-			/// Indicates that the path is relative to the source root (i.e. the "project directory").
-			case sourceRoot = "SOURCE_ROOT"
-
-			/// Indicates that the path is relative to the path of the parent group.
-			case group = "<group>"
-
-			/// Indicates that the path is relative to the effective build directory (which varies depending on active
-			/// scheme, active run destination, or even an overridden build setting.
-			case builtProductsDir = "BUILT_PRODUCTS_DIR"
-
-			/// Indicates that the path is an absolute path.
-			case absolute = "<absolute>"
-
-			/// Indicates that the path is relative to the SDKROOT
-			case sdkRoot = "SDKROOT"
-
-			/// Indicates that the path is relative to the DEVELOPER_DIR (normally in the Xcode.app bundle)
-			case developerDir = "DEVELOPER_DIR"
-
-			case unknown = "<unknown>"
-		}
 
 		public let guid: GUID
 
@@ -231,31 +209,82 @@ public enum PIF {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			guid = try container.decode(String.self, forKey: .guid)
-
-			let sourceTreeString = try container.decode(String.self, forKey: .sourceTree)
-			switch sourceTreeString {
-			case SourceTree.sourceRoot.rawValue:
-				sourceTree = .sourceRoot
-			case SourceTree.group.rawValue:
-				sourceTree = .group
-			case SourceTree.builtProductsDir.rawValue:
-				sourceTree = .builtProductsDir
-			case SourceTree.absolute.rawValue:
-				sourceTree = .absolute
-			case SourceTree.sdkRoot.rawValue:
-				sourceTree = .sdkRoot
-			case SourceTree.developerDir.rawValue:
-				sourceTree = .developerDir
-			default:
-				sourceTree = .unknown
-				logger.debug("Ignoring sourceTree type: \(sourceTreeString)")
-			}
-
+			sourceTree = try container.decode(SourceTree.self, forKey: .sourceTree)
 			path = try container.decode(String.self, forKey: .path)
 			name = try container.decodeIfPresent(String.self, forKey: .name)
 
 			try super.init(from: decoder)
 			logger.trace(" ---> Decoded Reference guid \(guid) name \(name ?? "<nil>") path (\(path))")
+		}
+	}
+
+	public enum SourceTree: RawRepresentable, Decodable {
+
+		public typealias RawValue = String
+
+		/// Indicates that the path is relative to the source root (i.e. the "project directory").
+		case sourceRoot
+
+		/// Indicates that the path is relative to the path of the parent group.
+		case group
+
+		/// Indicates that the path is relative to the effective build directory (which varies depending on active
+		/// scheme, active run destination, or even an overridden build setting.
+		case builtProductsDir
+
+		/// Indicates that the path is an absolute path.
+		case absolute
+
+		/// Indicates that the path is relative to the SDKROOT
+		case sdkRoot
+
+		/// Indicates that the path is relative to the DEVELOPER_DIR (normally in the Xcode.app bundle)
+		case developerDir
+
+		case unknown
+
+		public var rawValue: Self.RawValue {
+			switch self {
+			case .sourceRoot:
+				return "SOURCE_ROOT"
+			case .group:
+				return "<group>"
+			case .builtProductsDir:
+				return "BUILT_PRODUCTS_DIR"
+			case .absolute:
+				return "<absolute>"
+			case .sdkRoot:
+				return "SDKROOT"
+			case .developerDir:
+				return "DEVELOPER_DIR"
+			case .unknown:
+				return "<unknown>"
+			}
+		}
+
+		public init(rawValue: Self.RawValue) {
+			switch rawValue {
+			case "SOURCE_ROOT":
+				self = .sourceRoot
+			case "<group>":
+				self = .group
+			case "BUILT_PRODUCTS_DIR":
+				self = .builtProductsDir
+			case "<absolute>":
+				self = .absolute
+			case "SDKROOT":
+				self = .sdkRoot
+			case "DEVELOPER_DIR":
+				self = .developerDir
+			default:
+				self = .unknown
+			}
+		}
+
+		public init(from decoder: Decoder) throws {
+			let container = try decoder.singleValueContainer()
+			let rawValue = try container.decode(String.self)
+			self = SourceTree(rawValue: rawValue)
 		}
 	}
 
