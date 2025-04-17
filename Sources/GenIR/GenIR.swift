@@ -26,7 +26,7 @@ let programName = CommandLine.arguments.first!
 				Example with build log:
 					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
 				DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO > log.txt
-								$ \(programName) log.txt x.xcarchive
+					$ \(programName) log.txt x.xcarchive
 
 				Example with pipe:
 					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
@@ -65,10 +65,15 @@ let programName = CommandLine.arguments.first!
 	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
 	var pifCachePath: URL?
 
+	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
+	var logLevel: LogLevelArgument?
+
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
 			logger.logLevel = .debug
+		} else {
+			logger.logLevel = logLevel?.level ?? .info
 		}
 
 		if projectPath != nil {
@@ -97,7 +102,8 @@ let programName = CommandLine.arguments.first!
 			archive: xcarchivePath,
 			level: logger.logLevel,
 			dryRun: dryRun,
-			dumpDependencyGraph: dumpDependencyGraph
+			dumpDependencyGraph: dumpDependencyGraph,
+			pifCachePath: pifCachePath
 		)
 	}
 
@@ -237,4 +243,16 @@ extension URL: ExpressibleByArgument {
 	public init?(argument: String) {
 		self = argument.fileURL.absoluteURL
 	}
+}
+
+struct LogLevelArgument: ExpressibleByArgument {
+    let level: Logger.Level
+
+    init?(argument: String) {
+        // Convert the argument to lowercase and attempt to create a Logger.Level
+        guard let logLevel = Logger.Level(rawValue: argument.lowercased()) else {
+            return nil // Return nil if the argument is invalid
+        }
+        self.level = logLevel
+    }
 }
