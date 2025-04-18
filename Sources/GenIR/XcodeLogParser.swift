@@ -69,6 +69,7 @@ class XcodeLogParser {
 	/// Parse the lines from the build log
 	func parseBuildLog() {
 		var seenTargets = Set<TargetKey>()
+		var commandsToLog = Set<String>() // Track unique commands
 
 		while let line = consumeLine() {
 			if line.hasPrefix("Build description path: ") {
@@ -92,7 +93,11 @@ class XcodeLogParser {
 					let commands = parseCompilerCommands(target: target)
 
 					commands.forEach {
-						logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
+						let commandKey = "\($0.command.compiler.rawValue)-\(target)"
+						if (commandsToLog.insert(commandKey)).inserted {
+							// Log the compiler along with the target
+							logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
+						}
 					}
 
 					commandLog.append(contentsOf: commands)
