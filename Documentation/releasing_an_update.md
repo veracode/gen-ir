@@ -9,20 +9,14 @@ When you have an update for `gen-ir`, there's a couple things that need to happe
 
 As mentioned in the [Branching Model](branching_model.md), features should be merged into the `develop` branch. You should never merge a feature directly to `main`.
 
-To release a new version of `gen-ir`, create a release branch and open a merge request from the release branch (see the [Branching Model](branching_model.md)) to `main` at the commit point you're wanting to release and to `develop`. Allow any automated check, peer reviews, and - when approved - merge the request.
+To release a new version of `gen-ir`, create a release branch and open a merge request from the release branch (see the [Branching Model](branching_model.md)) to `main`. Allow any automated check, peer reviews, and - when approved - merge the request.  Release version descriptions mm.nn.pp stand for a 2 digit major version, 2 digit minor version, and 2 digit patch version. For example, `0.3.11` is a valid version.
 
 Then, on your local machine:
 
 - Change to `main` and pull the changes
   - `git checkout main && git pull`
 - Create the new tag for the release:
-  - `git tag -a 1.0.0 -m "Gen IR version: 1.0.0`
-  - `git push --tags`
-- Change to `develop` and pull the changes
-  - `git checkout develop && git pull`
-- Recreate the new `develop` tag for the release:
-  - `git tag -d develop && git push --delete origin develop`
-  - `git tag -a develop -m "Gen IR Develop version: <commit hash>`
+  - `git tag -a mm.nn.pp -m "Gen IR version: mm.nn.pp"`
   - `git push --tags`
 
 Then, in the GitHub UI:
@@ -30,16 +24,9 @@ Then, in the GitHub UI:
 - Go to the [Releases](https://github.com/veracode/gen-ir/releases) page
 - Click `Draft a new release`
 - Set the title to the version name
-- From the drop down list, choose your newly created tag
+- From the drop down list, choose your newly created tag from the main branch
 - Click the `Generate release notes` button to create a change log
 - Ensure `Set as the latest release` is checked
-- Click the `Publish` button
-
-- Click `Draft a new release`
-- Set the title to `develop`
-- From the drop down list, choose your newly created `develop` tag
-- Click the `Generate release notes` button to create a change log
-- Ensure `Set as pre-release` is checked
 - Click the `Publish` button
 
 A release has been made, congratulations. However there's additional steps for distributing the release via `brew`.
