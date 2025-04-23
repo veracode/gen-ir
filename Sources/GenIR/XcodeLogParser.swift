@@ -25,6 +25,9 @@ class XcodeLogParser {
 	private(set) var buildCachePath: URL!
 	private(set) var commandLog: [CommandEntry] = []
 
+	// Gen-IR designed to parse one build at a time.
+	internal var buildCount: Int = 0
+
 	enum Error: Swift.Error {
 		case noCommandsFound(String)
 		case noTargetsFound(String)
@@ -64,6 +67,10 @@ class XcodeLogParser {
 		if buildCachePath == nil {
 			throw Error.noBuildCachePathFound("No build cache was found from the build log. Please report this as a bug.")
 		}
+
+		if buildCount > 1 {
+			logger.warning("\n\t ---- Multiple builds found in the log file, Gen-IR is designed to only parse one build at a time. ----\n")
+		}
 	}
 
 	/// Parse the lines from the build log
@@ -76,6 +83,8 @@ class XcodeLogParser {
 				buildCachePath = buildDescriptionPath(from: line)
 			} else if line.hasPrefix("Build settings from command line:") {
 				settings = parseBuildSettings()
+			} else if line.hasPrefix("** ARCHIVE SUCCEEDED **") {
+				buildCount += 1
 			} else {
 				// Attempt to find a build task on this line that we are interested in.
 				let task = line.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)[0]
@@ -111,7 +120,7 @@ class XcodeLogParser {
 
 	/// Consume the next line from the log file and return it if we have not reached the end
 	private func consumeLine() -> String? {
-		guard offset + 1 < log.endIndex else { return nil }
+		guard offset < log.endIndex else { return nil }
 
 		defer { offset += 1 }
 		return log[offset]
