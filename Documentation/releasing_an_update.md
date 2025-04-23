@@ -18,11 +18,6 @@ Then, on your local machine:
 - Create the new tag for the release:
   - `git tag -a mm.nn.pp -m "Gen IR version: mm.nn.pp"`
   - `git push --tags`
-- Change to `develop` and pull the changes
-  - `git checkout develop && git pull`
-- Tag `develop` for the release:
-  - `git tag -a develop_mm.mm.pp -m "Gen IR Develop version: mm.nn.pp"`
-  - `git push --tags`
 
 Then, in the GitHub UI:
 
