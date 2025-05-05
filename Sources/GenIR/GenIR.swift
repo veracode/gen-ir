@@ -68,6 +68,9 @@ let programName = CommandLine.arguments.first!
 	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
 	var logLevel: LogLevelArgument?
 
+	@Option(help: ArgumentHelp("Path to save a zip file containing debug data.", visibility: .hidden))
+	var debugZipPath: URL?
+
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
@@ -116,16 +119,17 @@ let programName = CommandLine.arguments.first!
 		pifCachePath: URL? = nil
 	) throws {
 		logger.logLevel = level
-        logger.info(
-            """
+		let debugCapture = try DebugData(capturePath: debugZipPath, xcodeLogPath: log.fileURL)
+		logger.info(
+				"""
 
-            Gen-IR v\(IREmitterCommand.configuration.version)
-                log: \(log)
-                archive: \(archive.filePath)
-                level: \(level)
-                dryRun: \(dryRun)
-                dumpDependencyGraph: \(dumpDependencyGraph)
-            """)
+				Gen-IR v\(IREmitterCommand.configuration.version)
+						log: \(log)
+						archive: \(archive.filePath)
+						level: \(level)
+						dryRun: \(dryRun)
+						dumpDependencyGraph: \(dumpDependencyGraph)
+				""")
 		let output = archive.appendingPathComponent("IR")
 
 		let log = try logParser(for: log)
@@ -136,6 +140,7 @@ let programName = CommandLine.arguments.first!
 			throw ValidationError("PIF cache path not found in log!")
 		}
 		logger.debug("PIF location is: \(pifCachePath)")
+		try debugCapture.collectPIFCache(pifLocation: pifCachePath)
 		let pifCache = try PIFCache(buildCache: pifCachePath)
 
 		let targets = pifCache.projects.flatMap { project in
@@ -175,7 +180,8 @@ let programName = CommandLine.arguments.first!
 		)
 
 		try postprocessor.process()
-        logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
+    logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
+		try debugCapture.collectComplete(xcarchive: xcarchivePath)
 	}
 
 	private func buildDependencyGraph(targets: [Target], pifCache: PIFCache, output: URL, dumpGraph: Bool) -> DependencyGraph<Target> {
