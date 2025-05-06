@@ -8,12 +8,8 @@
 import Foundation
 import Logging
 
-/// All module logger (yes because swift-log hasn't really solved for setting level globally without passing an instance around everywhere)
-public var logger = Logger(label: "LogHandler", factory: StdIOStreamLogHandler.init)
-
 struct StdIOTextStream: TextOutputStream {
 	static let stdout = StdIOTextStream(file: Darwin.stdout)
-	static let stderr = StdIOTextStream(file: Darwin.stderr)
 
 	let file: UnsafeMutablePointer<FILE>
 
@@ -31,15 +27,9 @@ struct StdIOTextStream: TextOutputStream {
 	}
 }
 
-public struct StdIOStreamLogHandler: LogHandler {
-	internal typealias SendableTextOutputStream = TextOutputStream & Sendable
+public struct StdIOStreamLogHandler: GenIRLogHandler {
 
 	private let stdout = StdIOTextStream.stdout
-
-	public subscript(metadataKey key: String) -> Logging.Logger.Metadata.Value? {
-		get { metadata[key] }
-		set(newValue) { metadata[key] = newValue }
-	}
 
 	public var metadata: Logging.Logger.Metadata = [:]
 	public var logLevel: Logging.Logger.Level = .info
@@ -60,42 +50,6 @@ public struct StdIOStreamLogHandler: LogHandler {
 		line: UInt
 	) {
 		let lineInfo = lineInfo(for: level, file: file, function: function, line: line)
-
 		stdout.write("\(timestamp)\(lineInfo)\(levelPrefix)\(message)\n")
-	}
-
-	private var levelPrefix: String {
-		switch logLevel {
-		case .trace:
-			return "[TRACE] "
-		case .debug:
-			return "[DEBUG] "
-		case .info:
-			return ""
-		case .notice, .warning:
-			return "[~] "
-		case .error:
-			return "[!] "
-		case .critical:
-			return "[!!!] "
-		}
-	}
-
-	private var timestamp: String {
-		switch logLevel {
-		case .trace, .debug, .notice, .warning, .error, .critical:
-			return "\(Date.now) "
-		case .info:
-			return ""
-		}
-	}
-
-	private func lineInfo(for level: Logger.Level, file: String, function: String, line: UInt) -> String {
-		switch level {
-		case .trace, .debug, .notice, .warning, .error, .critical:
-			return "[\(file):\(line) \(function)] "
-		case .info:
-			return ""
-		}
 	}
 }

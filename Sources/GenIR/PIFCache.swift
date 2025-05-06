@@ -56,7 +56,7 @@ class PIFCache {
 	/// - Parameter buildCache: the Xcode build cache
 	/// - Throws: if no cache was found
 	/// - Returns: the path to the PIF Cache
-	private static func pifCachePath(in buildCache: URL) throws -> URL {
+	public static func pifCachePath(in buildCache: URL) throws -> URL {
 		let cmakePIFCachePath = buildCache
 				.appendingPathComponent("XCBuildData")
 				.appendingPathComponent("PIFCache")
