@@ -158,19 +158,22 @@ struct DebugData {
 		let coordinator = NSFileCoordinator()
 
 		coordinator.coordinate(readingItemAt: zipCollectionPath, options: [.forUploading], error: &error) { (zipUrl) in
-		// coordinator.coordinate(readingItemAt: zipCollectionPath, options: [], error: &error) { (zipUrl) in
 			// zipUrl points to the zip file created by the coordinator
 			// zipUrl is valid only until the end of this block, so we move the file to a temporary folder
-			let tmpUrl = try FileManager.default.url(
-			for: .itemReplacementDirectory,
-				in: .userDomainMask,
-				appropriateFor: zipUrl,
-				create: true
-			).appendingPathComponent("genir-debug-data.zip", isDirectory: false)
-			try FileManager.default.copyItem(at: zipUrl, to: tmpUrl)
+			do {
+				let tmpUrl = try FileManager.default.url(
+				for: .itemReplacementDirectory,
+					in: .userDomainMask,
+					appropriateFor: zipUrl,
+					create: true
+				).appendingPathComponent("genir-debug-data.zip", isDirectory: false)
+				try FileManager.default.copyItem(at: zipUrl, to: tmpUrl)
 
-			// store the URL so we can use it outside the block
-			archiveUrl = tmpUrl
+				// store the URL so we can use it outside the block
+				archiveUrl = tmpUrl
+			} catch {
+				logger.error("Debug data capture error in NSFilePresenter closure : \(error.localizedDescription)")
+			}
 		}
 
 		if let archiveUrl = archiveUrl {
