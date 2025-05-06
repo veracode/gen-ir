@@ -20,6 +20,7 @@ public protocol GenIRLogHandler: LogHandler {
 
 	func lineInfo(for level: Logger.Level, file: String, function: String, line: UInt) -> String
 
+	// swiftlint:disable:next function_parameter_count
 	func log(
 		level: Logger.Level,
 		message: Logger.Message,
@@ -33,11 +34,15 @@ public protocol GenIRLogHandler: LogHandler {
 
 extension GenIRLogHandler {
 
+	/** Add, change, or remove metadata for this handler. Metadata is a dictionary of key-value pairs which can be
+		  used to add additional information to log messages.
+	*/
 	public subscript(metadataKey key: String) -> Logging.Logger.Metadata.Value? {
 		get { metadata[key] }
 		set(newValue) { metadata[key] = newValue }
 	}
 
+	/** Convert a log level to a string prefix for the log message. */
 	public var levelPrefix: String {
 		switch logLevel {
 		case .trace:
@@ -55,6 +60,9 @@ extension GenIRLogHandler {
 		}
 	}
 
+	/**
+	   Add a timestamp to the log message based on the log level.
+	*/
 	public var timestamp: String {
 		switch logLevel {
 		case .trace, .debug, .notice, .warning, .error, .critical:
@@ -64,6 +72,9 @@ extension GenIRLogHandler {
 		}
 	}
 
+	/**
+	   Add line information to the log message based on the log level.
+	*/
 	public func lineInfo(for level: Logger.Level, file: String, function: String, line: UInt) -> String {
 		switch level {
 		case .trace, .debug, .notice, .warning, .error, .critical:
@@ -73,6 +84,8 @@ extension GenIRLogHandler {
 		}
 	}
 
+	// swiftlint:disable function_parameter_count 
+	/// Log a message with the specified log level, message, metadata, source, file, function, and line number.
 	public func log(
 		level: Logger.Level,
 		message: Logger.Message,
@@ -83,6 +96,7 @@ extension GenIRLogHandler {
 		line: UInt
 	) {
 		let lineInfo = lineInfo(for: level, file: file, function: function, line: line)
-		print ("\(timestamp)\(lineInfo)\(levelPrefix)\(message)\n")
+		print("\(timestamp)\(lineInfo)\(levelPrefix)\(message)\n")
 	}
+	// swiftlint:enable function_parameter_count 
 }

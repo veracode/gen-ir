@@ -5,7 +5,7 @@ import ArgumentParser // To use ValidationError
 /*
  This file contains the DebugData struct, which is responsible for capturing debug data during the execution of the program.
  It includes methods for initializing the capture path, zipping the captured data, and logging relevant information. Initially, 
- to avoid adding dependencies, we will use NFileCoordinator to zip the directory. This API does not have amy way to add to an 
+ to avoid adding dependencies, we will use NSFileCoordinator to zip the directory. This API does not have any way to add to an 
  existing zip file, so we will copy all data to the directory supplied in capturePath before zipping it.
 
  The struct is initialized with a directory referred to as capturePath. The value is saved in the zipBasePath property.
@@ -51,7 +51,7 @@ struct DebugData {
 		self.zipCollectionPath = zipPath.appendingPathComponent("data")
 		let zipLogPath = zipCollectionPath.appendingPathComponent("log")
 		try FileManager.default.createDirectory(at: zipLogPath, withIntermediateDirectories: true)
-		
+
 		logger.info("Debug data will be captured to: \(zipLogPath)")
 		var captureLog = FileLogHandler(filePath: zipLogPath.filePath)
 		captureLog.logLevel = logger.logLevel
@@ -84,9 +84,11 @@ struct DebugData {
 				try developerDir.write(to: versionsUrl, atomically: true, encoding: .utf8)
 				let versionsFile = try FileHandle(forWritingTo: versionsUrl)
 				versionsFile.seekToEndOfFile()
+				// swiftlint:disable non_optional_string_data_conversion
 				versionsFile.write("DEVELOPER_DIR_OVERRIDE: \(developerDirOverride)\n".data(using: .utf8)!)
 				versionsFile.write("XCODEBUILD_VERSION: \(xcodeBuildVersion)\n".data(using: .utf8)!)
 				versionsFile.write("SWIFT_VERSION: \(swiftVersion)\n".data(using: .utf8)!)
+				// swiftlint:enable non_optional_string_data_conversion
 				versionsFile.closeFile()
 		} catch {
 			logger.error("Debug data capture Error \(error) occurred creating the versions.txt file while capturing debug data.")
@@ -94,6 +96,11 @@ struct DebugData {
 		logger.info("Debug data capture execution context data collected.")
 	}
 
+	/**
+		Collect the PIF cache:
+		This is a copy of the PIF cache from the location specified in the xcarchive.
+		The location is determined by the PIFCache.pifCachePath(in:) method.
+	*/
 	public func collectPIFCache(pifLocation: URL) throws {
 		if !captureDebugData {
 			return
@@ -120,6 +127,11 @@ struct DebugData {
 		logger.info("Debug data capture PIF cache data collected.")
 	}
 
+	/**
+		Collect the xcarchive: This is the final collection of debug data, then the data is zipped.
+		This is a copy of the xcarchive from the location specified in the xcarchive.
+		The location is determined by the xcarchivePath(in:) method.
+	*/
 	public func collectComplete(xcarchive: URL) throws {
 		if !captureDebugData {
 			return
@@ -130,7 +142,7 @@ struct DebugData {
 		try  debugDataZip()
 		logger.info("Debug data capture complete.")
 	}
-	
+
 	/*
 		zip up the root directory
 		This method is synchronous and the block will be executed before it returns.
@@ -139,30 +151,27 @@ struct DebugData {
 	*/
 	private func debugDataZip() throws {
 		// Zip the debug data
-		let fm = FileManager.default
-	 
 		// this will hold the URL of the zip file
-		var archiveUrl: URL?	
+		var archiveUrl: URL?
 		var error: NSError?
 		// if we encounter an error, store it here
 		let coordinator = NSFileCoordinator()
-	 
+
 		coordinator.coordinate(readingItemAt: zipCollectionPath, options: [.forUploading], error: &error) { (zipUrl) in
 		// coordinator.coordinate(readingItemAt: zipCollectionPath, options: [], error: &error) { (zipUrl) in
 			// zipUrl points to the zip file created by the coordinator
 			// zipUrl is valid only until the end of this block, so we move the file to a temporary folder
-			let tmpUrl = try! fm.url(
+			let tmpUrl = try FileManager.default.url(
 			for: .itemReplacementDirectory,
 				in: .userDomainMask,
 				appropriateFor: zipUrl,
 				create: true
 			).appendingPathComponent("genir-debug-data.zip", isDirectory: false)
-			try! fm.copyItem(at: zipUrl, to: tmpUrl)
-		
+			try FileManager.default.copyItem(at: zipUrl, to: tmpUrl)
+
 			// store the URL so we can use it outside the block
 			archiveUrl = tmpUrl
 		}
-	 
 
 		if let archiveUrl = archiveUrl {
 			// Copy the zip file to the user specified location
@@ -183,7 +192,7 @@ struct DebugData {
 
 			for item in contents {
 					let resourceValues = try item.resourceValues(forKeys: [.isSymbolicLinkKey])
-					
+
 					if resourceValues.isSymbolicLink == true {
 							// Check if the symlink target exists
 							let targetPath = try fileManager.destinationOfSymbolicLink(atPath: item.path)

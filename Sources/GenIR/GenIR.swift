@@ -110,6 +110,7 @@ let programName = CommandLine.arguments.first!
 		)
 	}
 
+	// swiftlint:disable:next function_body_length
 	mutating func run(
 		log: String,
 		archive: URL,
@@ -170,7 +171,7 @@ let programName = CommandLine.arguments.first!
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-        logger.debug("Targets to run: \(targets.count)")
+    logger.debug("Targets to run: \(targets.count)")
 		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
