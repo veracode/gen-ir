@@ -106,7 +106,8 @@ let programName = CommandLine.arguments.first!
 			level: logger.logLevel,
 			dryRun: dryRun,
 			dumpDependencyGraph: dumpDependencyGraph,
-			pifCachePath: pifCachePath
+			pifCachePath: pifCachePath,
+			debugZipPath: debugZipPath
 		)
 	}
 
@@ -117,10 +118,12 @@ let programName = CommandLine.arguments.first!
 		level: Logger.Level,
 		dryRun: Bool,
 		dumpDependencyGraph: Bool,
-		pifCachePath: URL? = nil
+		pifCachePath: URL? = nil,
+		debugZipPath: URL? = nil
 	) throws {
 		logger.logLevel = level
-		let debugCapture = try DebugData(capturePath: debugZipPath, xcodeLogPath: log.fileURL)
+		let debugZipUrl = debugZipPath ?? nil
+		let debugCapture = try DebugData(capturePath: debugZipUrl, xcodeLogPath: log.fileURL)
 		logger.info(
 				"""
 
@@ -182,7 +185,7 @@ let programName = CommandLine.arguments.first!
 
 		try postprocessor.process()
     logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
-		try debugCapture.collectComplete(xcarchive: xcarchivePath)
+		try debugCapture.collectComplete(xcarchive: archive)
 	}
 
 	private func buildDependencyGraph(targets: [Target], pifCache: PIFCache, output: URL, dumpGraph: Bool) -> DependencyGraph<Target> {
