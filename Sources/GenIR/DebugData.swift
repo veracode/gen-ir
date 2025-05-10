@@ -1,17 +1,17 @@
-import LogHandlers
 import Foundation
 import ArgumentParser // To use ValidationError
+import LogHandlers
+import Logging
 
 /*
  This file contains the DebugData struct, which is responsible for capturing debug data during the execution of the program.
- It includes methods for initializing the capture path, zipping the captured data, and logging relevant information. Initially, 
- to avoid adding dependencies, we will use NSFileCoordinator to zip the directory. This API does not have any way to add to an 
- existing zip file, so we will copy all data to the directory supplied in capturePath before zipping it.
+ It includes methods for initializing the capture path and logging relevant information. The data is captured in a sub-directory
+ of the xcarchive and therefore will be included with the submission to the Veracode Platform.
 
- The struct is initialized with a directory referred to as capturePath. The value is saved in the zipBasePath property.
+ The struct is initialized with the xcarchive and a flag indicating whether debug data is to be captured.
  The directory structure will be:
-	- zipBasePath
-		- data
+	- xcarchive
+		- debug-data
 			- Gen-IR log output file.
 			- xcodebuild log which was input to Gen-IR
 			- PIF cache directory
@@ -19,53 +19,85 @@ import ArgumentParser // To use ValidationError
 			- xcodebuild --version output
 			- swift --version output
 			- env | grep DEVELOPER_DIR output
-			- copy of the xcarchive folder
 		- data.zip
 */
 struct DebugData {
 
 	let captureDebugData: Bool
-	var zipBasePath: URL
-	var zipCollectionPath: URL
+	var collectionPath: URL
 
-	init (capturePath: URL?, xcodeLogPath: URL) throws {
+	/**
+		Initialize the DebugData struct.
+		- Parameters:
+			- captureData: A flag indicating whether debug data should be captured.
+			- xcodeArchivePath: The path to the xcarchive.
+			- xcodeLogPath: The path to the xcodebuild log file.
+
+			Setup the collection path to hold the debug data. This path is a sub-directory of the xcarchive. 
+			Create a logger to write log messages to a sub-directory of collection path.
+			Capture the execution context data. This is the initial set of capture data.
+	*/
+	init (captureData: Bool, xcodeArchivePath: URL, xcodeLogPath: URL) throws {
 		// Determine whether we should capture debug data
-		guard let zipPath = capturePath else {
+		if !captureData {
 			captureDebugData = false
-			zipBasePath = URL(fileURLWithPath: "")
-			zipCollectionPath = URL(fileURLWithPath: "")
+			collectionPath = URL(fileURLWithPath: "")
 			return
 		}
 
+		collectionPath = xcodeArchivePath.appendingPathComponent("debug-data", isDirectory: true)
+
 		// Make sure the directory to hold debug data exists and is empty
-		if !FileManager.default.directoryExists(at: zipPath) {
-			try FileManager.default.createDirectory(at: zipPath, withIntermediateDirectories: true)
-		} else {
-			if FileManager.default.contents(atPath: zipPath.absoluteString) != nil {
-				throw ValidationError("Path \(zipPath) is not empty! The directory to capture debug data must be empty.")
-			}
+		if !FileManager.default.directoryExists(at: collectionPath) {
+			// It doesn't exist, so create it
+			try FileManager.default.createDirectory(at: collectionPath, withIntermediateDirectories: true)
+		} else if try FileManager.default.contentsOfDirectory(at: collectionPath, includingPropertiesForKeys: nil).isEmpty == false {
+				// It exists and is not empty, so throw an error
+				throw ValidationError("Path \(collectionPath) is not empty! The directory to capture debug data must be empty.")
 		}
 
 		// Create a subdirectory for the logs and add a file log handler to write the log there.
-		self.zipBasePath = zipPath
-		self.zipCollectionPath = zipPath.appendingPathComponent("data")
-		let zipLogPath = zipCollectionPath.appendingPathComponent("log")
+		let zipLogPath = collectionPath.appendingPathComponent("log")
 		try FileManager.default.createDirectory(at: zipLogPath, withIntermediateDirectories: true)
 
-		logger.info("Debug data will be captured to: \(zipLogPath)")
 		var captureLog = FileLogHandler(filePath: zipLogPath.filePath)
 		captureLog.logLevel = logger.logLevel
 		MultiLogHandler.addHandler(captureLog)
 
 		captureDebugData = true
+		DebugData.displayCaptureInfo()
+		logger.info("Debug data will be captured to: \(collectionPath)")
 
 		try collectExecutionContext(logPath: xcodeLogPath)
 	}
 
+	private static func displayCaptureInfo() {
+		let captureInfo = Logger.Message(
+		"""
+		\n
+		\u{001B}[1m The Gen-IR capture option is enabled.\u{001B}[0m
+		The following data will be added to the xcarchive and sent to Veracode:
+		- Gen-IR log output file
+		- xcodebuild log which was input to Gen-IR
+		- PIF cache directory and its contents
+		- The location of the developer directory (e.g. /Applications/Xcode.app/Contents/Developer)
+		    This is obtained via the xcode-select -p command and from the value of the DEVELOPER_DIR environment variable.
+			  No other environment variables are captured.
+		- The xcodebuild version
+		- The swift-version
+		\n
+		""")
+		logger.info(captureInfo)
+	}
+
+	/**
+		Collect the execution context:
+		This includes the xcodebuild log, the configured developer directory, the xcodebuild version, and the swift version.
+	*/
 	private func collectExecutionContext(logPath: URL) throws {
 
 		// Collect the xcodebuild log
-		try FileManager.default.copyItem(at: logPath, to: zipCollectionPath.appendingPathComponent("xcodebuild.log"))
+		try FileManager.default.copyItem(at: logPath, to: collectionPath.appendingPathComponent("xcodebuild.log"))
 
 		// Collect the configured developer directory
 		let developerDir = "DEVELOPER_DIR: " + ( try execShellCommand(command: "xcode-select", args: ["-p"]) )
@@ -80,7 +112,7 @@ struct DebugData {
 		let swiftVersion = try execShellCommand(command: "swift", args: ["-version"])
 
 		do {
-				let versionsUrl = zipCollectionPath.appendingPathComponent("versions.txt")
+				let versionsUrl = collectionPath.appendingPathComponent("versions.txt")
 				try developerDir.write(to: versionsUrl, atomically: true, encoding: .utf8)
 				let versionsFile = try FileHandle(forWritingTo: versionsUrl)
 				versionsFile.seekToEndOfFile()
@@ -108,7 +140,7 @@ struct DebugData {
 
 		let pifCachePath = try PIFCache.pifCachePath(in: pifLocation)
 		// Collect the PIF cache
-		let savedPif = zipCollectionPath.appendingPathComponent("pif-data")
+		let savedPif = collectionPath.appendingPathComponent("pif-data")
     let fileManager = FileManager.default
 
     do {
@@ -118,8 +150,7 @@ struct DebugData {
             return
         }
 
-        // Perform the copy operation
-				// Using this routine because NSFileCoordinator was failing on broken symlinks.  I couldn't find a way to get it to not follow symlinks.
+        // Perform the copy operation and skip broken symlinks
         try copyDirectorySkippingBrokenSymlinks(from: pifCachePath, to: savedPif)
     } catch {
         logger.error("Debug data capture of PIF Cache error: \(error.localizedDescription)")
@@ -128,65 +159,20 @@ struct DebugData {
 	}
 
 	/**
-		Collect the xcarchive: This is the final collection of debug data, then the data is zipped.
-		This is a copy of the xcarchive from the location specified in the xcarchive.
-		The location is determined by the xcarchivePath(in:) method.
+		Do any final data captures and log the completion message.
 	*/
 	public func collectComplete(xcarchive: URL) throws {
 		if !captureDebugData {
 			return
 		}
-
-		// Collect the xcarchive
-		try collectXcarchive(xcarchive: xcarchive)
-		try  debugDataZip()
 		logger.info("Debug data capture complete.")
 	}
 
-	/*
-		zip up the root directory
-		This method is synchronous and the block will be executed before it returns.
-		If the method fails, the block will not be executed though
-		If you expect the archiving process to take long, execute it on another queue
+	/**
+		Copy a directory and skip broken symlinks.
+		This is used to copy the PIF cache from the location based on the build cache path parsed from the xcode build log.
+		The location is determined by the PIFCache.pifCachePath(in:) method.
 	*/
-	private func debugDataZip() throws {
-		// Zip the debug data
-		// this will hold the URL of the zip file
-		var archiveUrl: URL?
-		var error: NSError?
-		// if we encounter an error, store it here
-		let coordinator = NSFileCoordinator()
-
-		coordinator.coordinate(readingItemAt: zipCollectionPath, options: [.forUploading], error: &error) { (zipUrl) in
-			// zipUrl points to the zip file created by the coordinator
-			// zipUrl is valid only until the end of this block, so we move the file to a temporary folder
-			do {
-				let tmpUrl = try FileManager.default.url(
-				for: .itemReplacementDirectory,
-					in: .userDomainMask,
-					appropriateFor: zipUrl,
-					create: true
-				).appendingPathComponent("genir-debug-data.zip", isDirectory: false)
-				try FileManager.default.copyItem(at: zipUrl, to: tmpUrl)
-
-				// store the URL so we can use it outside the block
-				archiveUrl = tmpUrl
-			} catch {
-				logger.error("Debug data capture error in NSFilePresenter closure : \(error.localizedDescription)")
-			}
-		}
-
-		if let archiveUrl = archiveUrl {
-			// Copy the zip file to the user specified location
-			let resultUrl = zipBasePath.appendingPathComponent("genir-debug-data.zip")
-			try FileManager.default.copyItem(at: archiveUrl, to: resultUrl)
-			logger.info("NSFileCoordinator output: \(archiveUrl)")
-			logger.info("Debug data captured to: \(resultUrl)")
-		} else {
-			logger.error("Debug data capture failed zipping the debug data: \(error?.localizedDescription ?? "Unknown error")")
-		}
-	}
-
 	func copyDirectorySkippingBrokenSymlinks(from sourceURL: URL, to destinationURL: URL) throws {
 
 			let fileManager = FileManager.default
@@ -222,18 +208,9 @@ struct DebugData {
 			}
 	}
 
-	private func collectXcarchive(xcarchive: URL) throws {
-		// Collect the xcarchive
-		let archiveName = xcarchive.lastPathComponent
-		let archiveDestination = zipCollectionPath.appendingPathComponent(archiveName)
-		do {
-			try FileManager.default.copyItem(at: xcarchive, to: archiveDestination)
-		} catch {
-			logger.error("Debug data capture of xcarchive error: \(error.localizedDescription)")
-		}
-		logger.info("Debug data capture xcarchive data collected.")
-	}
-
+	/**
+		Given a command string and it's arguments, invoke a shell to execute the command and return the command output.
+	*/
 	private func execShellCommand(command: String, args: [String]) throws -> String {
 		let result: Process.ReturnValue
 		do {

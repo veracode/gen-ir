@@ -8,29 +8,49 @@ import LogHandlers
 /// The name of the program
 let programName = CommandLine.arguments.first!
 
+struct DeprecatedOptions: ParsableArguments {
+
+	/// Path to xcodeproj or xcworkspace file. This is hidden. Validation will notifiy the user if it is used.
+	@Option(help: ArgumentHelp("DEPRECATED: This Option is deprecated and will go away in a future version.", visibility: .hidden))
+	var projectPath: URL?
+}
+
+struct DebuggingOptions: ParsableArguments {
+
+	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
+	var pifCachePath: URL?
+
+	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
+	var logLevel: LogLevelArgument?
+
+	@Flag(help: ArgumentHelp("Path to save a zip file containing debug data.", visibility: .hidden))
+	var capture: Bool = false
+}
+
 /// Command to emit LLVM IR from an Xcode build log
 @main struct IREmitterCommand: ParsableCommand {
+    // The following is formatted to about 100 characters per line
 	static let configuration = CommandConfiguration(
 		commandName: "",
 		abstract: "Consumes an Xcode build log, and outputs LLVM IR, in the bitstream format, to the folder specified",
 		discussion:
 				"""
-				This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before piping it to this \
+				This can either be done via a file, or via stdin. You may have to redirect stderr to stdin before \npiping it to this \
 				tool.
 
-				This tool requires a full Xcode build log in order to capture all files in the project. If this is not provided, you may notice \
+				This tool requires a full Xcode build log in order to capture all files in the project. If this is not \nprovided, you may notice \
 				that not all modules are emitted.
 
 				To ensure this, run `xcodebuild clean` first before you `xcodebuild build` command.
 
 				Example with build log:
-					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
-				DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO > log.txt
+					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj \\\n\t\t-configuration Debug \\\n\t\t-scheme MyScheme \
+				\\\n\t\tDEBUG_INFOMATION_FORMAT=dwarf-with-dsym \\\n\t\tENABLE_BITCODE=NO \\\n\t\t> log.txt
 					$ \(programName) log.txt x.xcarchive
 
 				Example with pipe:
-					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj -configuration Debug -scheme MyScheme \
-				DEBUG_INFOMATION_FORMAT=dwarf-with-dsym ENABLE_BITCODE=NO 2>&1 | \(programName) - x.xcarchive
+					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj \\\n\t\t-configuration Debug \\\n\t\t-scheme MyScheme \
+				\\\n\t\tDEBUG_INFOMATION_FORMAT=dwarf-with-dsym \\\n\t\tENABLE_BITCODE=NO \\\n\t\t2>&1 | \(programName) - x.xcarchive
 
 				""",
 		version: "v\(Versions.version)"
@@ -44,10 +64,6 @@ let programName = CommandLine.arguments.first!
 	@Argument(help: "Path to the xcarchive associated with the build log")
 	var xcarchivePath: URL
 
-	/// Path to xcodeproj or xcworkspace file
-	@Option(help: "DEPRECATED: This Option is deprecated and will go away in a future version.")
-	var projectPath: URL?
-
 	/// Enables enhanced debug logging
 	@Flag(help: "Enables debug level logging")
 	var debug = false
@@ -56,31 +72,28 @@ let programName = CommandLine.arguments.first!
 	@Flag(help: "Reduces log noise by suppressing xcodebuild output when reading from stdin")
 	var quieter = false
 
-	@Flag(help: "Runs the tool without outputting IR to disk (i.e. leaving out the compiler command runner stage)")
+	@Flag(help: "Runs the tool without writing IR to disk (i.e. skips running compiler commands)")
 	var dryRun = false
 
 	@Flag(help: "Output the dependency graph as .dot files to the output directory - debug only")
 	var dumpDependencyGraph = false
 
-	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
-	var pifCachePath: URL?
+  // Drop this in release 0.6 or greater
+  @OptionGroup var deprecatedOptions: DeprecatedOptions
 
-	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
-	var logLevel: LogLevelArgument?
-
-	@Option(help: ArgumentHelp("Path to save a zip file containing debug data.", visibility: .hidden))
-	var debugZipPath: URL?
+  // These options are hidden and will not be shown in the help text
+  @OptionGroup var debuggingOptions: DebuggingOptions
 
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
 			logger.logLevel = .debug
 		} else {
-			logger.logLevel = logLevel?.level ?? .info
+			logger.logLevel = debuggingOptions.logLevel?.level ?? .info
 		}
 
-		if projectPath != nil {
-			logger.warning("--project-path has been deprecated and will go away in a future version. Please remove it from your invocation.")
+		if deprecatedOptions.projectPath != nil {
+			logger.warning("\u{001B}[1m --project-path has been deprecated and will go away in a future version. \nPlease remove it from your invocation.\u{001B}[0m")
 		}
 
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
@@ -106,8 +119,8 @@ let programName = CommandLine.arguments.first!
 			level: logger.logLevel,
 			dryRun: dryRun,
 			dumpDependencyGraph: dumpDependencyGraph,
-			pifCachePath: pifCachePath,
-			debugZipPath: debugZipPath
+			pifCachePath: debuggingOptions.pifCachePath,
+			capture: debuggingOptions.capture
 		)
 	}
 
@@ -115,15 +128,14 @@ let programName = CommandLine.arguments.first!
 	mutating func run(
 		log: String,
 		archive: URL,
-		level: Logger.Level,
-		dryRun: Bool,
-		dumpDependencyGraph: Bool,
+		level: Logger.Level = .info,
+		dryRun: Bool = false,
+		dumpDependencyGraph: Bool = false,
 		pifCachePath: URL? = nil,
-		debugZipPath: URL? = nil
+		capture: Bool = false
 	) throws {
 		logger.logLevel = level
-		let debugZipUrl = debugZipPath ?? nil
-		let debugCapture = try DebugData(capturePath: debugZipUrl, xcodeLogPath: log.fileURL)
+		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive, xcodeLogPath: log.fileURL)
 		logger.info(
 				"""
 
@@ -133,6 +145,7 @@ let programName = CommandLine.arguments.first!
 						level: \(level)
 						dryRun: \(dryRun)
 						dumpDependencyGraph: \(dumpDependencyGraph)
+
 				""")
 		let output = archive.appendingPathComponent("IR")
 
