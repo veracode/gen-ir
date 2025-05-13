@@ -47,7 +47,7 @@ public class DependencyGraphBuilder<Provider: DependencyProviding, Value: NodeVa
 			return existingNode
 		}
 
-		logger.debug("Adding value: \(value.valueName) to graph")
+		GenIRLogger.logger.debug("Adding value: \(value.valueName) to graph")
 
 		let dependencies = provider.dependencies(for: value)
 		let node = graph.addNode(for: value)

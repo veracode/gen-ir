@@ -17,6 +17,8 @@
 
 // swiftlint:disable file_length type_body_length static_over_final_class
 import Foundation
+import LogHandlers
+import Logging
 
 /// The Project Interchange Format (PIF) is a structured representation of the
 /// project model created by clients (Xcode/SwiftPM) to send to XCBuild.
@@ -72,7 +74,7 @@ public enum PIF {
 		required public init(from decoder: Decoder) throws {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 			type = try container.decode(String.self, forKey: .type)
-			logger.trace(" ---> Decoded TypedObject \(String(describing: type))")
+			GenIRLogger.logger.trace(" ---> Decoded TypedObject \(String(describing: type))")
 		}
 	}
 
@@ -96,7 +98,7 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			name = try container.decode(String.self, forKey: .name)
 			path = try container.decodeIfPresent(URL.self, forKey: .path)
-			logger.trace(" ---> Decoded Workspace: guid \(guid) name \(name) path \(path?.absoluteString ?? "<nil>" ) ")
+			GenIRLogger.logger.trace(" ---> Decoded Workspace: guid \(guid) name \(name) path \(path?.absoluteString ?? "<nil>" ) ")
 			let projectPaths = try container.decode([String].self, forKey: .projects)
 				.map {
 					cachePath
@@ -104,7 +106,7 @@ public enum PIF {
 						.appendingPathComponent("\($0)\(PIF.cacheFileExtension)")
 				}
 			projectPaths.forEach { URL in
-				logger.trace("\t project path \(URL)")
+				GenIRLogger.logger.trace("\t project path \(URL)")
 			}
 
 			let projectContents = try projectPaths
@@ -151,7 +153,7 @@ public enum PIF {
 			projectDirectory = try container.decode(URL.self, forKey: .projectDirectory)
 			developmentRegion = try container.decodeIfPresent(String.self, forKey: .developmentRegion)
 			buildConfigurations = try container.decode([BuildConfiguration].self, forKey: .buildConfigurations)
-			logger.trace(" ---> Decoded Project: guid \(guid) name \(projectName ?? "<nil>") path \(path?.absoluteString ?? "<nil>" ) ")
+			GenIRLogger.logger.trace(" ---> Decoded Project: guid \(guid) name \(projectName ?? "<nil>") path \(path?.absoluteString ?? "<nil>" ) ")
 
 			let targetContents = try container.decode([String].self, forKey: .targets)
 				.map {
@@ -170,14 +172,14 @@ public enum PIF {
 			targets = try targetContents.compactMap { targetData in
         let pifDecoder = PIFDecoder(cache: cachePath)
         let untypedTarget = try pifDecoder.decode(PIF.TypedObject.self, from: targetData)
-				logger.trace("\t untyped target type: \(untypedTarget)")
+				GenIRLogger.logger.trace("\t untyped target type: \(untypedTarget)")
         switch untypedTarget.type {
 				case "aggregate":
 					return try pifDecoder.decode(PIF.AggregateTarget.self, from: targetData)
 				case "standard", "packageProduct":
 					return try pifDecoder.decode(PIF.Target.self, from: targetData)
 				default:
-					logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
+					GenIRLogger.logger.debug("Ignoring target \(untypedTarget) of type: \(untypedTarget.type ?? "<nil>")")
 					return nil
 				}
 			}
@@ -214,7 +216,7 @@ public enum PIF {
 			name = try container.decodeIfPresent(String.self, forKey: .name)
 
 			try super.init(from: decoder)
-			logger.trace(" ---> Decoded Reference guid \(guid) name \(name ?? "<nil>") path (\(path))")
+			GenIRLogger.logger.trace(" ---> Decoded Reference guid \(guid) name \(name ?? "<nil>") path (\(path))")
 		}
 	}
 
@@ -302,7 +304,7 @@ public enum PIF {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			fileType = try container.decode(String.self, forKey: .fileType)
-			logger.trace(" ---> Decoded FileType \(fileType)")
+			GenIRLogger.logger.trace(" ---> Decoded FileType \(fileType)")
 
 			try super.init(from: decoder)
 		}
@@ -353,7 +355,7 @@ public enum PIF {
 				var childrenContainer = try container.nestedUnkeyedContainer(forKey: .children)
 
 				children = try untypedChildren.compactMap { child in
-					logger.trace(" ---> Decoded Group Type \(child.type ?? "<nil>")")
+					GenIRLogger.logger.trace(" ---> Decoded Group Type \(child.type ?? "<nil>")")
 					switch child.type {
 					case Group.type:
 						return try childrenContainer.decode(Group.self)
@@ -364,7 +366,7 @@ public enum PIF {
 					case FileReference.type:
 						return try childrenContainer.decode(FileReference.self)
 					default:
-						logger.debug("Ignoring reference type: \(child.type ?? "<nil>")")
+						GenIRLogger.logger.debug("Ignoring reference type: \(child.type ?? "<nil>")")
 						return nil
 					}
 				}
@@ -393,7 +395,7 @@ public enum PIF {
 
 			targetGUID = try container.decode(String.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
-			logger.trace("---> Decoded TargetDependency: \(targetGUID)")
+			GenIRLogger.logger.trace("---> Decoded TargetDependency: \(targetGUID)")
 		}
 	}
 
@@ -453,7 +455,7 @@ public enum PIF {
 
 			let dependencies = try container.decode([TargetDependency].self, forKey: .dependencies)
 			let impartedBuildProperties = try container.decodeIfPresent(BuildSettings.self, forKey: .impartedBuildProperties)
-			logger.trace("---> Decoded BaseTarget: guid \(guid) name \(name)")
+			GenIRLogger.logger.trace("---> Decoded BaseTarget: guid \(guid) name \(name)")
 
 			super.init(
 				guid: guid,
@@ -520,7 +522,7 @@ public enum PIF {
 
 			let buildPhases: [BuildPhase]
 			let impartedBuildProperties: ImpartedBuildProperties
-			logger.trace("---> Decoded Target: guid \(guid) name \(name)")
+			GenIRLogger.logger.trace("---> Decoded Target: guid \(guid) name \(name)")
 
 			if type == "packageProduct" {
 				self.productType = .packageProduct
@@ -557,14 +559,14 @@ public enum PIF {
 				dependencies: dependencies,
 				impartedBuildSettings: impartedBuildProperties.buildSettings
 			)
-			logger.trace(" ---> Target \(name) with guid \(guid) and product type \(productType) and product name \(productName) decoded")
+			GenIRLogger.logger.trace(" ---> Target \(name) with guid \(guid) and product type \(productType) and product name \(productName) decoded")
 		}
 	}
 
 	/// Abstract base class for all build phases in a target.
 	public class BuildPhase: TypedObject {
 		static func decode(container: inout UnkeyedDecodingContainer, type: String) throws -> BuildPhase? {
-			logger.trace("---> Decoded BuildPhase: type \(type)")
+			GenIRLogger.logger.trace("---> Decoded BuildPhase: type \(type)")
 			switch type {
 			case HeadersBuildPhase.type:
 				return try container.decode(HeadersBuildPhase.self)
@@ -579,7 +581,7 @@ public enum PIF {
 			case ShellScriptBuildPhase.type:
 				return try container.decode(ShellScriptBuildPhase.self)
 			default:
-				logger.debug("Ignoring build phase: \(type)")
+				GenIRLogger.logger.debug("Ignoring build phase: \(type)")
 				return nil
 			}
 		}
@@ -596,7 +598,7 @@ public enum PIF {
 
 			guid = try container.decode(GUID.self, forKey: .guid)
 			buildFiles = try container.decode([BuildFile].self, forKey: .buildFiles)
-			logger.trace("\tBuildPhase guid \(guid)")
+			GenIRLogger.logger.trace("\tBuildPhase guid \(guid)")
 
 			try super.init(from: decoder)
 		}
@@ -658,7 +660,7 @@ public enum PIF {
 			guid = try container.decode(GUID.self, forKey: .guid)
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
 			headerVisibility = try container.decodeIfPresent(HeaderVisibility.self, forKey: .headerVisibility) ?? nil
-			logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")")
+			GenIRLogger.logger.trace("---> Decoded BuildFile:  guid \(guid) visibility \(headerVisibility?.rawValue ?? "<nil>")")
 
 			if container.allKeys.contains(.fileReference) {
 				reference = try .file(guid: container.decode(GUID.self, forKey: .fileReference))
@@ -701,7 +703,7 @@ public enum PIF {
 			name = try container.decode(String.self, forKey: .name)
 			buildSettings = try container.decode(BuildSettings.self, forKey: .buildSettings)
 			impartedBuildProperties  = try container.decodeIfPresent(ImpartedBuildProperties.self, forKey: .impartedBuildProperties) ?? .init(buildSettings: .init())
-			logger.trace("---> Decoded BuildConfiguration: guid \(guid) name \(name)")
+			GenIRLogger.logger.trace("---> Decoded BuildConfiguration: guid \(guid) name \(name)")
 		}
 	}
 

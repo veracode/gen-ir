@@ -9,18 +9,17 @@ struct FileTextStream: TextOutputStream {
 	let fileUrl: URL
 	private var fileHandle: FileHandle?
 
-	init(filePath: String) {
+	init(filePath: URL) {
 		// Open the file for appending; create it if it doesn't exist
-		let capturePath = filePath  + "/genir-capture.log"
 		let fileManager = FileManager.default
-		if !fileManager.fileExists(atPath: capturePath) {
-				fileManager.createFile(atPath: capturePath, contents: nil)
+		if !fileManager.fileExists(atPath: filePath.absoluteString) {
+				fileManager.createFile(atPath: filePath.path, contents: nil)
 		}
-		self.fileUrl = URL(fileURLWithPath: capturePath)
+		self.fileUrl = filePath
 		do {
 			fileHandle = try FileHandle(forWritingTo: fileUrl)
 		} catch {
-			print("Failed to open file handle for \(capturePath): \(error)")
+			print("Failed to open file handle for \(filePath.absoluteString): \(error)")
 			fileHandle = nil
 		}
 	}
@@ -42,7 +41,7 @@ public struct FileLogHandler: GenIRLogHandler {
 	public var metadata: Logging.Logger.Metadata = [:]
 	public var logLevel: Logging.Logger.Level = .info
 
-	public init(filePath: String) {
+	public init(filePath: URL) {
 		fileStream = FileTextStream(filePath: filePath)
 	}
 

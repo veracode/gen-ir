@@ -29,6 +29,7 @@ struct DebuggingOptions: ParsableArguments {
 
 /// Command to emit LLVM IR from an Xcode build log
 @main struct IREmitterCommand: ParsableCommand {
+
     // The following is formatted to about 100 characters per line
 	static let configuration = CommandConfiguration(
 		commandName: "",
@@ -87,13 +88,13 @@ struct DebuggingOptions: ParsableArguments {
 	mutating func validate() throws {
 		// This will run before run() so set this here
 		if debug {
-			logger.logLevel = .debug
+			GenIRLogger.logger.logLevel = .debug
 		} else {
-			logger.logLevel = debuggingOptions.logLevel?.level ?? .info
+			GenIRLogger.logger.logLevel = debuggingOptions.logLevel?.level ?? .info
 		}
 
 		if deprecatedOptions.projectPath != nil {
-			logger.warning("\u{001B}[1m --project-path has been deprecated and will go away in a future version. \nPlease remove it from your invocation.\u{001B}[0m")
+			GenIRLogger.logger.warning("\u{001B}[1m --project-path has been deprecated and will go away in a future version. \nPlease remove it from your invocation.\u{001B}[0m")
 		}
 
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
@@ -116,7 +117,7 @@ struct DebuggingOptions: ParsableArguments {
 		try run(
 			log: logPath,
 			archive: xcarchivePath,
-			level: logger.logLevel,
+			level: GenIRLogger.logger.logLevel,
 			dryRun: dryRun,
 			dumpDependencyGraph: dumpDependencyGraph,
 			pifCachePath: debuggingOptions.pifCachePath,
@@ -134,9 +135,8 @@ struct DebuggingOptions: ParsableArguments {
 		pifCachePath: URL? = nil,
 		capture: Bool = false
 	) throws {
-		logger.logLevel = level
-		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive, xcodeLogPath: log.fileURL)
-		logger.info(
+		GenIRLogger.logger.logLevel = level
+		GenIRLogger.logger.info(
 				"""
 
 				Gen-IR v\(IREmitterCommand.configuration.version)
@@ -147,8 +147,12 @@ struct DebuggingOptions: ParsableArguments {
 						dumpDependencyGraph: \(dumpDependencyGraph)
 
 				""")
-		let output = archive.appendingPathComponent("IR")
 
+		// Initialize for capturing debug data and peform initial capture.
+		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive)
+		try debugCapture.captureExecutionContext(logPath: log.fileURL)
+
+		let output = archive.appendingPathComponent("IR")
 		let log = try logParser(for: log)
 		try log.parse()
 
@@ -156,14 +160,14 @@ struct DebuggingOptions: ParsableArguments {
 		guard let pifCachePath = pifCachePath ?? log.buildCachePath else {
 			throw ValidationError("PIF cache path not found in log!")
 		}
-		logger.debug("PIF location is: \(pifCachePath)")
-		try debugCapture.collectPIFCache(pifLocation: pifCachePath)
 		let pifCache = try PIFCache(buildCache: pifCachePath)
+		GenIRLogger.logger.debug("PIF location is: \(pifCache.pifCachePath)")
+		try debugCapture.capturePIFCache(pifLocation: pifCache.pifCachePath)
 
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
 		}.filter { !$0.isTest }
-        logger.debug("Project non-test targets: \(targets.count)")
+        GenIRLogger.logger.debug("Project non-test targets: \(targets.count)")
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)
@@ -180,14 +184,14 @@ struct DebuggingOptions: ParsableArguments {
 
 		let tempDirectory = try FileManager.default.temporaryDirectory(named: "gen-ir-\(UUID().uuidString)")
 		defer { try? FileManager.default.removeItem(at: tempDirectory) }
-		logger.info("Using temp directory as working directory: \(tempDirectory)")
+		GenIRLogger.logger.info("Using temp directory as working directory: \(tempDirectory)")
 
 		let runner = CompilerCommandRunner(
 			output: tempDirectory,
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-    logger.debug("Targets to run: \(targets.count)")
+    GenIRLogger.logger.debug("Targets to run: \(targets.count)")
 		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(
@@ -197,8 +201,8 @@ struct DebuggingOptions: ParsableArguments {
 		)
 
 		try postprocessor.process()
-    logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
-		try debugCapture.collectComplete(xcarchive: archive)
+    GenIRLogger.logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
+		try debugCapture.captureComplete(xcarchive: archive)
 	}
 
 	private func buildDependencyGraph(targets: [Target], pifCache: PIFCache, output: URL, dumpGraph: Bool) -> DependencyGraph<Target> {
@@ -217,7 +221,7 @@ struct DebuggingOptions: ParsableArguments {
 					.filePath
 				)
 			} catch {
-				logger.error("toDot error: \(error)")
+				GenIRLogger.logger.error("toDot error: \(error)")
 			}
 		}
 		return graph

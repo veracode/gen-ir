@@ -3,72 +3,65 @@ import ArgumentParser // To use ValidationError
 import LogHandlers
 import Logging
 
-/*
- This file contains the DebugData struct, which is responsible for capturing debug data during the execution of the program.
- It includes methods for initializing the capture path and logging relevant information. The data is captured in a sub-directory
- of the xcarchive and therefore will be included with the submission to the Veracode Platform.
-
- The struct is initialized with the xcarchive and a flag indicating whether debug data is to be captured.
- The directory structure will be:
-	- xcarchive
-		- debug-data
-			- Gen-IR log output file.
-			- xcodebuild log which was input to Gen-IR
-			- PIF cache directory
-			- xcode-select ouput
-			- xcodebuild --version output
-			- swift --version output
-			- env | grep DEVELOPER_DIR output
-		- data.zip
-*/
+///
+/// This file contains the DebugData struct, which is responsible for capturing debug data during the execution of the program.
+///  It includes methods for initializing the capture path and logging relevant information. The data is captured in a sub-directory
+///  of the xcarchive and therefore will be included with the submission to the Veracode Platform.
+/// 
+///  The struct is initialized with the xcarchive and a flag indicating whether debug data is to be captured.
+///  The directory structure will be:
+/// 	- xcarchive
+/// 		- debug-data
+/// 		- Gen-IR log output file.
+/// 		- xcodebuild log which was input to Gen-IR
+/// 		- PIF cache directory
+/// 		- xcode-select ouput
+/// 		- xcodebuild --version output
+/// 		- swift --version output
+/// 		- env | grep DEVELOPER_DIR output
+/// 		- data.zip
+/// 
 struct DebugData {
 
 	let captureDebugData: Bool
-	var collectionPath: URL
+	var capturePath: URL
 
-	/**
-		Initialize the DebugData struct.
-		- Parameters:
-			- captureData: A flag indicating whether debug data should be captured.
-			- xcodeArchivePath: The path to the xcarchive.
-			- xcodeLogPath: The path to the xcodebuild log file.
-
-			Setup the collection path to hold the debug data. This path is a sub-directory of the xcarchive. 
-			Create a logger to write log messages to a sub-directory of collection path.
-			Capture the execution context data. This is the initial set of capture data.
-	*/
-	init (captureData: Bool, xcodeArchivePath: URL, xcodeLogPath: URL) throws {
+	init (captureData: Bool, xcodeArchivePath: URL) throws {
 		// Determine whether we should capture debug data
 		if !captureData {
 			captureDebugData = false
-			collectionPath = URL(fileURLWithPath: "")
+			capturePath = URL(fileURLWithPath: "")
 			return
 		}
 
-		collectionPath = xcodeArchivePath.appendingPathComponent("debug-data", isDirectory: true)
+		// 	Setup the capture path to hold the debug data. This path is a sub-directory of the xcarchive. 
+		capturePath = xcodeArchivePath.appendingPathComponent("debug-data", isDirectory: true)
 
 		// Make sure the directory to hold debug data exists and is empty
-		if !FileManager.default.directoryExists(at: collectionPath) {
+		if !FileManager.default.directoryExists(at: capturePath) {
 			// It doesn't exist, so create it
-			try FileManager.default.createDirectory(at: collectionPath, withIntermediateDirectories: true)
-		} else if try FileManager.default.contentsOfDirectory(at: collectionPath, includingPropertiesForKeys: nil).isEmpty == false {
+			try FileManager.default.createDirectory(at: capturePath, withIntermediateDirectories: true)
+		} else if try FileManager.default.contentsOfDirectory(at: capturePath, includingPropertiesForKeys: nil).isEmpty == false {
 				// It exists and is not empty, so throw an error
-				throw ValidationError("Path \(collectionPath) is not empty! The directory to capture debug data must be empty.")
+				throw ValidationError("Path \(capturePath) is not empty! The directory to capture debug data must be empty.")
 		}
 
 		// Create a subdirectory for the logs and add a file log handler to write the log there.
-		let zipLogPath = collectionPath.appendingPathComponent("log")
+		let zipLogPath = capturePath.appendingPathComponent("log")
 		try FileManager.default.createDirectory(at: zipLogPath, withIntermediateDirectories: true)
 
-		var captureLog = FileLogHandler(filePath: zipLogPath.filePath)
-		captureLog.logLevel = logger.logLevel
-		MultiLogHandler.addHandler(captureLog)
+		var captureLogHandler = FileLogHandler(filePath: zipLogPath.appendingPathComponent("/genir-capture.log", isDirectory: false))
+		captureLogHandler.logLevel = GenIRLogger.logger.logLevel
+		GenIRLogger.logger = Logger(label: "Gen-IR") { _ in
+			MultiplexLogHandler([StdIOStreamLogHandler(), captureLogHandler])
+		}
+		LoggingSystem.bootstrap({ _ in
+			MultiplexLogHandler([StdIOStreamLogHandler(), captureLogHandler])
+		})
 
 		captureDebugData = true
 		DebugData.displayCaptureInfo()
-		logger.info("Debug data will be captured to: \(collectionPath)")
-
-		try collectExecutionContext(logPath: xcodeLogPath)
+		GenIRLogger.logger.info("Debug data will be captured to: \(capturePath)")
 	}
 
 	private static func displayCaptureInfo() {
@@ -87,32 +80,32 @@ struct DebugData {
 		- The swift-version
 		\n
 		""")
-		logger.info(captureInfo)
+		GenIRLogger.logger.info(captureInfo)
 	}
 
-	/**
-		Collect the execution context:
-		This includes the xcodebuild log, the configured developer directory, the xcodebuild version, and the swift version.
-	*/
-	private func collectExecutionContext(logPath: URL) throws {
+	///
+	///	Capture the execution context:
+	/// This includes the xcodebuild log, the configured developer directory, the xcodebuild version, and the swift version.
+	/// 
+	public func captureExecutionContext(logPath: URL) throws {
 
-		// Collect the xcodebuild log
-		try FileManager.default.copyItem(at: logPath, to: collectionPath.appendingPathComponent("xcodebuild.log"))
+		// Capture the xcodebuild log
+		try FileManager.default.copyItem(at: logPath, to: capturePath.appendingPathComponent("xcodebuild.log"))
 
-		// Collect the configured developer directory
+		// Capture the configured developer directory
 		let developerDir = "DEVELOPER_DIR: " + ( try execShellCommand(command: "xcode-select", args: ["-p"]) )
 
-		// Collect a possible override of the developer directory
+		// Capture a possible override of the developer directory
 		let developerDirOverride = ProcessInfo.processInfo.environment["DEVELOPER_DIR"] ?? "Not set"
 
-		// Collect the xcodebuild version
+		// Capture the xcodebuild version
 		let xcodeBuildVersion = try execShellCommand(command: "xcodebuild", args: ["-version"])
 
-		// Collect the swift version
+		// Capture the swift version
 		let swiftVersion = try execShellCommand(command: "swift", args: ["-version"])
 
 		do {
-				let versionsUrl = collectionPath.appendingPathComponent("versions.txt")
+				let versionsUrl = capturePath.appendingPathComponent("versions.txt")
 				try developerDir.write(to: versionsUrl, atomically: true, encoding: .utf8)
 				let versionsFile = try FileHandle(forWritingTo: versionsUrl)
 				versionsFile.seekToEndOfFile()
@@ -123,56 +116,47 @@ struct DebugData {
 				// swiftlint:enable non_optional_string_data_conversion
 				versionsFile.closeFile()
 		} catch {
-			logger.error("Debug data capture Error \(error) occurred creating the versions.txt file while capturing debug data.")
+			GenIRLogger.logger.error("Debug data capture Error \(error) occurred creating the versions.txt file while capturing debug data.")
 		}
-		logger.info("Debug data capture execution context data collected.")
+		GenIRLogger.logger.info("Debug data capture execution context data captured.")
 	}
 
-	/**
-		Collect the PIF cache:
-		This is a copy of the PIF cache from the location specified in the xcarchive.
-		The location is determined by the PIFCache.pifCachePath(in:) method.
-	*/
-	public func collectPIFCache(pifLocation: URL) throws {
+	/// 
+	/// Capture the PIF cache:
+	/// This is a copy of the PIF cache from the location specified in the xcarchive.
+	/// The location is determined by the PIFCache.pifCachePath(in:) method.
+	/// 
+	public func capturePIFCache(pifLocation: URL) throws {
 		if !captureDebugData {
 			return
 		}
 
-		let pifCachePath = try PIFCache.pifCachePath(in: pifLocation)
-		// Collect the PIF cache
-		let savedPif = collectionPath.appendingPathComponent("pif-data")
-    let fileManager = FileManager.default
-
+		// Capture the PIF cache
+		let savedPif = capturePath.appendingPathComponent("pif-data")
     do {
-        // Ensure the source directory exists
-        guard fileManager.fileExists(atPath: pifCachePath.path) else {
-            logger.error("Debug data capture PIF Cache location \(pifLocation) does not exist.")
-            return
-        }
-
         // Perform the copy operation and skip broken symlinks
-        try copyDirectorySkippingBrokenSymlinks(from: pifCachePath, to: savedPif)
+        try copyDirectorySkippingBrokenSymlinks(from: pifLocation, to: savedPif)
     } catch {
-        logger.error("Debug data capture of PIF Cache error: \(error.localizedDescription)")
+        GenIRLogger.logger.error("Debug data capture of PIF Cache error: \(error.localizedDescription)")
     }
-		logger.info("Debug data capture PIF cache data collected.")
+		GenIRLogger.logger.info("Debug data capture PIF cache data captured.")
 	}
 
-	/**
-		Do any final data captures and log the completion message.
-	*/
-	public func collectComplete(xcarchive: URL) throws {
+	/// 
+	/// Do any final data captures and log the completion message.
+	/// 
+	public func captureComplete(xcarchive: URL) throws {
 		if !captureDebugData {
 			return
 		}
-		logger.info("Debug data capture complete.")
+		GenIRLogger.logger.info("Debug data capture complete.")
 	}
 
-	/**
-		Copy a directory and skip broken symlinks.
-		This is used to copy the PIF cache from the location based on the build cache path parsed from the xcode build log.
-		The location is determined by the PIFCache.pifCachePath(in:) method.
-	*/
+	/// 
+	/// Copy a directory and skip broken symlinks.
+	/// This is used to copy the PIF cache from the location based on the build cache path parsed from the xcode build log.
+	/// The location is determined by the PIFCache.pifCachePath(in:) method.
+	/// 
 	func copyDirectorySkippingBrokenSymlinks(from sourceURL: URL, to destinationURL: URL) throws {
 
 			let fileManager = FileManager.default
@@ -186,7 +170,7 @@ struct DebugData {
 							// Check if the symlink target exists
 							let targetPath = try fileManager.destinationOfSymbolicLink(atPath: item.path)
 							if !fileManager.fileExists(atPath: targetPath) {
-									logger.info("Skipping broken symlink while copying PIFCache: \(item.path)")
+									GenIRLogger.logger.info("Skipping broken symlink while copying PIFCache: \(item.path)")
 									continue
 							}
 					}
@@ -202,21 +186,21 @@ struct DebugData {
 						// Copy item
 						try fileManager.copyItem(at: item, to: destinationItemURL)
 					} catch {
-							logger.error("Error while copying a PIFCache item \(item) : \(error.localizedDescription)")
+							GenIRLogger.logger.error("Error while copying a PIFCache item \(item) : \(error.localizedDescription)")
 							continue
 					}
 			}
 	}
 
-	/**
-		Given a command string and it's arguments, invoke a shell to execute the command and return the command output.
-	*/
+	/// 
+	/// Given a command string and it's arguments, invoke a shell to execute the command and return the command output.
+	/// 
 	private func execShellCommand(command: String, args: [String]) throws -> String {
 		let result: Process.ReturnValue
 		do {
 			result = try Process.runShell(command, arguments: args, runInDirectory: FileManager.default.currentDirectoryPath.fileURL)
 		} catch {
-			logger.error(
+			GenIRLogger.logger.error(
 				"""
 				Debug data capture couldn't create process for command: \(command) with arguments: \(args.joined(separator: " ")). \
 				Output will not be captured.
@@ -226,7 +210,7 @@ struct DebugData {
 		}
 
 		if result.code != 0 {
-			logger.error(
+			GenIRLogger.logger.error(
 			"""
 			Debug data capture command finished with non-zero exit code. Output will not be captured.
 				- code: \(result.code)

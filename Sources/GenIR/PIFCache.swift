@@ -8,7 +8,7 @@ import LogHandlers
 /// This class is used in conjunction with `PIFDependencyProvider` to enable building dependency relationships between the various targets
 class PIFCache {
 	/// The path to the PIF Cache
-	private let pifCachePath: URL
+	public let pifCachePath: URL
 
 	/// The most recent `PIF.Workspace` in the cache
 	private let workspace: PIF.Workspace
@@ -35,7 +35,7 @@ class PIFCache {
 		pifCachePath = try Self.pifCachePath(in: buildCache)
 
 		do {
-			let cache = try PIFCacheParser(cachePath: pifCachePath, logger: logger)
+			let cache = try PIFCacheParser(cachePath: pifCachePath, logger: GenIRLogger.logger)
 			workspace = cache.workspace
 		} catch {
 			throw Error.pifError(error)
@@ -45,7 +45,7 @@ class PIFCache {
 		guidToTargets = targets.reduce(into: [PIF.GUID: PIF.BaseTarget]()) { partial, target in
 			partial[target.guid] = target
 		}
-		logger.debug("Project targets: \(targets.count) reduced to \(guidToTargets.count)")
+		GenIRLogger.logger.debug("Project targets: \(targets.count) reduced to \(guidToTargets.count)")
 	}
 
 	func target(guid: PIF.GUID) -> PIF.BaseTarget? {
@@ -56,7 +56,7 @@ class PIFCache {
 	/// - Parameter buildCache: the Xcode build cache
 	/// - Throws: if no cache was found
 	/// - Returns: the path to the PIF Cache
-	public static func pifCachePath(in buildCache: URL) throws -> URL {
+	private static func pifCachePath(in buildCache: URL) throws -> URL {
 		let cmakePIFCachePath = buildCache
 				.appendingPathComponent("XCBuildData")
 				.appendingPathComponent("PIFCache")
@@ -98,7 +98,7 @@ class PIFCache {
 				case let group as PIF.Group:
 					resolveChildren(starting: group.children)
 				default:
-					logger.debug("Unhandled reference type: \(child)")
+					GenIRLogger.logger.debug("Unhandled reference type: \(child)")
 				}
 			}
 		}
@@ -205,19 +205,19 @@ struct PIFDependencyProvider: DependencyProviding {
 		if productUnderlyingTargets.isEmpty && !productTargetDependencies.isEmpty {
 			// We likely have a stub target here (i.e. a precompiled framework)
 			// see https://github.com/apple/swift-package-manager/issues/6069 for more
-			logger.debug("Resolving Swift Package (\(productName) - \(packageProductGUID)) resulted in no targets. Possible stub target in: \(productTargetDependencies)")
+			GenIRLogger.logger.debug("Resolving Swift Package (\(productName) - \(packageProductGUID)) resulted in no targets. Possible stub target in: \(productTargetDependencies)")
 			return nil
 		} else if productUnderlyingTargets.isEmpty && productTargetDependencies.isEmpty {
-			logger.debug("Resolving Swift Package (\(productName) - \(packageProductGUID)) resulted in no targets. Likely a prebuilt dependency")
+			GenIRLogger.logger.debug("Resolving Swift Package (\(productName) - \(packageProductGUID)) resulted in no targets. Likely a prebuilt dependency")
 			return nil
 		}
 
 		guard productTargetDependencies.count == 1, let target = productTargetDependencies.first else {
-			logger.debug("Expecting one matching package target - found \(productTargetDependencies.count): \(productTargetDependencies). Returning first match if it exists")
+			GenIRLogger.logger.debug("Expecting one matching package target - found \(productTargetDependencies.count): \(productTargetDependencies). Returning first match if it exists")
 			return productTargetDependencies.first?.targetGUID
 		}
 
-		logger.debug("\(packageProductGUID) resolves to \(target.targetGUID)")
+		GenIRLogger.logger.debug("\(packageProductGUID) resolves to \(target.targetGUID)")
 		return target.targetGUID
 	}
 
