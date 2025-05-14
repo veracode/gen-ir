@@ -51,13 +51,12 @@ struct DebugData {
 		try FileManager.default.createDirectory(at: zipLogPath, withIntermediateDirectories: true)
 
 		var captureLogHandler = FileLogHandler(filePath: zipLogPath.appendingPathComponent("/genir-capture.log", isDirectory: false))
+		var stdioLogHandler = StdIOStreamLogHandler()
 		captureLogHandler.logLevel = GenIRLogger.logger.logLevel
+		stdioLogHandler.logLevel = GenIRLogger.logger.logLevel
 		GenIRLogger.logger = Logger(label: "Gen-IR") { _ in
-			MultiplexLogHandler([StdIOStreamLogHandler(), captureLogHandler])
+			MultiplexLogHandler([stdioLogHandler, captureLogHandler])
 		}
-		LoggingSystem.bootstrap({ _ in
-			MultiplexLogHandler([StdIOStreamLogHandler(), captureLogHandler])
-		})
 
 		captureDebugData = true
 		DebugData.displayCaptureInfo()

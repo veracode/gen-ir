@@ -135,7 +135,12 @@ struct DebuggingOptions: ParsableArguments {
 		pifCachePath: URL? = nil,
 		capture: Bool = false
 	) throws {
+
+		// Initialize for capturing debug data and peform initial capture.
+		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive)
+		try debugCapture.captureExecutionContext(logPath: log.fileURL)
 		GenIRLogger.logger.logLevel = level
+
 		GenIRLogger.logger.info(
 				"""
 
@@ -147,10 +152,6 @@ struct DebuggingOptions: ParsableArguments {
 						dumpDependencyGraph: \(dumpDependencyGraph)
 
 				""")
-
-		// Initialize for capturing debug data and peform initial capture.
-		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive)
-		try debugCapture.captureExecutionContext(logPath: log.fileURL)
 
 		let output = archive.appendingPathComponent("IR")
 		let log = try logParser(for: log)
