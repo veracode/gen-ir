@@ -98,3 +98,22 @@ extension GenIRLogHandler {
 	}
 	// swiftlint:enable function_parameter_count 
 }
+
+/// A custom text output stream that writes to a file.
+struct GenIrIoTextStream: TextOutputStream {
+
+	let file: UnsafeMutablePointer<FILE>
+
+	func write(_ string: String) {
+		var string = string
+		string.makeContiguousUTF8()
+		string.utf8.withContiguousStorageIfAvailable { bytes in
+			flockfile(file)
+			defer { funlockfile(file) }
+
+			fwrite(bytes.baseAddress!, 1, bytes.count, file)
+
+			fflush(file)
+		}
+	}
+}

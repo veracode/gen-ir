@@ -8,28 +8,8 @@
 import Foundation
 import Logging
 
-struct StdIOTextStream: TextOutputStream {
-	static let stdout = StdIOTextStream(file: Darwin.stdout)
-
-	let file: UnsafeMutablePointer<FILE>
-
-	func write(_ string: String) {
-		var string = string
-		string.makeContiguousUTF8()
-		string.utf8.withContiguousStorageIfAvailable { bytes in
-			flockfile(file)
-			defer { funlockfile(file) }
-
-			fwrite(bytes.baseAddress!, 1, bytes.count, file)
-
-			fflush(file)
-		}
-	}
-}
-
 public struct StdIOStreamLogHandler: GenIRLogHandler {
-
-	private let stdout = StdIOTextStream.stdout
+	let stdout = GenIrIoTextStream(file: Darwin.stdout)
 
 	public var metadata: Logging.Logger.Metadata = [:]
 	public var logLevel: Logging.Logger.Level = .info

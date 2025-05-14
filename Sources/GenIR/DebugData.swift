@@ -92,7 +92,7 @@ struct DebugData {
 		try FileManager.default.copyItem(at: logPath, to: capturePath.appendingPathComponent("xcodebuild.log"))
 
 		// Capture the configured developer directory
-		let developerDir = "DEVELOPER_DIR: " + ( try execShellCommand(command: "xcode-select", args: ["-p"]) )
+		let developerDir = try execShellCommand(command: "xcode-select", args: ["-p"])
 
 		// Capture a possible override of the developer directory
 		let developerDirOverride = ProcessInfo.processInfo.environment["DEVELOPER_DIR"] ?? "Not set"
@@ -104,16 +104,16 @@ struct DebugData {
 		let swiftVersion = try execShellCommand(command: "swift", args: ["-version"])
 
 		do {
-				let versionsUrl = capturePath.appendingPathComponent("versions.txt")
-				try developerDir.write(to: versionsUrl, atomically: true, encoding: .utf8)
-				let versionsFile = try FileHandle(forWritingTo: versionsUrl)
-				versionsFile.seekToEndOfFile()
-				// swiftlint:disable non_optional_string_data_conversion
-				versionsFile.write("DEVELOPER_DIR_OVERRIDE: \(developerDirOverride)\n".data(using: .utf8)!)
-				versionsFile.write("XCODEBUILD_VERSION: \(xcodeBuildVersion)\n".data(using: .utf8)!)
-				versionsFile.write("SWIFT_VERSION: \(swiftVersion)\n".data(using: .utf8)!)
-				// swiftlint:enable non_optional_string_data_conversion
-				versionsFile.closeFile()
+			let versionsUrl = capturePath.appendingPathComponent("versions.txt")
+			FileManager.default.createFile(atPath: versionsUrl.path, contents: nil)
+			let versionsFile = try FileHandle(forWritingTo: versionsUrl)
+			versionsFile.write(Data("""
+				DEVELOPER_DIR: \(developerDir)\n
+				DEVELOPER_DIR_OVERRIDE: \(developerDirOverride)\n
+				XCODEBUILD_VERSION: \(xcodeBuildVersion)\n
+				SWIFT_VERSION: \(swiftVersion)\n
+				""".utf8))
+			versionsFile.closeFile()
 		} catch {
 			GenIRLogger.logger.error("Debug data capture Error \(error) occurred creating the versions.txt file while capturing debug data.")
 		}
