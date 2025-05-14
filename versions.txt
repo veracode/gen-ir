@@ -1,8 +1,0 @@
-DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-DEVELOPER_DIR_OVERRIDE: Not set
-XCODEBUILD_VERSION: Xcode 16.3
-Build version 16E140
-
-SWIFT_VERSION: Apple Swift version 6.1 (swiftlang-6.1.0.110.21 clang-1700.0.13.3)
-Target: arm64-apple-macosx15.0
-

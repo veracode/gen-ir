@@ -87,6 +87,9 @@ struct DebugData {
 	/// This includes the xcodebuild log, the configured developer directory, the xcodebuild version, and the swift version.
 	/// 
 	public func captureExecutionContext(logPath: URL) throws {
+		if !captureDebugData {
+			return
+		}
 
 		// Capture the xcodebuild log
 		try FileManager.default.copyItem(at: logPath, to: capturePath.appendingPathComponent("xcodebuild.log"))
@@ -156,7 +159,7 @@ struct DebugData {
 	/// This is used to copy the PIF cache from the location based on the build cache path parsed from the xcode build log.
 	/// The location is determined by the PIFCache.pifCachePath(in:) method.
 	/// 
-	func copyDirectorySkippingBrokenSymlinks(from sourceURL: URL, to destinationURL: URL) throws {
+	private func copyDirectorySkippingBrokenSymlinks(from sourceURL: URL, to destinationURL: URL) throws {
 
 			let fileManager = FileManager.default
 			let contents = try fileManager.contentsOfDirectory(at: sourceURL, includingPropertiesForKeys: [.isSymbolicLinkKey], options: [])
