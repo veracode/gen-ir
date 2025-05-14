@@ -38,7 +38,7 @@ public class DependencyGraph<Value: NodeValue> {
 	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
 	public func chain(for value: Value) -> [Node] {
 		guard let node = findNode(for: value) else {
-			logger.debug("Couldn't find node for value: \(value.valueName)")
+			GenIRLogger.logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
 		}
 
@@ -49,26 +49,26 @@ public class DependencyGraph<Value: NodeValue> {
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
 	private func depthFirstSearch(startingAt node: Node) -> [Node] {
-		logger.debug("----\nSearching for: \(node.value.valueName)")
+		GenIRLogger.logger.debug("----\nSearching for: \(node.value.valueName)")
 		var visited = Set<Node>()
 		var chain = [Node]()
 
 		/// Visits node dependencies and adds them to the chain from the bottom up
 		/// - Parameter node: the node to search through
 		func depthFirst(node: Node) {
-			logger.debug("inserting node: \(node.value.valueName)")
+			GenIRLogger.logger.debug("inserting node: \(node.value.valueName)")
 			visited.insert(node)
 
 			for edge in node.edges where edge.relationship == .dependency {
 				if visited.insert(edge.to).inserted {
-					logger.debug("edge to: \(edge.to)")
+					GenIRLogger.logger.debug("edge to: \(edge.to)")
 					depthFirst(node: edge.to)
 				} else {
-					logger.debug("edge already in visited: \(visited)")
+					GenIRLogger.logger.debug("edge already in visited: \(visited)")
 				}
 			}
 
-			logger.debug("appending to chain: \(node.value.valueName)")
+			GenIRLogger.logger.debug("appending to chain: \(node.value.valueName)")
 			chain.append(node)
 		}
 
