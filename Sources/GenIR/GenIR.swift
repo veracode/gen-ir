@@ -57,6 +57,9 @@ struct DebuggingOptions: ParsableArguments {
 		version: "v\(Versions.version)"
 	)
 
+	/// Optional variable to capture debug data, if requested.
+	var debugData: DebugData?
+
 	/// Path to an Xcode build log, or `-` if build log should be read from stdin
 	@Argument(help: "Path to a full Xcode build log. If `-` is provided, stdin will be read")
 	var logPath: String
@@ -86,17 +89,25 @@ struct DebuggingOptions: ParsableArguments {
   @OptionGroup var debuggingOptions: DebuggingOptions
 
 	mutating func validate() throws {
-		// This will run before run() so set this here
-		if debug {
-			GenIRLogger.logger.logLevel = .debug
-		} else {
-			GenIRLogger.logger.logLevel = debuggingOptions.logLevel?.level ?? .info
+
+		try validateXcarchive()
+
+		// Check if requested to capture debug data
+		// Logging is set to the default by the first reference to GenIRLogger.logger. When captureing debug data we also add a log handler
+		// to capture the log output to a file.
+		if debuggingOptions.capture {
+			debugData = try DebugData(xcodeArchivePath: xcarchivePath)
 		}
+
+		// Initialize the logger
+		try initLogging()
 
 		if deprecatedOptions.projectPath != nil {
 			GenIRLogger.logger.warning("\u{001B}[1m --project-path has been deprecated and will go away in a future version. \nPlease remove it from your invocation.\u{001B}[0m")
 		}
+	}
 
+	mutating private func  validateXcarchive() throws {
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
 		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
 		// folder, remove the IR portion
@@ -111,6 +122,54 @@ struct DebuggingOptions: ParsableArguments {
 		if !FileManager.default.directoryExists(at: xcarchivePath) {
 			throw ValidationError("Archive path doesn't exist: \(xcarchivePath.filePath)")
 		}
+
+		// Clean outpuf folders in the archive
+		let irPath = xcarchivePath.appendingPathComponent("IR")
+		if FileManager.default.directoryExists(at: irPath) {
+			do {
+				try FileManager.default.removeItem(at: irPath)
+			} catch {
+				GenIRLogger.logger.warning("Failed to remove existing IR folder at \(irPath.filePath): \(error)")
+			}
+		}
+
+		let debugDataPath = xcarchivePath.appendingPathComponent("debug-data")
+		if FileManager.default.directoryExists(at: debugDataPath) {
+			do {
+				try FileManager.default.removeItem(at: debugDataPath)
+			} catch {
+				GenIRLogger.logger.warning("Failed to remove existing debug-data folder at \(debugDataPath.filePath): \(error)")
+			}
+		}
+	}
+
+	mutating private func initLogging() throws {
+		// First, determine the requested log level
+		var logLevel: Logger.Level
+		if debug {
+			// If debug is set, we use the debug log level
+			logLevel = .debug
+		} else if let logLevelArg = debuggingOptions.logLevel?.level {
+			// If a log level was specified, use that
+			logLevel = logLevelArg
+		} else {
+			// Default to info level if no debug or log level is specified
+			logLevel = .info
+		}
+
+		// Default handler is stdout
+		if debuggingOptions.capture {
+			// If capture is enabled, we create a file log handler to capture the log output
+			var captureLogHandler = FileLogHandler(filePath: debugData!.logDataPath)
+			var stdioLogHandler = StdIOStreamLogHandler()
+			captureLogHandler.logLevel = GenIRLogger.logger.logLevel
+			stdioLogHandler.logLevel = GenIRLogger.logger.logLevel
+			GenIRLogger.logger = Logger(label: "Gen-IR") { _ in MultiplexLogHandler([stdioLogHandler, captureLogHandler]) }
+		} else {
+			// Otherwise, we use the default StdIOStreamLogHandler
+			GenIRLogger.logger = Logger(label: "Gen-IR") { _ in StdIOStreamLogHandler() }
+		}
+		GenIRLogger.logger.logLevel = logLevel
 	}
 
 	mutating func run() throws {
@@ -136,10 +195,9 @@ struct DebuggingOptions: ParsableArguments {
 		capture: Bool = false
 	) throws {
 
-		// Initialize for capturing debug data and peform initial capture.
-		let debugCapture = try DebugData(captureData: capture, xcodeArchivePath: archive)
-		try debugCapture.captureExecutionContext(logPath: log.fileURL)
-		GenIRLogger.logger.logLevel = level
+		// Perform initial capture.
+		debugData?.displayCaptureInfo()
+		try debugData?.captureExecutionContext(logPath: log.fileURL)
 
 		GenIRLogger.logger.info(
 				"""
@@ -163,7 +221,7 @@ struct DebuggingOptions: ParsableArguments {
 		}
 		let pifCache = try PIFCache(buildCache: pifCachePath)
 		GenIRLogger.logger.debug("PIF location is: \(pifCache.pifCachePath)")
-		try debugCapture.capturePIFCache(pifLocation: pifCache.pifCachePath)
+		try debugData?.capturePIFCache(pifLocation: pifCache.pifCachePath)
 
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
@@ -203,7 +261,7 @@ struct DebuggingOptions: ParsableArguments {
 
 		try postprocessor.process()
     GenIRLogger.logger.info("\n\n** Gen-IR SUCCEEDED **\n\n")
-		try debugCapture.captureComplete(xcarchive: archive)
+		try debugData?.captureComplete(xcarchive: archive)
 	}
 
 	private func buildDependencyGraph(targets: [Target], pifCache: PIFCache, output: URL, dumpGraph: Bool) -> DependencyGraph<Target> {

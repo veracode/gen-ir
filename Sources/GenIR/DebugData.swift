@@ -21,18 +21,12 @@ import Logging
 /// 		- env | grep DEVELOPER_DIR output
 /// 		- data.zip
 /// 
-struct DebugData {
+struct DebugData: Decodable {
 
-	let captureDebugData: Bool
-	var capturePath: URL
+	let capturePath: URL
+	let logDataPath: URL
 
-	init (captureData: Bool, xcodeArchivePath: URL) throws {
-		// Determine whether we should capture debug data
-		if !captureData {
-			captureDebugData = false
-			capturePath = URL(fileURLWithPath: "")
-			return
-		}
+	init (xcodeArchivePath: URL) throws {
 
 		// 	Setup the capture path to hold the debug data. This path is a sub-directory of the xcarchive. 
 		capturePath = xcodeArchivePath.appendingPathComponent("debug-data", isDirectory: true)
@@ -41,29 +35,19 @@ struct DebugData {
 		if !FileManager.default.directoryExists(at: capturePath) {
 			// It doesn't exist, so create it
 			try FileManager.default.createDirectory(at: capturePath, withIntermediateDirectories: true)
-		} else if try FileManager.default.contentsOfDirectory(at: capturePath, includingPropertiesForKeys: nil).isEmpty == false {
-				// It exists and is not empty, so throw an error
-				throw ValidationError("Path \(capturePath) is not empty! The directory to capture debug data must be empty.")
 		}
 
 		// Create a subdirectory for the logs and add a file log handler to write the log there.
 		let zipLogPath = capturePath.appendingPathComponent("log")
 		try FileManager.default.createDirectory(at: zipLogPath, withIntermediateDirectories: true)
 
-		var captureLogHandler = FileLogHandler(filePath: zipLogPath.appendingPathComponent("/genir-capture.log", isDirectory: false))
-		var stdioLogHandler = StdIOStreamLogHandler()
-		captureLogHandler.logLevel = GenIRLogger.logger.logLevel
-		stdioLogHandler.logLevel = GenIRLogger.logger.logLevel
-		GenIRLogger.logger = Logger(label: "Gen-IR") { _ in
-			MultiplexLogHandler([stdioLogHandler, captureLogHandler])
-		}
-
-		captureDebugData = true
-		DebugData.displayCaptureInfo()
-		GenIRLogger.logger.info("Debug data will be captured to: \(capturePath)")
+		logDataPath = zipLogPath.appendingPathComponent("genir-capture.log", isDirectory: false)
 	}
 
-	private static func displayCaptureInfo() {
+	///
+	/// Tell the user what information will be captured.
+	///
+	public func displayCaptureInfo() {
 		let captureInfo = Logger.Message(
 		"""
 		\n
@@ -80,6 +64,7 @@ struct DebugData {
 		\n
 		""")
 		GenIRLogger.logger.info(captureInfo)
+		GenIRLogger.logger.info("Debug data will be captured to: \(capturePath)")
 	}
 
 	///
@@ -87,9 +72,6 @@ struct DebugData {
 	/// This includes the xcodebuild log, the configured developer directory, the xcodebuild version, and the swift version.
 	/// 
 	public func captureExecutionContext(logPath: URL) throws {
-		if !captureDebugData {
-			return
-		}
 
 		// Capture the xcodebuild log
 		try FileManager.default.copyItem(at: logPath, to: capturePath.appendingPathComponent("xcodebuild.log"))
@@ -129,9 +111,6 @@ struct DebugData {
 	/// The location is determined by the PIFCache.pifCachePath(in:) method.
 	/// 
 	public func capturePIFCache(pifLocation: URL) throws {
-		if !captureDebugData {
-			return
-		}
 
 		// Capture the PIF cache
 		let savedPif = capturePath.appendingPathComponent("pif-data")
@@ -148,9 +127,6 @@ struct DebugData {
 	/// Do any final data captures and log the completion message.
 	/// 
 	public func captureComplete(xcarchive: URL) throws {
-		if !captureDebugData {
-			return
-		}
 		GenIRLogger.logger.info("Debug data capture complete.")
 	}
 
