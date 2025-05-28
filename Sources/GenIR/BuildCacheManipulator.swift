@@ -114,12 +114,12 @@ struct BuildCacheManipulator {
 		}
 		.reduce(into: [String: URL]()) { $0[$1.lastPathComponent] = $1 }
 
-		logger.debug("symlinks to update: \(symlinksToUpdate)")
-		logger.debug("existing frameworks: \(existingFrameworks)")
+		GenIRLogger.logger.debug("symlinks to update: \(symlinksToUpdate)")
+		GenIRLogger.logger.debug("existing frameworks: \(existingFrameworks)")
 
 		try symlinksToUpdate.forEach { name, path in
 			guard let buildProductPath = existingFrameworks[name] else {
-				logger.error("Couldn't lookup \(name) in existing frameworks: \(existingFrameworks.keys)")
+				GenIRLogger.logger.error("Couldn't lookup \(name) in existing frameworks: \(existingFrameworks.keys)")
 				return
 			}
 
@@ -147,7 +147,7 @@ struct BuildCacheManipulator {
 		}
 
 		// Uh oh, there shouldn't be more than one folder here - was a clean performed?
-		logger.warning(
+		GenIRLogger.logger.warning(
 			"Expected one folder at path: \(path), but got \(folders.count): \(folders). Attempting to select a Debug or Veracode configuration folder"
 		)
 
@@ -161,7 +161,7 @@ struct BuildCacheManipulator {
 		}
 
 		if filtered.count > 1 {
-			logger.error(
+			GenIRLogger.logger.error(
 				"""
 				Found more than one possible folders matching 'debug' or 'veracode' configurations: \(filtered). Please ensure you build from a clean state.
 				"""

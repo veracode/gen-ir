@@ -45,7 +45,7 @@ class XcodeLogParser {
 		parseBuildLog()
 
 		if commandLog.isEmpty {
-			logger.debug("Found no targets in log")
+			GenIRLogger.logger.debug("Found no targets in log")
 
 			throw Error.noTargetsFound(
 				"""
@@ -55,7 +55,7 @@ class XcodeLogParser {
 		}
 
 		if commandLog.count == 0 {
-			logger.debug("Found no commands in log")
+			GenIRLogger.logger.debug("Found no commands in log")
 
 			throw Error.noCommandsFound(
 				"""
@@ -69,7 +69,7 @@ class XcodeLogParser {
 		}
 
 		if buildCount > 1 {
-			logger.warning("\n\t ---- Multiple builds found in the log file, Gen-IR is designed to only parse one build at a time. ----\n")
+			GenIRLogger.logger.warning("\n\t ---- Multiple builds found in the log file, Gen-IR is designed to only parse one build at a time. ----\n")
 		}
 	}
 
@@ -96,7 +96,7 @@ class XcodeLogParser {
 					}
 
 					if seenTargets.insert(target).inserted {
-						logger.debug("Found target: \(target)")
+						GenIRLogger.logger.debug("Found target: \(target)")
 					}
 
 					let commands = parseCompilerCommands(target: target)
@@ -105,7 +105,7 @@ class XcodeLogParser {
 						let commandKey = "\($0.command.compiler.rawValue)-\(target)"
 						if (commandsToLog.insert(commandKey)).inserted {
 							// Log the compiler along with the target
-							logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
+							GenIRLogger.logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
 						}
 					}
 
