@@ -1,22 +1,20 @@
 //
-//  StdoutLogHandler.swift
-//
-//
-//  Created by Thomas Hedderwick on 30/08/2022.
+//  FileLogHandler.swift
 //
 
 import Foundation
 import Logging
 
-public struct StdIOStreamLogHandler: GenIRLogHandler {
-	let stdout = GenIrIoTextStream(file: Darwin.stdout)
+public struct FileLogHandler: GenIRLogHandler {
+
+	private let fileStream: GenIrIoTextStream
 
 	public var metadata: Logging.Logger.Metadata = [:]
 	public var logLevel: Logging.Logger.Level = .info
 
-	public init() {}
-
-	public init(_: String) {}
+	public init(filePath: URL) {
+		fileStream = GenIrIoTextStream(file: fopen(filePath.path, "w"))
+	}
 
 	// periphery:ignore:parameters count
 	// swiftlint:disable:next function_parameter_count
@@ -30,6 +28,6 @@ public struct StdIOStreamLogHandler: GenIRLogHandler {
 		line: UInt
 	) {
 		let lineInfo = lineInfo(for: level, file: file, function: function, line: line)
-		stdout.write("\(timestamp)\(lineInfo)\(levelPrefix)\(message)\n")
+		fileStream.write("\(timestamp)\(lineInfo)\(levelPrefix)\(message)\n")
 	}
 }
