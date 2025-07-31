@@ -23,7 +23,7 @@ struct DebuggingOptions: ParsableArguments {
 	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
 	var logLevel: LogLevelArgument?
 
-	@Flag(help: ArgumentHelp("Path to save a zip file containing debug data.", visibility: .hidden))
+	@Flag(help: ArgumentHelp("If true, add captured debug data to the xcarchive.", visibility: .hidden))
 	var capture: Bool = false
 }
 
