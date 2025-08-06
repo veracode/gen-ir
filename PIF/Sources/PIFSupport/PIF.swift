@@ -45,6 +45,19 @@ public enum PIF {
 		case dataReadingFailure(String)
 	}
 
+struct FailableDecodable<T: Decodable>: Decodable {
+    let value: T?
+
+    init(from decoder: Decoder) throws {
+        do {
+            value = try T(from: decoder)
+        } catch {
+						logger.error("Failed to decode \(T.self): \(error)")
+            value = nil
+        }
+    }
+}
+
 	/// The top-level PIF object.
 	public struct TopLevelObject: Decodable {
 		public let workspace: PIF.Workspace
@@ -451,7 +464,8 @@ public enum PIF {
 				return try BuildPhase.decode(container: &buildPhasesContainer, type: type)
 			}
 
-			let dependencies = try container.decode([TargetDependency].self, forKey: .dependencies)
+			let rawdependencies = try container.decode([FailableDecodable<TargetDependency>].self, forKey: .dependencies)
+			let dependencies = rawdependencies.compactMap { $0.value }
 			let impartedBuildProperties = try container.decodeIfPresent(BuildSettings.self, forKey: .impartedBuildProperties)
 			logger.trace("---> Decoded BaseTarget: guid \(guid) name \(name)")
 
@@ -515,7 +529,8 @@ public enum PIF {
 			let guid = try container.decode(GUID.self, forKey: .guid)
 			let name = try container.decode(String.self, forKey: .name)
 			let buildConfigurations = try container.decode([BuildConfiguration].self, forKey: .buildConfigurations)
-			let dependencies = try container.decode([TargetDependency].self, forKey: .dependencies)
+			let rawdependencies = try container.decode([FailableDecodable<TargetDependency>].self, forKey: .dependencies)
+			let dependencies = rawdependencies.compactMap { $0.value }
 			let type = try container.decode(String.self, forKey: .type)
 
 			let buildPhases: [BuildPhase]
