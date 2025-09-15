@@ -97,6 +97,7 @@ struct DebuggingOptions: ParsableArguments {
 		// to capture the log output to a file.
 		if debuggingOptions.capture {
 			debugData = try DebugData(xcodeArchivePath: xcarchivePath)
+
 		}
 
 		// Initialize the logger
@@ -226,7 +227,7 @@ struct DebuggingOptions: ParsableArguments {
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
 		}.filter { !$0.isTest }
-        GenIRLogger.logger.debug("Project non-test targets: \(targets.count)")
+    GenIRLogger.logger.debug("Project non-test targets: \(targets.count)")
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)

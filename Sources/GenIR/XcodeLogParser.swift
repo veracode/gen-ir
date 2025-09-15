@@ -106,7 +106,7 @@ class XcodeLogParser {
 						if (commandsToLog.insert(commandKey)).inserted {
 							// Log the compiler along with the target
 							GenIRLogger.logger.debug("Found \($0.command.compiler.rawValue) compiler command for target: \(target)")
-						}
+\						}
 					}
 
 					commandLog.append(contentsOf: commands)
