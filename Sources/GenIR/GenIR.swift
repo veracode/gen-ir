@@ -108,7 +108,7 @@ struct DebuggingOptions: ParsableArguments {
 		}
 	}
 
-	mutating private func  validateXcarchive() throws {
+	mutating private func validateXcarchive() throws {
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
 		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
 		// folder, remove the IR portion
