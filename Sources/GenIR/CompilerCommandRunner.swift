@@ -54,24 +54,24 @@ struct CompilerCommandRunner {
 		let totalCommands = commands
 			.map { $0.value.count }
 			.reduce(0, +)
-		logger.info("Total commands to run: \(totalCommands)")
+		GenIRLogger.logger.info("Total commands to run: \(totalCommands)")
 
 		var totalModulesRun = 0
 
 		for target in targets {
 			// Continue to the next target if no commands are found for the current target
 			guard let targetCommands = commands[TargetKey(projectName: target.projectName, targetName: target.name)] else {
-				logger.debug("No commands found for target: \(target.name) in project: \(target.projectName)")
+				GenIRLogger.logger.debug("No commands found for target: \(target.name) in project: \(target.projectName)")
 				continue
 			}
 
-			logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
+			GenIRLogger.logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
 			totalModulesRun += try run(commands: targetCommands, for: target.productName, at: output)
 		}
 
 		let uniqueModules = Set(try fileManager.files(at: output, withSuffix: ".bc")).count
-		logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
+		GenIRLogger.logger.info("Finished compiling all targets. Unique modules: \(uniqueModules)")
 	}
 
 	/// Runs all commands for a given target
@@ -85,12 +85,12 @@ struct CompilerCommandRunner {
 		let targetDirectory = directory.appendingPathComponent(name)
 
 		try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
-		logger.debug("Created target directory: \(targetDirectory)")
+		GenIRLogger.logger.debug("Created target directory: \(targetDirectory)")
 
 		var targetModulesRun = 0
 
 		for (index, command) in commands.enumerated() {
-			logger.info(
+			GenIRLogger.logger.info(
 				"""
 				\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
 				Target modules processed: \(targetModulesRun)
@@ -106,7 +106,7 @@ struct CompilerCommandRunner {
 			do {
 				result = try Process.runShell(executable, arguments: arguments, runInDirectory: directory)
 			} catch {
-				logger.error(
+				GenIRLogger.logger.error(
 					"""
 					Couldn't create process for executable: \(executable) with arguments: \(arguments.joined(separator: " ")). \
 					This is likely a bug in parsing the build log. Please raise it as an issue.
@@ -122,7 +122,7 @@ struct CompilerCommandRunner {
 						continue
 					}
 				}
-				logger.error(
+				GenIRLogger.logger.error(
 				"""
 				Command finished:
 					- code: \(result.code)
@@ -141,7 +141,7 @@ struct CompilerCommandRunner {
 			switch command.compiler {
 			case .swiftc:
 				guard let outputFileMap = try getOutputFileMap(from: arguments) else {
-					logger.error("Failed to find OutputFileMap for command \(command.command) ")
+					GenIRLogger.logger.error("Failed to find OutputFileMap for command \(command.command) ")
 					break
 				}
 
@@ -151,7 +151,7 @@ struct CompilerCommandRunner {
 			}
 
 			if clangAdditionalModules == 0 && swiftAdditionalModules == 0 {
-				logger.error(
+				GenIRLogger.logger.error(
 					"""
 					No modules were produced from compiler, potential failure. Results: \n\n \
 					executable: \(executable)\n\n \
@@ -290,8 +290,8 @@ extension CompilerCommandRunner {
 		let path = arguments[index + 1].fileURL
 
 		guard fileManager.fileExists(atPath: path.filePath) else {
-			logger.error("Found an OutputFileMap, but it doesn't exist on disk? Please report this issue.")
-			logger.debug("OutputFileMap path: \(path)")
+			GenIRLogger.logger.error("Found an OutputFileMap, but it doesn't exist on disk? Please report this issue.")
+			GenIRLogger.logger.debug("OutputFileMap path: \(path)")
 			return nil
 		}
 

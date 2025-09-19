@@ -69,10 +69,10 @@ class OutputPostprocessor {
 			// folder. Otherwise we will create an empty directory and that will contain the artifacts
 			// of the dependency chain.
 			if manager.directoryExists(at: buildDirectory) {
-				logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
+				GenIRLogger.logger.debug("Copying \(node.value.guid) with name \(node.value.productName)")
 				try manager.copyItem(at: buildDirectory, to: irDirectory)
 			} else {
-				logger.debug("Creating build directory for \(node.value.guid) with name \(node.value.productName)")
+				GenIRLogger.logger.debug("Creating build directory for \(node.value.guid) with name \(node.value.productName)")
 				try manager.createDirectory(at: irDirectory, withIntermediateDirectories: false)
 			}
 
@@ -88,7 +88,7 @@ class OutputPostprocessor {
 		}
 
 		for node in graph.chain(for: target) {
-			logger.debug("Processing Node: \(node.valueName)")
+			GenIRLogger.logger.debug("Processing Node: \(node.valueName)")
 
 			// Do not copy dynamic dependencies
 			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
@@ -100,7 +100,7 @@ class OutputPostprocessor {
 				do {
 					try copyContentsOfDirectoryMergingDifferingFiles(at: buildDirectory, to: irDirectory)
 				} catch {
-					logger.debug("Copy error: \(error)")
+					GenIRLogger.logger.debug("Copy error: \(error)")
 				}
 			}
 		}
@@ -125,7 +125,7 @@ class OutputPostprocessor {
 			// Avoid overwriting existing files with the same name.
 			let uniqueDestinationURL = manager.uniqueFilename(directory: destination.deletingLastPathComponent(), filename: source.lastPathComponent)
 
-			logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
+			GenIRLogger.logger.debug("Copying source \(source) to destination: \(uniqueDestinationURL)")
 			try manager.copyItem(at: source, to: uniqueDestinationURL)
 		}
 	}
@@ -135,7 +135,7 @@ class OutputPostprocessor {
 	/// - Returns: a mapping of filename to filepath for dynamic objects in the provided path
 	private func dynamicDependencies(in xcarchive: URL) -> [String: URL] {
 		let searchPath = baseSearchPath(startingAt: xcarchive)
-		logger.debug("Using search path for dynamic dependencies: \(searchPath)")
+		GenIRLogger.logger.debug("Using search path for dynamic dependencies: \(searchPath)")
 
 		let dynamicDependencyExtensions = ["framework", "appex", "app"]
 
@@ -170,7 +170,7 @@ class OutputPostprocessor {
 			}
 
 			if contents.count > 1 {
-				logger.debug("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
+				GenIRLogger.logger.debug("Expected one folder at: \(path). Found \(contents.count). Selecting \(contents.first!)")
 			}
 
 			return contents.first!
@@ -182,7 +182,7 @@ class OutputPostprocessor {
 			}
 		}
 
-		logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
+		GenIRLogger.logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
 		return productsPath
 	}
 }
