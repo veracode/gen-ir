@@ -37,18 +37,28 @@ public class DependencyGraph<Value: NodeValue> {
 	/// - Parameter value: the associated value for a node to start the search with
 	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
 	public func chain(for value: Value) -> [Node] {
+		let noFilter: [String: URL] = [:]
+		return chainWithFilter(for: value, dynamicDepencyFilter: noFilter)
+	}
+
+	/// Returns the dependency 'chain' for the value associated with a node in the graph using a depth-first search
+	/// while filtering dynamic dependencies.  
+	/// - Parameter value: the associated value for a node to start the search with
+	/// - Parameter value: a dictionary whose keys indicating node values which will not be chased further.
+	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
+	public func chainWithFilter(for value: Value, dynamicDepencyFilter: [String: URL]) -> [Node] {
 		guard let node = findNode(for: value) else {
 			GenIRLogger.logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
 		}
 
-		return depthFirstSearch(startingAt: node)
+		return depthFirstSearchWithFilter(startingAt: node, dynamicDepencyFilter: dynamicDepencyFilter)
 	}
 
 	/// Perform a depth-first search starting at the provided node
 	/// - Parameter node: the node whose children to search through
 	/// - Returns: an array of nodes ordered by a depth-first search approach
-	private func depthFirstSearch(startingAt node: Node) -> [Node] {
+	private func depthFirstSearchWithFilter(startingAt node: Node, dynamicDepencyFilter: [String: URL]) -> [Node] {
 		GenIRLogger.logger.debug("----\nSearching for: \(node.value.valueName)")
 		var visited = Set<Node>()
 		var chain = [Node]()
@@ -60,6 +70,11 @@ public class DependencyGraph<Value: NodeValue> {
 			visited.insert(node)
 
 			for edge in node.edges where edge.relationship == .dependency {
+				if dynamicDepencyFilter[edge.to.valueName] != nil {
+					GenIRLogger.logger.debug("\tskipping dependency: \(edge.to.valueName)")
+					chain.append(edge.to)
+					continue
+				}
 				if visited.insert(edge.to).inserted {
 					GenIRLogger.logger.debug("edge to: \(edge.to)")
 					depthFirst(node: edge.to)

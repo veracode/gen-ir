@@ -87,11 +87,18 @@ class OutputPostprocessor {
 			return
 		}
 
-		for node in graph.chain(for: target) {
+		for node in graph.chainWithFilter(for: target, dynamicDepencyFilter: dynamicDependencyToPath) {
 			GenIRLogger.logger.debug("Processing Node: \(node.valueName)")
 
 			// Do not copy dynamic dependencies
-			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
+			guard dynamicDependencyToPath[node.value.productName] == nil else {
+					// Add a reference to this directory for any dynamic dependency that is not the current one being processed.
+					if irDirectory.lastPathComponent != node.value.productName {
+						let dynamDir = irDirectory.appendingPathComponent(node.value.productName)
+						try manager.createDirectory(at: dynamDir, withIntermediateDirectories: false)
+					}
+					continue
+				}
 
 			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
 
