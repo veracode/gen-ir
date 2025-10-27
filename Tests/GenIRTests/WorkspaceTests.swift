@@ -15,6 +15,7 @@ final class WorkspaceTests: XCTestCase {
 	static let frameworkIRFiles: Set<String> = ["Framework.bc", "Framework_vers.bc"]
 	static let sfSafeSymbolsIRFiles: Set<String> = [
 		"NSImageExtension.bc",
+		"savedDeps.json",
 		"SFSymbol+1.0.bc",
 		"SFSymbol+1.1.bc",
 		"SFSymbol+2.0.bc",
