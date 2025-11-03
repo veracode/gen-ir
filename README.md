@@ -26,13 +26,18 @@ To **install and run** the tool, you'll need Homebrew, Xcode, and macOS 12 or gr
 ## Install
 
 ```bash
-# If you don't have brew installed, install it: https://brew.sh/
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is not installed. Visit https://brew.sh/ to install it."
+  return 1 2>/dev/null || true
+else
+  echo "Installing gen-ir using Homebrew" &&
+  brew tap veracode/tap &&
+  brew install gen-ir &&
 
-# Add the brew tap to your local machine
-brew tap veracode/tap
-
-# Install the tool
-brew install gen-ir
+  echo "gen-ir installed successfully."
+  echo "For usage instructions, see:"
+  echo "  https://github.com/veracode/gen-ir#readme"
+fi
 ```
 
 ## Update (if previously installed)
