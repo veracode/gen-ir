@@ -91,8 +91,8 @@ class OutputPostprocessor {
 			return
 		}
 
-		for node in graph.chainWithFilter(for: target, dynamicDepencyFilter: dynamicDependencyToPath) {
-			GenIRLogger.logger.debug("Processing Node: \(node.valueName)")
+		for node in graph.chainWithFilter(for: target, filter: Set(dynamicDependencyToPath.keys)) {
+			GenIRLogger.logger.debug("Processing Node with product: \(node.value.productName) and value: \(node.valueName)")
 
 			// Do not copy dynamic dependencies
 			guard dynamicDependencyToPath[node.value.productName] == nil else {
@@ -101,6 +101,7 @@ class OutputPostprocessor {
 					if irDirectory.lastPathComponent != node.value.productName {
 						savedDeps[irDirectory.lastPathComponent, default: []].append(node.value.productName)
 					}
+					GenIRLogger.logger.debug(" ---> Skipping dynamic dependency: \(node.value.productName)")
 					continue
 				}
 
