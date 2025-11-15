@@ -79,14 +79,14 @@ class OutputPostprocessor {
 
 			// Copy over this target's static dependencies
 			var processed: Set<Target> = []
-			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDeps: &targetDependencies)
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDependencies: &targetDependencies)
 
 			// Persist the dependency map for this target
-			try persistDynamicDependencies(map: targetDependencies, to: irDirectory.appendingPathComponent("savedDeps.json"))
+			try persistDynamicDependencies(map: targetDependencies, to: irDirectory.appendingPathComponent("savedDependencies.json"))
 		}
 	}
 
-	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>, savedDeps: inout [String: [String]]) throws {
+	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>, savedDependencies: inout [String: [String]]) throws {
 		guard processed.insert(target).inserted else {
 			return
 		}
@@ -99,13 +99,13 @@ class OutputPostprocessor {
 					// Skip this directory for any dynamic dependency that is not the current one being processed. During preprocessing on the
 					// platform the modules for this dependency will be retrieved and added to this module.
 					if irDirectory.lastPathComponent != node.value.productName {
-						savedDeps[irDirectory.lastPathComponent, default: []].append(node.value.productName)
+						savedDependencies[irDirectory.lastPathComponent, default: []].append(node.value.productName)
 					}
 					GenIRLogger.logger.debug(" ---> Skipping dynamic dependency: \(node.value.productName)")
 					continue
 				}
 
-			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDeps: &savedDeps)
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDependencies: &savedDependencies)
 
 			let buildDirectory = build.appendingPathComponent(node.value.productName)
 			if manager.directoryExists(at: buildDirectory) {
