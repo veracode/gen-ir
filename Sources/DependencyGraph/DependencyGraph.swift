@@ -37,18 +37,31 @@ public class DependencyGraph<Value: NodeValue> {
 	/// - Parameter value: the associated value for a node to start the search with
 	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
 	public func chain(for value: Value) -> [Node] {
+		let noFilter: Set<String> = []
+		return chainWithFilter(for: value, filter: noFilter)
+	}
+
+	/// Returns the dependency 'chain' for the value associated with a node in the graph using a depth-first search
+	/// while filtering dynamic dependencies.  
+	/// - Parameter value: the associated value for a node to start the search with
+	/// - Parameter value: a set whose keys indicate node values which will not be chased further.
+	/// - Returns: the chain of nodes, starting with the 'bottom' of the dependency subgraph
+	public func chainWithFilter(for value: Value, filter dynamicDependencyFilter: Set<String>) -> [Node] {
 		guard let node = findNode(for: value) else {
 			GenIRLogger.logger.debug("Couldn't find node for value: \(value.valueName)")
 			return []
 		}
 
-		return depthFirstSearch(startingAt: node)
+		return depthFirstSearchWithFilter(startingAt: node, filter: dynamicDependencyFilter)
 	}
 
 	/// Perform a depth-first search starting at the provided node
 	/// - Parameter node: the node whose children to search through
+	/// - Parameter filter: A set of String. If a dependency relationship in the graph is contained in
+	/// 	the Set, then add that edge to the chain and continue with the next edge without descending
+	/// 	further down the graph.
 	/// - Returns: an array of nodes ordered by a depth-first search approach
-	private func depthFirstSearch(startingAt node: Node) -> [Node] {
+	private func depthFirstSearchWithFilter(startingAt node: Node, filter dynamicDependencyFilter: Set<String>) -> [Node] {
 		GenIRLogger.logger.debug("----\nSearching for: \(node.value.valueName)")
 		var visited = Set<Node>()
 		var chain = [Node]()
@@ -60,6 +73,11 @@ public class DependencyGraph<Value: NodeValue> {
 			visited.insert(node)
 
 			for edge in node.edges where edge.relationship == .dependency {
+				if dynamicDependencyFilter.contains(edge.to.valueName) {
+					GenIRLogger.logger.debug("\tskipping dependency: \(edge.to.valueName)")
+					chain.append(edge.to)
+					continue
+				}
 				if visited.insert(edge.to).inserted {
 					GenIRLogger.logger.debug("edge to: \(edge.to)")
 					depthFirst(node: edge.to)

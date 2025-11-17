@@ -107,7 +107,7 @@ struct DebuggingOptions: ParsableArguments {
 		}
 	}
 
-	mutating private func  validateXcarchive() throws {
+	mutating private func validateXcarchive() throws {
 		// Version 0.2.x and below allowed the output folder to be any arbitrary folder.
 		// Docs said to use 'IR' inside an xcarchive. For backwards compatibility, if we have an xcarchive path with an IR
 		// folder, remove the IR portion
@@ -226,7 +226,7 @@ struct DebuggingOptions: ParsableArguments {
 		let targets = pifCache.projects.flatMap { project in
 			project.targets.compactMap { Target(from: $0, in: project) }
 		}.filter { !$0.isTest }
-        GenIRLogger.logger.debug("Project non-test targets: \(targets.count)")
+    GenIRLogger.logger.debug("Project non-test targets: \(targets.count)")
 
 		let targetCommands = log.commandLog.reduce(into: [TargetKey: [CompilerCommand]]()) { commands, entry in
 			commands[entry.target, default: []].append(entry.command)
