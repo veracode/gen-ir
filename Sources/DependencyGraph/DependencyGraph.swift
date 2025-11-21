@@ -61,7 +61,9 @@ public class DependencyGraph<Value: NodeValue> {
 	/// 	the Set, then add that edge to the chain and continue with the next edge without descending
 	/// 	further down the graph.
 	/// - Returns: an array of nodes ordered by a depth-first search approach
+
 	private func depthFirstSearchWithFilter(startingAt node: Node, filter dynamicDependencyFilter: Set<String>) -> [Node] {
+
 		GenIRLogger.logger.debug("----\nSearching for: \(node.value.valueName)")
 		var visited = Set<Node>()
 		var chain = [Node]()
