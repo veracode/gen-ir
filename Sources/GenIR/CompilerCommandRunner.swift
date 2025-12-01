@@ -65,7 +65,7 @@ struct CompilerCommandRunner {
 				continue
 			}
 
-			GenIRLogger.logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
+			GenIRLogger.logger.debug("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
 			totalModulesRun += try run(commands: targetCommands, for: target.productName, at: output)
 		}
@@ -90,7 +90,7 @@ struct CompilerCommandRunner {
 		var targetModulesRun = 0
 
 		for (index, command) in commands.enumerated() {
-			GenIRLogger.logger.info(
+			GenIRLogger.logger.debug(
 				"""
 				\(dryRun ? "Dry run of" : "Running") command (\(command.compiler.rawValue)) \(index + 1) of \(commands.count). \
 				Target modules processed: \(targetModulesRun)

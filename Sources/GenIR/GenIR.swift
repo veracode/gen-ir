@@ -97,7 +97,6 @@ struct DebuggingOptions: ParsableArguments {
 		// to capture the log output to a file.
 		if debuggingOptions.capture {
 			debugData = try DebugData(xcodeArchivePath: xcarchivePath)
-
 		}
 
 		// Initialize the logger

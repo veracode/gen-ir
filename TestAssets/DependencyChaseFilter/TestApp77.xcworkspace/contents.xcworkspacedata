@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <Group
+      location = "group:TestApp77/TestApp77.xcodeproj/Dependencies"
+      name = "Dependencies">
+      <FileRef
+         location = "container:TestLibraryC/TestLibraryC.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "container:TestLibraryB/TestLibraryB.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "container:TestLibraryA/TestLibraryA.xcodeproj">
+      </FileRef>
+   </Group>
+   <FileRef
+      location = "container:TestApp77/TestApp77.xcodeproj">
+   </FileRef>
+</Workspace>

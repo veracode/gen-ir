@@ -56,6 +56,7 @@ class OutputPostprocessor {
 		try manager.createDirectory(at: output, withIntermediateDirectories: false)
 
 		for node in nodes {
+			var targetDependencies: [String: [String]] = [:]
 			let dependers = node.edges.filter { $0.relationship == .depender }
 
 			guard dynamicDependencyToPath[node.value.productName] != nil || (dependers.count == 0 && !node.value.isSwiftPackage) else {
@@ -78,22 +79,33 @@ class OutputPostprocessor {
 
 			// Copy over this target's static dependencies
 			var processed: Set<Target> = []
-			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDependencies: &targetDependencies)
+
+			// Persist the dependency map for this target
+			try persistDynamicDependencies(map: targetDependencies, to: irDirectory.appendingPathComponent("savedDependencies.json"))
 		}
 	}
 
-	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>) throws {
+	private func copyDependencies(for target: Target, to irDirectory: URL, processed: inout Set<Target>, savedDependencies: inout [String: [String]]) throws {
 		guard processed.insert(target).inserted else {
 			return
 		}
 
-		for node in graph.chain(for: target) {
-			GenIRLogger.logger.debug("Processing Node: \(node.valueName)")
+		for node in graph.chainWithFilter(for: target, filter: Set(dynamicDependencyToPath.keys)) {
+			GenIRLogger.logger.debug("Processing Node with product: \(node.value.productName) and value: \(node.valueName)")
 
 			// Do not copy dynamic dependencies
-			guard dynamicDependencyToPath[node.value.productName] == nil else { continue }
+			guard dynamicDependencyToPath[node.value.productName] == nil else {
+					// Skip this directory for any dynamic dependency that is not the current one being processed. During preprocessing on the
+					// platform the modules for this dependency will be retrieved and added to this module.
+					if irDirectory.lastPathComponent != node.value.productName {
+						savedDependencies[irDirectory.lastPathComponent, default: []].append(node.value.productName)
+					}
+					GenIRLogger.logger.debug(" ---> Skipping dynamic dependency: \(node.value.productName)")
+					continue
+				}
 
-			try copyDependencies(for: node.value, to: irDirectory, processed: &processed)
+			try copyDependencies(for: node.value, to: irDirectory, processed: &processed, savedDependencies: &savedDependencies)
 
 			let buildDirectory = build.appendingPathComponent(node.value.productName)
 			if manager.directoryExists(at: buildDirectory) {
@@ -184,5 +196,20 @@ class OutputPostprocessor {
 
 		GenIRLogger.logger.debug("Couldn't determine the base search path for the xcarchive, using: \(productsPath)")
 		return productsPath
+	}
+
+	/// Persist the dynamic dependecies in the IR folder. The preprocessor will use this data to build modules
+	/// for BCA.
+	private func persistDynamicDependencies(map dynamicDependencyToPath: [String: [String]], to destination: URL) throws {
+		// Convert URL to string for serialization
+		let serializableDict = dynamicDependencyToPath.mapValues { $0 }
+
+		// JSON encode
+		let encoder = JSONEncoder()
+		encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+		let data = try encoder.encode(serializableDict)
+
+		// Write to file
+		try data.write(to: URL(fileURLWithPath: destination.filePath))
 	}
 }
