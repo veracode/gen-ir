@@ -213,6 +213,7 @@ struct DebuggingOptions: ParsableArguments {
 
 		let output = archive.appendingPathComponent("IR")
 		let log = try logParser(for: log)
+		GenIRLogger.logger.info("Processing the xcodebuild log.")
 		try log.parse()
 
 		// Find and parse the PIF cache
@@ -250,7 +251,7 @@ struct DebuggingOptions: ParsableArguments {
 			buildCacheManipulator: buildCacheManipulator,
 			dryRun: dryRun
 		)
-    GenIRLogger.logger.debug("Targets to run: \(targets.count)")
+    GenIRLogger.logger.info("Targets to process: \(targets.count)")
 		try runner.run(targets: targets, commands: targetCommands)
 
 		let postprocessor = try OutputPostprocessor(

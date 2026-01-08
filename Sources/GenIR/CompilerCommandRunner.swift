@@ -65,7 +65,7 @@ struct CompilerCommandRunner {
 				continue
 			}
 
-			GenIRLogger.logger.debug("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
+			GenIRLogger.logger.info("Operating on target: \(target.name). Total modules processed: \(totalModulesRun)")
 
 			totalModulesRun += try run(commands: targetCommands, for: target.productName, at: output)
 		}
