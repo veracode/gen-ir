@@ -403,6 +403,7 @@ public enum PIF {
 				logger.info("                    Error: dependency \(name) is missing a guid and will not be resolved!\n")
 				logger.info("                       For more context rerun with --log-level=trace.")
 				logger.info("                       Be aware the this may generate a LOT of output.")
+				logger.info("                    This is an error in your project metadata you may want to report this to Apple.")
 				logger.info("          ------------------------------------------------------------------------------------------")
 			}
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
