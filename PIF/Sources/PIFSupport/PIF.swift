@@ -382,7 +382,7 @@ public enum PIF {
 		public let name: String
 
 		/// Identifier of depended-upon target.
-		public let targetGUID: String
+		public let targetGUID: String?
 
 		/// The platform filters for this target dependency.
 		public let platformFilters: [PlatformFilter]
@@ -395,10 +395,9 @@ public enum PIF {
 			let container = try decoder.container(keyedBy: CodingKeys.self)
 
 			name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Unknown"
-			do {
-				targetGUID = try container.decode(String.self, forKey: .guid)
-			} catch {
-				targetGUID = ""
+			targetGUID = try container.decodeIfPresent(String.self, forKey: .guid)
+
+			if targetGUID == nil {
 				logger.info("          ------------------------------------------------------------------------------------------")
 				logger.info("                    Error: dependency \(name) is missing a guid and will not be resolved!\n")
 				logger.info("                       For more context rerun with --log-level=trace.")
@@ -406,8 +405,9 @@ public enum PIF {
 				logger.info("                    This is an error in your project metadata you may want to report this to Apple.")
 				logger.info("          ------------------------------------------------------------------------------------------")
 			}
+
 			platformFilters = try container.decodeIfPresent([PlatformFilter].self, forKey: .platformFilters) ?? []
-			logger.trace("---> Decoded TargetDependency: \(name) \(targetGUID)")
+			logger.trace("---> Decoded TargetDependency: \(name) \(targetGUID ?? "<nil>")")
 		}
 	}
 
