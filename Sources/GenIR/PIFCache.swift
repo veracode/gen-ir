@@ -196,11 +196,17 @@ struct PIFDependencyProvider: DependencyProviding {
 
 		let productTargetDependencies = cache.target(guid: product.guid)?
 			.dependencies
-			.filter { $0.targetGUID.starts(with: targetToken) }
+			.compactMap { dependency -> PIF.TargetDependency? in
+				guard let guid = dependency.targetGUID, guid.starts(with: targetToken) else { return nil }
+				return dependency
+			}
 			?? []
 
 		let productUnderlyingTargets = productTargetDependencies
-			.filter { $0.targetGUID.dropFirst(targetToken.count) == productName }
+			.filter { dependency in
+				guard let guid = dependency.targetGUID else { return false }
+				return guid.dropFirst(targetToken.count) == productName
+			}
 
 		if productUnderlyingTargets.isEmpty && !productTargetDependencies.isEmpty {
 			// We likely have a stub target here (i.e. a precompiled framework)
@@ -217,15 +223,20 @@ struct PIFDependencyProvider: DependencyProviding {
 			return productTargetDependencies.first?.targetGUID
 		}
 
-		GenIRLogger.logger.debug("\(packageProductGUID) resolves to \(target.targetGUID)")
-		return target.targetGUID
+		guard let targetGUID = target.targetGUID else {
+			GenIRLogger.logger.debug("\(packageProductGUID) resolves to a target with nil GUID")
+			return nil
+		}
+
+		GenIRLogger.logger.debug("\(packageProductGUID) resolves to \(targetGUID)")
+		return targetGUID
 	}
 
 	func dependencies(for value: Target) -> [Target] {
 		// Direct dependencies
 		let dependencyTargetGUIDs = cache.target(guid: value.guid)?
 			.dependencies
-			.map { $0.targetGUID }
+			.compactMap { $0.targetGUID }
 			.compactMap { resolveSwiftPackage($0) }
 			?? []
 
