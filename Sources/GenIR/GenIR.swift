@@ -17,13 +17,13 @@ struct DeprecatedOptions: ParsableArguments {
 
 struct DebuggingOptions: ParsableArguments {
 
-	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
+	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .default))
 	var pifCachePath: URL?
 
-	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
+	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .default))
 	var logLevel: LogLevelArgument?
 
-	@Flag(help: ArgumentHelp("If true, add captured debug data to the xcarchive.", visibility: .hidden))
+	@Flag(help: ArgumentHelp("If true, add captured debug data to the xcarchive.", visibility: .default))
 	var capture: Bool = false
 }
 
@@ -85,7 +85,6 @@ struct DebuggingOptions: ParsableArguments {
   // Drop this in release 0.6 or greater
   @OptionGroup var deprecatedOptions: DeprecatedOptions
 
-  // These options are hidden and will not be shown in the help text
   @OptionGroup var debuggingOptions: DebuggingOptions
 
 	mutating func validate() throws {
