@@ -2,7 +2,7 @@
 //
 // This source file contains derivative work from the Swift Open Source Project
 //
-// Copyright (c) 2014-2020 Apple Inc. and the Swift project authors
+// Copyright (c) 2014-2023 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -483,35 +483,59 @@ public enum PIF {
 	/// An Xcode target, representing a single entity to build.
 	public final class Target: BaseTarget {
 		public enum ProductType: String, Decodable {
-			case appExtension = "com.apple.product-type.app-extension"
-			case appExtensionMessages = "com.apple.product-type.app-extension.messages"
-			case stickerPackExtension = "com.apple.product-type.app-extension.messages-sticker-pack"
-			case application = "com.apple.product-type.application"
-			case applicationMessages = "com.apple.product-type.application.messages"
-			case appClip = "com.apple.product-type.application.on-demand-install-capable"
-			case bundle = "com.apple.product-type.bundle"
-			case externalTest = "com.apple.product-type.bundle.external-test"
-			case ocUnitTest = "com.apple.product-type.bundle.ocunit-test"
-			case uiTesting = "com.apple.product-type.bundle.ui-testing"
-			case unitTest = "com.apple.product-type.bundle.unit-test"
-			case extensionKitExtension = "com.apple.product-type.extensionkit-extension"
-			case framework = "com.apple.product-type.framework"
-			case staticFramework = "com.apple.product-type.framework.static"
-			case instrumentsPackage = "com.apple.product-type.instruments-package"
-			case kernelExtension = "com.apple.product-type.kernel-extension"
-			case ioKitKernelExtension = "com.apple.product-type.kernel-extension.iokit"
-			case dynamicLibrary = "com.apple.product-type.library.dynamic"
-			case staticLibrary = "com.apple.product-type.library.static"
-			case objectFile = "com.apple.product-type.objfile"
-			case pluginKitPlugin = "com.apple.product-type.pluginkit-plugin"
+			case appExtension = "product-type.app-extension"
+			case appExtensionMessages = "product-type.app-extension.messages"
+			case stickerPackExtension = "product-type.app-extension.messages-sticker-pack"
+			case application = "product-type.application"
+			case applicationMessages = "product-type.application.messages"
+			case appClip = "product-type.application.on-demand-install-capable"
+			case bundle = "product-type.bundle"
+			case externalTest = "product-type.bundle.external-test"
+			case ocUnitTest = "product-type.bundle.ocunit-test"
+			case uiTesting = "product-type.bundle.ui-testing"
+			case unitTest = "product-type.bundle.unit-test"
+			case extensionKitExtension = "product-type.extensionkit-extension"
+			case framework = "product-type.framework"
+			case staticFramework = "product-type.framework.static"
+			case instrumentsPackage = "product-type.instruments-package"
+			case kernelExtension = "product-type.kernel-extension"
+			case ioKitKernelExtension = "product-type.kernel-extension.iokit"
+			case dynamicLibrary = "product-type.library.dynamic"
+			case staticLibrary = "product-type.library.static"
+			case objectFile = "product-type.objfile"
+			case pluginKitPlugin = "product-type.pluginkit-plugin"
 			case packageProduct = "packageProduct"
-			case systemExtension = "com.apple.product-type.system-extension"
-			case tool = "com.apple.product-type.tool"
-			case hostBuild = "com.apple.product-type.tool.host-build"
-			case xpcService = "com.apple.product-type.xpc-service"
-			case watchApp2 = "com.apple.product-type.application.watchapp2"
-			case watchApp2Container = "com.apple.product-type.application.watchapp2-container"
-			case watchKit2Extension = "com.apple.product-type.watchkit2-extension"
+			case systemExtension = "product-type.system-extension"
+			case tool = "product-type.tool"
+			case hostBuild = "product-type.tool.host-build"
+			case xpcService = "product-type.xpc-service"
+			case watchApp2 = "product-type.application.watchapp2"
+			case watchApp2Container = "product-type.application.watchapp2-container"
+			case watchKit2Extension = "product-type.watchkit2-extension"
+
+			public init(from decoder: Decoder) throws {
+				let container = try decoder.singleValueContainer()
+				let fullValue = try container.decode(String.self)
+
+				let normalizedValue: String
+				if fullValue.hasPrefix("com.apple.") {
+					normalizedValue = String(fullValue.dropFirst("com.apple.".count))
+				} else if fullValue.hasPrefix("org.swift.") {
+					normalizedValue = String(fullValue.dropFirst("org.swift.".count))
+				} else {
+					normalizedValue = fullValue
+				}
+
+				guard let decodedCase = ProductType(rawValue: normalizedValue) else {
+					throw DecodingError.dataCorrupted(
+						DecodingError.Context(
+							codingPath: decoder.codingPath,
+							debugDescription: "Cannot initialize ProductType from invalid String value \(fullValue)"
+						)
+					)
+				}
+				self = decodedCase
+			}
 		}
 
 		public let productName: String

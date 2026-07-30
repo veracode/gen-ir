@@ -17,13 +17,13 @@ struct DeprecatedOptions: ParsableArguments {
 
 struct DebuggingOptions: ParsableArguments {
 
-	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .hidden))
+	@Option(help: ArgumentHelp("Path to PIF cache. Use this in place of what is in the Xcode build log", visibility: .default))
 	var pifCachePath: URL?
 
-	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .hidden))
+	@Option(help: ArgumentHelp("Specifiy a logging level. The --debug flag will override this", visibility: .default))
 	var logLevel: LogLevelArgument?
 
-	@Flag(help: ArgumentHelp("If true, add captured debug data to the xcarchive.", visibility: .hidden))
+	@Flag(help: ArgumentHelp("If true, add captured debug data to the xcarchive.", visibility: .default))
 	var capture: Bool = false
 }
 
@@ -52,6 +52,11 @@ struct DebuggingOptions: ParsableArguments {
 				Example with pipe:
 					$ xcodebuild clean && xcodebuild build -project MyProject.xcodeproj \\\n\t\t-configuration Debug \\\n\t\t-scheme MyScheme \
 				\\\n\t\tDEBUG_INFOMATION_FORMAT=dwarf-with-dsym \\\n\t\tENABLE_BITCODE=NO \\\n\t\t2>&1 | \(programName) - x.xcarchive
+
+				Optionally:
+				If using precompilation on your Xcode build, it maybe necessary to turn that off to avoid module cache path errors.
+					 GCC_PRECOMPILE_PREFIX_HEADER=NO
+					 ENABLE_MODULE_PRECOMPILATION=NO
 
 				""",
 		version: "v\(Versions.version)"
@@ -85,7 +90,6 @@ struct DebuggingOptions: ParsableArguments {
   // Drop this in release 0.6 or greater
   @OptionGroup var deprecatedOptions: DeprecatedOptions
 
-  // These options are hidden and will not be shown in the help text
   @OptionGroup var debuggingOptions: DebuggingOptions
 
 	mutating func validate() throws {
