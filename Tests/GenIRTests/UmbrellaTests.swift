@@ -34,7 +34,7 @@ final class UmbrellaTests: XCTestCase {
 
 	func testSkipInstallNo() throws {
 		let context = TestContext()
-		try context.build(test: testPath, scheme: scheme, additionalArguments: ["SKIP_INSTALL=NO"])
+		try context.build(test: testPath, scheme: scheme, additionalArguments: ["SKIP_INSTALL=NO", "ENABLE_USER_SCRIPT_SANDBOXING=YES"])
 
 		let output = context.archive.appendingPathComponent("IR")
 
@@ -63,7 +63,7 @@ final class UmbrellaTests: XCTestCase {
 
 	func testCustomDerivedDataAndSkipInstallNo() throws {
 		let context = TestContext()
-		try context.build(test: testPath, scheme: scheme, additionalArguments: ["SKIP_INSTALL=NO", "-derivedDataPath", "_build"])
+		try context.build(test: testPath, scheme: scheme, additionalArguments: ["SKIP_INSTALL=NO", "ENABLE_USER_SCRIPT_SANDBOXING=YES", "-derivedDataPath", "_build"])
 
 		let output = context.archive.appendingPathComponent("IR")
 
