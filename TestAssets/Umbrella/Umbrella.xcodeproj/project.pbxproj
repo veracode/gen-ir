@@ -112,7 +112,6 @@
 				CEC11E5C29F6BF4900F16A2E /* Sources */,
 				CEC11E5D29F6BF4900F16A2E /* Frameworks */,
 				CEC11E5E29F6BF4900F16A2E /* Resources */,
-				CEC11E7329F6C29D00F16A2E /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -188,23 +187,6 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
-		};
-		CEC11E7329F6C29D00F16A2E /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 8;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-			shellPath = /bin/sh;
-			shellScript = "# All other frameworks are a by-product of building this framework, but this is just an empty framework, we don't need it so we can remove it.\nrm -rf \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.framework\"\nrm -rf \"$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
