@@ -503,6 +503,7 @@ public enum PIF {
 			case dynamicLibrary = "product-type.library.dynamic"
 			case staticLibrary = "product-type.library.static"
 			case objectFile = "product-type.objfile"
+			case commonObject = "product-type.common.object" // Xcode 27 SwiftPM: executable-style package target (e.g. a package demo tool)
 			case pluginKitPlugin = "product-type.pluginkit-plugin"
 			case packageProduct = "packageProduct"
 			case systemExtension = "product-type.system-extension"
@@ -567,10 +568,20 @@ public enum PIF {
 				buildPhases = fwkBuildPhase.map { [$0] } ?? []
 				impartedBuildProperties = ImpartedBuildProperties(buildSettings: BuildSettings())
 			} else if type == "standard" {
-				self.productType = try container.decode(ProductType.self, forKey: .productTypeIdentifier)
+				let productType = try container.decode(ProductType.self, forKey: .productTypeIdentifier)
+				self.productType = productType
 
 				let productReference = try container.decode([String: String].self, forKey: .productReference)
-				self.productName = productReference["name"]!
+				// `BuildSettings` decodes SwiftPM's nested layout, so the Xcode cache's flat dictionary comes out empty; read `PRODUCT_NAME` from the raw dictionary instead.
+				let productNameSettings = try container.decode([BuildConfigurationProductName].self, forKey: .buildConfigurations)
+				let productTypeIdentifier = try container.decode(String.self, forKey: .productTypeIdentifier)
+				self.productName = Target.resolveProductReferenceName(
+					productReference["name"]!,
+					targetName: name,
+					productType: productType,
+					isSwiftPackageProductType: productTypeIdentifier.hasPrefix("org.swift."),
+					productNameSetting: productNameSettings.first?.buildSettings.productName
+				)
 
 				let untypedBuildPhases = try container.decodeIfPresent([TypedObject].self, forKey: .buildPhases) ?? []
 				var buildPhasesContainer = try container.nestedUnkeyedContainer(forKey: .buildPhases)
@@ -596,6 +607,83 @@ public enum PIF {
 				impartedBuildSettings: impartedBuildProperties.buildSettings
 			)
 			logger.trace(" ---> Target \(name) with guid \(guid) and product type \(productType) and product name \(productName) decoded")
+		}
+
+		/// Xcode up to 26 writes a package target's product reference name as the final file name (`MyLibrary.o`, `MyLibrary.framework`).
+		/// Xcode 27 writes it as the unresolved build setting `$(WRAPPER_NAME)` or `$(EXECUTABLE_NAME)`, with `PRODUCT_NAME` either literal or `$(TARGET_NAME)`,
+		/// and no longer carries `EXECUTABLE_NAME` or `MACH_O_TYPE` in the target's build settings.
+		/// Resolves those two forms so the name still matches the built product (e.g. `<product>_<hash>_PackageProduct.framework` in the archive, `<target>.o` for a package target).
+		private struct BuildConfigurationProductName: Decodable {
+			struct BuildSettings: Decodable {
+				let productName: String?
+
+				private enum CodingKeys: String, CodingKey {
+					case productName = "PRODUCT_NAME"
+				}
+			}
+
+			let buildSettings: BuildSettings
+		}
+
+		private static func resolveProductReferenceName(
+			_ referenceName: String,
+			targetName: String,
+			productType: ProductType,
+			isSwiftPackageProductType: Bool,
+			productNameSetting: String?
+		) -> String {
+			guard referenceName.hasPrefix("$(") else { return referenceName }
+
+			var productName = productNameSetting ?? targetName
+			if productName == "$(TARGET_NAME)" {
+				productName = targetName
+			}
+
+			switch referenceName {
+			case "$(WRAPPER_NAME)":
+				return productName + wrapperExtension(for: productType)
+			case "$(EXECUTABLE_NAME)":
+				return executableName(productName, productType: productType, isSwiftPackageProductType: isSwiftPackageProductType)
+			default:
+				return productName
+			}
+		}
+
+		/// The extension `$(WRAPPER_NAME)` adds to the product name for a bundle-style product type, or nothing for the rest.
+		private static func wrapperExtension(for productType: ProductType) -> String {
+			switch productType {
+			case .framework, .staticFramework:
+				return ".framework"
+			case .application, .applicationMessages, .appClip, .watchApp2, .watchApp2Container:
+				return ".app"
+			case .appExtension, .appExtensionMessages, .stickerPackExtension, .extensionKitExtension, .watchKit2Extension:
+				return ".appex"
+			case .bundle, .externalTest, .ocUnitTest, .uiTesting, .unitTest:
+				return ".bundle"
+			case .xpcService:
+				return ".xpc"
+			default:
+				return ""
+			}
+		}
+
+		/// The file name `$(EXECUTABLE_NAME)` resolves to for a product type.
+		/// An `org.swift` library or object target is linked into one `<target>.o` (`clang -r`), as the `objfile` target was before Xcode 27.
+		private static func executableName(_ productName: String, productType: ProductType, isSwiftPackageProductType: Bool) -> String {
+			if isSwiftPackageProductType && (productType == .staticLibrary || productType == .commonObject) {
+				return productName + ".o"
+			}
+
+			switch productType {
+			case .objectFile:
+				return productName + ".o"
+			case .staticLibrary:
+				return "lib" + productName + ".a"
+			case .dynamicLibrary:
+				return productName + ".dylib"
+			default:
+				return productName
+			}
 		}
 	}
 
