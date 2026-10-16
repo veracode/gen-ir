@@ -188,11 +188,8 @@ struct PIFDependencyProvider: DependencyProviding {
 	/// - Parameter packageProductGUID: the swift product package guid
 	/// - Returns: the guid of the related Swift Package Target
 	private func resolveSwiftPackage(_ packageProductGUID: PIF.GUID) -> PIF.GUID? {
-		let productToken = "PACKAGE-PRODUCT:"
 		let targetToken = "PACKAGE-TARGET:"
-		guard packageProductGUID.starts(with: productToken), let product = guidToTargets[packageProductGUID] else { return packageProductGUID }
-
-		let productName = String(packageProductGUID.dropFirst(productToken.count))
+		guard let productName = Target.packageProductName(from: packageProductGUID), let product = guidToTargets[packageProductGUID] else { return packageProductGUID }
 
 		let productTargetDependencies = cache.target(guid: product.guid)?
 			.dependencies

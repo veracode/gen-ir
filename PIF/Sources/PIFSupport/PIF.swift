@@ -503,6 +503,7 @@ public enum PIF {
 			case dynamicLibrary = "product-type.library.dynamic"
 			case staticLibrary = "product-type.library.static"
 			case objectFile = "product-type.objfile"
+			case commonObject = "product-type.common.object" // Xcode 27 SwiftPM: executable-style package target (e.g. a package demo tool)
 			case pluginKitPlugin = "product-type.pluginkit-plugin"
 			case packageProduct = "packageProduct"
 			case systemExtension = "product-type.system-extension"

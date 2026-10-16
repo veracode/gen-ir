@@ -54,12 +54,12 @@ class Target {
 		projectName = project.projectName ?? project.groupTree.name ?? project.guid
 		if let target = baseTarget as? PIF.Target, !target.productName.isEmpty {
 			productName = target.productName
-		} else if baseTarget.guid == "PACKAGE-PRODUCT:\(baseTarget.name)" {
+		} else if let packageProductName = Target.packageProductName(from: baseTarget.guid) {
 			// The `PACKAGE-PRODUCT` for a package does not have a product reference name so
 			// we do not have a proper extension. For now we assume it is a framework and add
 			// the extension. A better way may be to follow the `dynamicTargetVariantGuid` of
 			// the `PACKAGE-TARGET` as this appears to provide the correct name if available.
-			productName = baseTarget.name.appending(".framework")
+			productName = packageProductName.appending(".framework")
 		} else {
 			// Fallback to the target's name if we are unable to determine a proper product name.
 			productName = baseTarget.name
@@ -74,6 +74,20 @@ class Target {
 		isBuildable = guid == "PACKAGE-TARGET:\(name)" || !guid.hasPrefix("PACKAGE-")
 		isPackageProduct = !guid.hasPrefix("PACKAGE-TARGET:")
 		isSwiftPackage = guid.hasPrefix("PACKAGE-")
+	}
+
+	/// The product name encoded in a `PACKAGE-PRODUCT:` GUID, or nil for any other GUID.
+	/// Xcode up to 26 writes `PACKAGE-PRODUCT:<product>`; Xcode 27 writes `PACKAGE-PRODUCT:<package>_<product>.<product>`.
+	/// A dynamic variant carries a `-<hash>-dynamic` suffix after the product in both forms, and it stays in the returned name.
+	static func packageProductName(from guid: String) -> String? {
+		let productToken = "PACKAGE-PRODUCT:"
+		guard guid.hasPrefix(productToken) else { return nil }
+
+		let qualifiedName = guid.dropFirst(productToken.count)
+		guard let dot = qualifiedName.lastIndex(of: "."), qualifiedName[..<dot].contains("_") else {
+			return String(qualifiedName)
+		}
+		return String(qualifiedName[qualifiedName.index(after: dot)...])
 	}
 }
 
