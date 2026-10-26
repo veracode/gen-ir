@@ -5,8 +5,9 @@
 //  Created by Thomas Hedderwick on 12/09/2022.
 //
 // History:
-// 2026-nn-nn - 1.0.3 -- SSAST-15959, SSAST-16090 - product type org.swift...; help text update
-// 2026-nn-nn - 1.0.2 -- SSAST-11722 don't fail on TargetDependency decode failure.
+// 2026-nn-nn - 1.0.4 -- Apply pr-108. New swift product codes.
+// 2026-08-14 - 1.0.3 -- SSAST-15959, SSAST-16090 - product type org.swift...; help text update
+// 2026-03-30 - 1.0.2 -- SSAST-11722 don't fail on TargetDependency decode failure.
 // 2026-01-08 - 1.0.1 -- Use info logging to allow user to monitor progress.
 // 2025-12-01 - 1.0.0 -- Don't chase through Dynamic Dependencies
 // 2025-09-19 - 0.5.4 -- Update release doc; warn multiple builds; capture debug data
@@ -17,5 +18,5 @@
 import Foundation
 
 enum Versions {
-	static let version = "1.0.3"
+	static let version = "1.0.4"
 }
