@@ -1,6 +1,7 @@
+# ***Veracode Only***
 # Execute the BCA Pipeline on a Gen-IR Release
 
-## One time setup
+## One Time Setup
 1. Check the value of CI_XCODE_SUPPORTED variable in https://gitlab.laputa.veracode.io/static/simple-code-scanners/BitcodeAnalyzer/-/settings/ci_cd#js-cicd-variables-settings (currently 27.1) - this is the Xcode version you need to use for tests building. If you need to test with older Xcode versions - let me know and I’ll another CI/CD variable specifically for that purpose.
 
 2. If you don’t have the following installed, do this: 
@@ -28,7 +29,7 @@ Edit your ~/.zshrc file (or the bash equivalent) and add the following.
     python -m pip intstall boto3’
 ```  
 
-## Building a test
+## Build and Run a Test
 1. Make sure you have the target Xcode version (27.1) installed and selected, and all the components downloaded (xcodebuild -downloadAllPlatforms)
 
 2. Make sure that the python bca environment is activated
@@ -65,5 +66,5 @@ aws s3 cp "genir-<GENIR_VERSION>-bca-test-apps-bc-27.1.tar.gz" s3://staticengine
 
 7. Run the pipeline: trigger a pipeline with GENIR_VERSION set to the same value you used 'Building a test' Step 6.
 
-## History
+### History
     - https://veracode.atlassian.net/browse/SSAST-10768
